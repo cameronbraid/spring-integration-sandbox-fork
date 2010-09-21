@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns="http://www.springframework.org/schema/integration"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:beans="http://www.springframework.org/schema/beans"
+	xmlns:amqp="http://www.springframework.org/schema/integration/amqp"
+	xmlns:console="http://www.springframework.org/schema/integration/stream"
+	xsi:schemaLocation="http://www.springframework.org/schema/integration
+		http://www.springframework.org/schema/integration/spring-integration.xsd
+		http://www.springframework.org/schema/integration/amqp 
+		http://www.springframework.org/schema/integration/amqp/spring-integration-amqp.xsd
+		http://www.springframework.org/schema/integration/stream
+		http://www.springframework.org/schema/integration/stream/spring-integration-stream.xsd
+		http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<amqp:inbound-channel-adapter queue-name="si.test.queue" channel="fromRabbit" connection-factory="connectionFactory"/>
+
+	<console:stdout-channel-adapter id="fromRabbit" append-newline="true"/>
+
+	<console:stdin-channel-adapter channel="toRabbit">
+		<poller fixed-delay="1000" max-messages-per-poll="1"/>
+	</console:stdin-channel-adapter>
+
+	<channel id="toRabbit"/>
+
+	<amqp:outbound-channel-adapter channel="toRabbit" exchange-name="si.test.exchange" routing-key="si.test.binding" amqp-template="amqpTemplate"/>
+
+	<beans:bean id="amqpTemplate" class="org.springframework.amqp.rabbit.core.RabbitTemplate">
+		<beans:property name="connectionFactory" ref="connectionFactory"/>
+	</beans:bean>
+
+	<beans:bean id="connectionFactory" class="org.springframework.amqp.rabbit.connection.SingleConnectionFactory">
+		<beans:property name="username" value="guest"/>
+		<beans:property name="password" value="guest"/>
+	</beans:bean>
+
+</beans:beans>
