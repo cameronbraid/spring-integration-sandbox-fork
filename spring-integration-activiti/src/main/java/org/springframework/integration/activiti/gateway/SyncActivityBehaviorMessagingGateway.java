@@ -221,14 +221,14 @@ public class SyncActivityBehaviorMessagingGateway implements BeanFactoryAware, B
 		runtimeService = this.processEngine.getRuntimeService();
 
 		if (this.platformTransactionManager != null) {
-			this.messagingTemplate.setTransactionManager(this.platformTransactionManager);
+			// todo this.messagingTemplate.setTransactionManager(this.platformTransactionManager);
 		}
 
 		MessageHandler handler = new ReplyMessageHandler();
 
 		PollerMetadata pollerMetadata = new PollerMetadata();
 		pollerMetadata.setReceiveTimeout(-1);
-		pollerMetadata.setTransactionManager(this.platformTransactionManager);
+		// todo  pollerMetadata.setTransactionManager(this.platformTransactionManager);
 		pollerMetadata.setTrigger(new PeriodicTrigger(10));
 
 		ConsumerEndpointFactoryBean consumerEndpointFactoryBean = new ConsumerEndpointFactoryBean();
