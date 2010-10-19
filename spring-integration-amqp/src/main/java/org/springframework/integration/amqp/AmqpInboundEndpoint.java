@@ -20,6 +20,8 @@ import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageListener;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
+import org.springframework.amqp.support.converter.MessageConverter;
+import org.springframework.amqp.support.converter.SimpleMessageConverter;
 import org.springframework.integration.endpoint.MessageProducerSupport;
 import org.springframework.integration.support.MessageBuilder;
 import org.springframework.util.Assert;
@@ -34,6 +36,8 @@ import org.springframework.util.Assert;
 public class AmqpInboundEndpoint extends MessageProducerSupport {
 
 	private final SimpleMessageListenerContainer messageListenerContainer;
+
+	private final MessageConverter converter = new SimpleMessageConverter();
 
 
 	public AmqpInboundEndpoint(ConnectionFactory connectionFactory) {
@@ -52,7 +56,8 @@ public class AmqpInboundEndpoint extends MessageProducerSupport {
 		this.messageListenerContainer.setMessageListener(new MessageListener() {
 			@Override
 			public void onMessage(Message message) {
-				sendMessage(MessageBuilder.withPayload(message.getBody())
+				Object payload = converter.fromMessage(message);
+				sendMessage(MessageBuilder.withPayload(payload)
 						.copyHeaders(message.getMessageProperties().getHeaders()).build());
 			}
 		});
