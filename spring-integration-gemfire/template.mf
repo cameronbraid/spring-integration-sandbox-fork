@@ -8,7 +8,9 @@ Import-Template:
  org.springframework.beans.*;version="[3.0.0, 4.0.0)",
  org.springframework.context;version="[3.0.0, 4.0.0)",
  org.springframework.core.*;version="[3.0.0, 4.0.0)",
+ org.springframework.expression.*;version="[3.0.0, 4.0.0)",
  org.springframework.util;version="[3.0.0, 4.0.0)",
  org.springframework.data.gemfire.*;version="[1.0.0, 2.0.0)",
+ com.gemstone.gemfire.*;version="[6.0.0, 7.0.0)",
  javax.*;version="0",
  org.w3c.dom.*;version="0"
