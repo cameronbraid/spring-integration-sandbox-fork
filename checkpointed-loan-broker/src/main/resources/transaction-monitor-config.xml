@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:int-stream="http://www.springframework.org/schema/integration/stream"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration-2.0.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.0.xsd
+		http://www.springframework.org/schema/integration/stream http://www.springframework.org/schema/integration/stream/spring-integration-stream.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd
+		">
+		
+	<!-- Enable message history generation -->	
+  <int:message-history/>
+  
+  <!-- Configure a global interceptor on message channels -->
+	<int:channel-interceptor ref="checkpointMonitor"
+		pattern="loanBrokerPreProcessingChannel, *BankChannel, quotesAggregationChannel, loanBrokerReplyChannel" />
+
+  <!--  A Checkpoint wiretap that pumps Checkpoint messages to the checkpointChannel -->
+	<bean id="checkpointMonitor"
+		class="org.springframework.integration.checkpoint.LoanQuoteCheckpointWireTap"
+		p:enabledMessageEvents="PRE_SEND"
+		p:transactionIdHeader="My.Global.Transaction.ID"
+	 >
+		<constructor-arg ref="checkpointChannel" />
+	</bean>
+	
+	<int:channel id="checkpointChannel" />
+<!--	
+	 Used to output aggregated Checkpoint messages to the (external) Business Transaction Monitor 
+-->
+	<int:channel id="monitorChannel" />
+
+  <!-- Aggregate Checkpoint messages -->
+	<int:aggregator id="checkpointAggregator" method="mergeMessages" input-channel="checkpointChannel"
+		send-partial-result-on-expiry="true" output-channel="monitorChannel" 
+		correlation-strategy="correlationStrategy" message-store="messageStore">
+		<bean class="org.springframework.integration.checkpoint.CheckpointCollector"/>
+	</int:aggregator>
+
+  <!--  A simple endpoint to receive messages on the monitor channel. In reality, this would be
+  a jms channel adapter 
+  -->
+	<int-stream:stdout-channel-adapter id="outputStream" channel="monitorChannel"/> 
+	
+	<!-- Aggregate by the global transaction ID. Note the use of SpEL here to provide some encapsulation -->
+	<bean id="correlationStrategy"
+		class="org.springframework.integration.aggregator.HeaderAttributeCorrelationStrategy">
+		<constructor-arg value="#{checkpointMonitor.transactionIdHeader}" />
+	</bean>
+
+  <!-- The aggregator uses this message store -->
+	<bean id="messageStore" class="org.springframework.integration.store.SimpleMessageStore" />
+	
+	<!--  A MessageGroupStoreReaper that implements SmartLifeCycle. The phase is 0 which will
+	cause this to shutdown before the monitor channel when the context closes (else, we lose any
+	pending messages). The reaper expires any messages older than the timeout period in 
+	the message store which causes the aggregator to release them. Also, it is configured to expire messages
+	when its destroy method is invoked (the context closes). 
+	 -->
+	<bean id="grim" class="org.springframework.integration.checkpoint.SmartMessageGroupStoreReaper"
+		p:messageGroupStore-ref="messageStore" p:timeout="500" p:expireOnDestroy="true" p:phase="0"/>
+
+  <!--  Run the reaper as a background task at regular intervals. The rate corresponds to the reaper timeout
+  value which makes sense. For testing, this is set to a short interval. In a production system, something up to 
+  30 - 60 sec latency would probably work and cut down on the outbound traffic on the monitor channel
+  -->
+	<task:scheduler id="scheduler" pool-size="1" />
+
+	<task:scheduled-tasks scheduler="scheduler">
+		<task:scheduled ref="grim" method="run" fixed-rate="500"/>
+	</task:scheduled-tasks>
+	
+</beans>

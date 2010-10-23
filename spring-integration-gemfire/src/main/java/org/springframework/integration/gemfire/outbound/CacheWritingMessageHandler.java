@@ -50,11 +50,9 @@ public class CacheWritingMessageHandler implements MessageHandler {
 		Assert.isTrue(payload instanceof Map, "only Map payloads are supported");
 		final Map<?, ?> map = (Map<?, ?>) payload;
 		this.gemfireTemplate.execute(new GemfireCallback<Object>() {
-			@SuppressWarnings("rawtypes")
+			@SuppressWarnings({ "rawtypes", "unchecked" })
 			public Object doInGemfire(Region region) throws GemFireCheckedException, GemFireException {
-				for (Map.Entry<?,?> entry : map.entrySet()) {
-					region.put(entry.getKey(), entry.getValue());
-				}
+				region.putAll(map);
 				return null;
 			}
 		});
