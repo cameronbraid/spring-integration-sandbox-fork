@@ -4,3 +4,6 @@ target
 .settings
 *.iml
 .idea
+spring-integration-gemfire/BACKUP_*
+spring-integration-gemfire/KEYS_*
+spring-integration-gemfire/RECOVERY_*
