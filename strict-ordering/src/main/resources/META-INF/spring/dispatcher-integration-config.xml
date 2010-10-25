@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:int-jms="http://www.springframework.org/schema/integration/jms"
+	xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.0.xsd
+		http://www.springframework.org/schema/integration/jms http://www.springframework.org/schema/integration/jms/spring-integration-jms.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+	<int-jms:message-driven-channel-adapter
+		connection-factory="connectionFactory" id="jmsInbound" destination="orderedQueue"
+		channel="orderedChannel" />
+
+	<int:router input-channel="orderedChannel" ref="dispatcher"
+		method="dispatch" />
+	<bean id="dispatcher"
+		class="org.springframework.integration.strictordering.Dispatcher">
+		<constructor-arg ref="entityLock" index="0" />
+		<constructor-arg value="forkLockChannel" index="1" />
+	</bean>
+
+	<bean id="lockListener"
+		class="org.springframework.integration.gemfire.inbound.CacheListeningMessageProducer">
+		<constructor-arg ref="entityLocks" />
+		<property name="outputChannel" ref="cacheEventChannel" />
+		<property name="supportedEventTypes" value="DESTROYED" />
+	</bean>
+
+	<int:service-activator input-channel="cacheEventChannel" method="handleEvent" output-channel="orderedChannel">
+		<bean
+			class="org.springframework.integration.strictordering.EntityReleaseHandler">
+			<constructor-arg ref="dispatcher" />
+		</bean>
+	</int:service-activator>
+	 
+	 <int:service-activator input-channel="forkLockChannel"
+	method="forkLock" output-channel="outboundChannel">
+	<bean
+		class="org.springframework.integration.strictordering.LockForkHandler">
+		<constructor-arg ref="entityLock" />
+		<!-- New lockOwners -->
+		<constructor-arg>
+			<array>
+				<value>server1</value>
+				<value>server2</value>
+				<value>server3</value>
+			</array>
+		</constructor-arg>
+	</bean>
+</int:service-activator> 
+
+	 <int:recipient-list-router input-channel="outboundChannel"> 
+  	 <int:recipient channel="jmsOutbound1"/> 
+	   <int:recipient channel="jmsOutbound2"/> 
+	   <int:recipient channel="jmsOutbound3"/> 
+	 </int:recipient-list-router> 
+	 
+		<int-jms:outbound-channel-adapter id="jmsOutbound1"
+			connection-factory="connectionFactory" destination-name="queue.unordered1" />
+	 
+		<int-jms:outbound-channel-adapter id="jmsOutbound2"
+			connection-factory="connectionFactory" destination-name="queue.unordered2" />
+	  
+		<int-jms:outbound-channel-adapter id="jmsOutbound3"
+			connection-factory="connectionFactory" destination-name="queue.unordered3" />
+</beans>

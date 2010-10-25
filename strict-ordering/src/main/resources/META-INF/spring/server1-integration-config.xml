@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:int-jms="http://www.springframework.org/schema/integration/jms"
+	xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:int-file="http://www.springframework.org/schema/integration/file"
+	xmlns:int-stream="http://www.springframework.org/schema/integration/stream"
+	xsi:schemaLocation="http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
+		http://www.springframework.org/schema/integration/file http://www.springframework.org/schema/integration/file/spring-integration-file.xsd
+		http://www.springframework.org/schema/integration/jms http://www.springframework.org/schema/integration/jms/spring-integration-jms.xsd
+		http://www.springframework.org/schema/integration/stream http://www.springframework.org/schema/integration/stream/spring-integration-stream.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+  <int-jms:message-driven-channel-adapter connection-factory="connectionFactory"  
+   id="serverInbound" destination="unorderedQueue1" channel="unorderedChannel" max-concurrent-consumers="5"/>
+  
+  <int-jms:message-driven-channel-adapter connection-factory="connectionFactory"  
+   id="serverControlInbound" destination="serverControlQueue1" channel="serverControlChannel"/> 
+  <int:service-activator input-channel="serverControlChannel" ref="server" method="init"/> 
+ 
+  <int:service-activator  ref="server" method="process" input-channel="unorderedChannel"/> 
+  
+   <bean id="server" class="org.springframework.integration.samples.strictordering.Server">
+      <constructor-arg value="1"/>
+      <property name="entityLock" ref="entityLock"/>
+      <property name="delay" value="300"/>
+  </bean>
+</beans>
