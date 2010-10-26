@@ -19,23 +19,27 @@ The prototype uses a distributed lock implemented with GemFire. Dependencies inc
 > Spring Integration
 > Active MQ
 
-It's probably easiest to import this project as an existing Maven projectinto Eclipse and create Run Configurations to launch 
-the processes
+It's probably easiest to import this project as an existing Maven project into Eclipse and create Run Configurations to launch 
+a Run Configuration for each process. Alternately, you can run these from maven using profiles, although I haven't figured out how
+to run the verification test this way while excluding it from the main build. 
 
 1. Start DispatcherMain
-Launch DispatcherMain from Eclipse
+Launch DispatcherMain from Eclipse or open a command shell in the project directory
+> mvn test -Pdispatcher
 
 2. Start 3 server instances
 ServerMain uses a command line argument to resolve its configuration. The value can be server1, server2, or server3.  
-Start one instance each. e.g.,
->java ...ServerMain server1
->java ...ServerMain server2
->java ...ServerMain server3
-
-Create a 3 Eclipse Run Configurations, for ServerMain and assign the corresponding argument to each one. Launch each server once.
+Start one instance each. Create a 3 Eclipse Run Configurations, for ServerMain and assign the corresponding argument to each, 
+or open three command shells:
+>mvn test -Pserver -DserverName=<serverName> in each.
 
 3. Start the Client. Two command line arguments are required. The destination queue name and the number of servers. e.g., 
 
-> java ...Client queue.ordered 3
+Client queue.ordered 3, or
 
-4. Run ServerTest as a Junit test.     
+>mvn test -Pclient
+
+4. Run ServerTest as a Junit test. (Doesn't currently run from maven, unless you remove the <exclusions> in the surefire
+plugin configuration).    
+
+

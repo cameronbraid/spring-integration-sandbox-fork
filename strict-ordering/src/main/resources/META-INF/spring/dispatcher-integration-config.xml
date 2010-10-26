@@ -24,13 +24,14 @@
 	<bean id="lockListener"
 		class="org.springframework.integration.gemfire.inbound.CacheListeningMessageProducer">
 		<constructor-arg ref="entityLocks" />
-		<property name="outputChannel" ref="cacheEventChannel" />
+		<property name="outputChannel" ref="lockEventChannel" />
 		<property name="supportedEventTypes" value="DESTROYED" />
+		<property name="payloadExpression" value="oldValue"/>
 	</bean>
 
-	<int:service-activator input-channel="cacheEventChannel" method="handleEvent" output-channel="orderedChannel">
+	<int:service-activator input-channel="lockEventChannel" method="onRelease" output-channel="orderedChannel">
 		<bean
-			class="org.springframework.integration.strictordering.EntityReleaseHandler">
+			class="org.springframework.integration.strictordering.EntityLockListener">
 			<constructor-arg ref="dispatcher" />
 		</bean>
 	</int:service-activator>

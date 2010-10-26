@@ -29,7 +29,7 @@ public class Client {
 	private static final String QUEUE_ORDERED = "queue.ordered";
 
 	//Number of messages to send
-	public static final int MAX_MESSAGES = 200;
+	public static final int MAX_MESSAGES = 2000;
 
 	//Number of unique IDs generated
 	public static final int MAX_IDS = 5000;
