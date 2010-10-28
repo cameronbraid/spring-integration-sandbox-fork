@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+  <bean id="entityKeyExtractor" class="org.springframework.integration.strictordering.entitykey.SpelEntityKeyExtractor">
+     <property name="payloadExpression" value="payload"/>
+  </bean>
+  <bean id="entityLock" class="org.springframework.integration.strictordering.gemfire.GemfireEntityLock">
+      <constructor-arg ref="entityLocks"/>
+      <constructor-arg value="dispatcher"/>
+  </bean>
+</beans>

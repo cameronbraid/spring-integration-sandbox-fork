@@ -61,9 +61,8 @@ public class Server {
 	 * @throws FileNotFoundException
 	 */
 	public void process(Message<String> message) throws FileNotFoundException{
-		String lockName = "server" + serverId;
-	 	logger.info("processing message [" + message.getPayload() + "] sequence [" + message.getHeaders().get("sequence") + "] locked by [" + 
-			  lockName  + "]");
+		String serverName = "server" + serverId;
+	 	logger.info(serverName + " processing message [" + message.getPayload() + "] sequence [" + message.getHeaders().get("sequence") + "]");
 	    int delayFor = delay();
 	   
 	    logger.info("delayed for "+ delayFor + " ms");
@@ -72,7 +71,7 @@ public class Server {
  
 	   if ( null != entityLock && strictOrdering){
 		 try {
-            entityLock.releaseEntity((String)extractKey(message),lockName );
+            entityLock.releaseEntity((String)extractKey(message),serverName );
 		 } catch (Exception e) {
 			 logger.error(e.getMessage(),e);
 		 }

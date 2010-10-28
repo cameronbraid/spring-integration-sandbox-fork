@@ -148,8 +148,8 @@
 						<configuration>
 							<mainClass>org.springframework.integration.samples.strictordering.Client</mainClass>
 							<arguments>
-								<argument>queue.ordered</argument>
-								<argument>3</argument>
+								<argument>${queue}</argument>
+								<argument>${numServers}</argument>
 							</arguments>
 						</configuration>
 					</plugin>

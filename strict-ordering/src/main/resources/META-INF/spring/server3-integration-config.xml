@@ -11,6 +11,8 @@
 		http://www.springframework.org/schema/integration/stream http://www.springframework.org/schema/integration/stream/spring-integration-stream.xsd
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
 
+  <import resource="classpath:META-INF/spring/common-config.xml"/>
+
   <int-jms:message-driven-channel-adapter connection-factory="connectionFactory"  
    id="serverInbound" destination="unorderedQueue3" channel="unorderedChannel" max-concurrent-consumers="5"/>
   

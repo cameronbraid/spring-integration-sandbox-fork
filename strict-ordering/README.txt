@@ -37,7 +37,10 @@ or open three command shells:
 
 Client queue.ordered 3, or
 
->mvn test -Pclient
+>mvn test -Pclient -Dqueue=<queue> -DnumServers=<numServers>  
+
+NOTE:You can run with queue.unordered to bypass the Dispatcher and observe messages being shuffled. Changing the number of
+servers will require a configuration change. 
 
 4. Run ServerTest as a Junit test. (Doesn't currently run from maven, unless you remove the <exclusions> in the surefire
 plugin configuration).    

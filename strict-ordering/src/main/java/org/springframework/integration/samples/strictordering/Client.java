@@ -13,6 +13,7 @@ import javax.jms.Message;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
@@ -29,7 +30,7 @@ public class Client {
 	private static final String QUEUE_ORDERED = "queue.ordered";
 
 	//Number of messages to send
-	public static final int MAX_MESSAGES = 2000;
+	public static final int MAX_MESSAGES = 500;
 
 	//Number of unique IDs generated
 	public static final int MAX_IDS = 5000;
@@ -40,18 +41,27 @@ public class Client {
 	//Maximum number of repeats
 	public static final int MAX_REPEATS = 5;
 
+	//Throttle message rate
+	public static final int SEND_DELAY_MS = 0;
+	
 	private static Logger logger = Logger.getLogger(Client.class);
 
 	private static Map<String,Integer> sequenceMap;
 
-
+    
 
 	/**
 	 * @param args
 	 */
+	@SuppressWarnings("unused")
 	public static void main(String[] args) {
 		if (args.length < 2){
 			System.out.println("usage: Client queueName numServers, e.g. Client queue.ordered 3");
+			System.exit(0);
+		} 
+		if (StringUtils.isEmpty(args[0]) || StringUtils.isEmpty(args[1])){
+			System.out.println("usage: Client queueName numServers, e.g. Client queue.ordered 3");
+			System.exit(0);
 		}
 		//'queue.ordered' or 'queue.unordered' (to bypass the Dispatcher)  - See jms config
 		String queueName = args[0]; 
@@ -104,6 +114,14 @@ public class Client {
 						sequenceMap.put(payload,++sequence);
 						return sequence;
 					}});
+				if (SEND_DELAY_MS > 0 ){
+					try {
+						Thread.sleep(SEND_DELAY_MS);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
 			}
 			logger.info(MAX_MESSAGES + " messages sent");
 

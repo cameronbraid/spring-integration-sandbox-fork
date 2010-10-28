@@ -24,7 +24,9 @@
     <level value="debug" />
   </logger>
   
-   
+   <logger name="org.springframework.integration.strictordering.gemfire">
+    <level value="debug" />
+  </logger>
 
 	<!-- Root Logger -->
 	<root>

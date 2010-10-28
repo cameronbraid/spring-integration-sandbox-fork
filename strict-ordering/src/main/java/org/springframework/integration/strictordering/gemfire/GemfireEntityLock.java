@@ -43,7 +43,7 @@ public class GemfireEntityLock implements EntityLock   {
      * @see org.springframework.integration.strictordering.EntityLock#lockEntity(org.springframework.integration.strictordering.LockNode)
      */
 	@Override
-	public void lockEntity(String entityKey, String lockName) {
+	public synchronized void lockEntity(String entityKey, String lockName) {
 		LockNode lockNode = new LockNode(entityKey,lockName,dispatcherName);
 		region.put(lockNode.getKey(),lockNode);
 	}
@@ -55,10 +55,12 @@ public class GemfireEntityLock implements EntityLock   {
 	@Override
 	public boolean exists(String entityKey) {
 		Collection<LockNode> lockNodes = region.values();
-		for(LockNode lockNode: lockNodes){
+		synchronized (lockNodes){
+		  for(LockNode lockNode: lockNodes){
 			if (lockNode.getEntityKey().equals(entityKey) && lockNode.getDispatcherName().equals(dispatcherName)){
 				return true;
 			}
+		  }
 		}
 		return false;
 	}
@@ -68,7 +70,7 @@ public class GemfireEntityLock implements EntityLock   {
      * @see org.springframework.integration.strictordering.EntityLock#releaseEntity(org.springframework.integration.strictordering.LockNode)
      */
 	@Override
-	public void releaseEntity(String entityKey, String lockName) {
+	public synchronized void releaseEntity(String entityKey, String lockName) {
 		removeLock( new LockNode(entityKey, lockName, dispatcherName) );
 	}
 	
@@ -77,7 +79,7 @@ public class GemfireEntityLock implements EntityLock   {
 	  * @see org.springframework.integration.strictordering.EntityLock#getLocks(java.lang.String)
 	  */
 	@Override
-	public Set<LockNode> getLocks(String entityKey) {
+	public synchronized Set<LockNode> getLocks(String entityKey) {
 		Collection<LockNode> lockNodes = region.values();
 		Set<LockNode> results = new HashSet<LockNode>();
 		for(LockNode lockNode: lockNodes){
@@ -119,7 +121,7 @@ public class GemfireEntityLock implements EntityLock   {
 	 * @see org.springframework.integration.strictordering.EntityLock#fork(java.lang.String, java.lang.String[])
 	 */
 	@Override
-	public void fork(String entityKey, String fromLockName, String... toLockNames) {
+	public synchronized void fork(String entityKey, String fromLockName, String... toLockNames) {
 		if (fromLockName == null) {
 			fromLockName = dispatcherName;
 		}
@@ -131,9 +133,14 @@ public class GemfireEntityLock implements EntityLock   {
 	}
 	
 	protected final void removeLock(LockNode lockNode) {
+	
 		Assert.notNull(lockNode, "lockNode cannot be null");
 		logger.debug("entity [" + lockNode.getEntityKey() + "] is being removed by [" + lockNode.getLockName() + "]");
-	 	region.destroy(lockNode.getKey()); 
+		try {
+	 	 region.destroy(lockNode.getKey()); 
+		} catch (Exception e){
+			logger.debug(e.getMessage());
+		}
 	}
 
 	@Override
@@ -144,7 +151,7 @@ public class GemfireEntityLock implements EntityLock   {
 	@Override
 	public boolean exists(String entityKey, String lockName) {
 		LockNode lockNode = new LockNode(entityKey, lockName, dispatcherName);
-		logger.debug("exists [" + lockNode.getKey() + "] ?");
+		//logger.debug("exists [" + lockNode.getKey() + "] ?");
 		return region.containsKey(lockNode.getKey());
 	}	
 }

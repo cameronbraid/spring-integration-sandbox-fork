@@ -12,8 +12,5 @@
   
 	<gfe:replicated-region id="entityLocks"/>
  	
-	<bean id="entityLock" class="org.springframework.integration.strictordering.gemfire.GemfireEntityLock">
-      <constructor-arg ref="entityLocks"/>
-      <constructor-arg value="dispatcher"/>
-   </bean>
+	
 </beans>

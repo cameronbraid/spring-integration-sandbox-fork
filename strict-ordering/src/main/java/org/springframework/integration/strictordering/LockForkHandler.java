@@ -35,7 +35,6 @@ public class LockForkHandler {
 	 */
     public  Message<?> forkLock(Message<?> message ){
     	Object entityKey = extractKey(message);
-    	// if null defaults to dispatcherName
     	entityLock.fork((String)entityKey, fromLockName, lockNames );
     	return message;
     }

@@ -9,17 +9,24 @@
 		http://www.springframework.org/schema/integration/jms http://www.springframework.org/schema/integration/jms/spring-integration-jms.xsd
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
 
+  <import resource="classpath:META-INF/spring/common-config.xml"/>
+   
 	<int-jms:message-driven-channel-adapter
 		connection-factory="connectionFactory" id="jmsInbound" destination="orderedQueue"
-		channel="orderedChannel" />
+		channel="orderedChannel" concurrent-consumers="1"/>
+		
+		<!--  Use this adapter to bypass the dispatcher -->
+		<int-jms:message-driven-channel-adapter
+    connection-factory="connectionFactory" id="jmsInbound.unordered" destination="unorderedQueue"
+    channel="outboundChannel" />
 
-	<int:router input-channel="orderedChannel" ref="dispatcher"
-		method="dispatch" />
+	<int:service-activator input-channel="orderedChannel" output-channel="forkLockChannel" ref="dispatcher" method="dispatch"/>
+		
 	<bean id="dispatcher"
 		class="org.springframework.integration.strictordering.Dispatcher">
-		<constructor-arg ref="entityLock" index="0" />
-		<constructor-arg value="forkLockChannel" index="1" />
-	</bean>
+		<constructor-arg ref="entityLock"/>
+		<property name="entityKeyExtractor" ref="entityKeyExtractor"/>
+	</bean>	
 
 	<bean id="lockListener"
 		class="org.springframework.integration.gemfire.inbound.CacheListeningMessageProducer">
@@ -28,7 +35,14 @@
 		<property name="supportedEventTypes" value="DESTROYED" />
 		<property name="payloadExpression" value="oldValue"/>
 	</bean>
-
+ 
+  <!-- Messages must be processed in a single thread -->
+  <int:channel id="lockEventChannel">
+      <int:dispatcher task-executor="taskExecutor"/>
+  </int:channel>
+  
+  <task:executor id="taskExecutor" queue-capacity="100" pool-size="1"/>
+  
 	<int:service-activator input-channel="lockEventChannel" method="onRelease" output-channel="orderedChannel">
 		<bean
 			class="org.springframework.integration.strictordering.EntityLockListener">
@@ -49,6 +63,7 @@
 				<value>server3</value>
 			</array>
 		</constructor-arg>
+		<property name="entityKeyExtractor" ref="entityKeyExtractor"/>
 	</bean>
 </int:service-activator> 
 
