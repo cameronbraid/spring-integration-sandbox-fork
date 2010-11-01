@@ -158,7 +158,7 @@ public class SyncActivityBehaviorMessagingGateway implements BeanFactoryAware, B
 			throws BeansException {
 		this.beanFactory = beanFactory;
 	}
-
+	
 	/**
 	 * This is the main interface method from {@link ActivityBehavior}. It will be called when the BPMN process executes the node referencing this logic.
 	 *

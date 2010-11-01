@@ -213,6 +213,7 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
 		processService = this.processEngine.getRuntimeService();
 
 		if (this.platformTransactionManager != null) {
+
 // todo 			this.messagingTemplate.setTransactionManager(this.platformTransactionManager);
 		}
 

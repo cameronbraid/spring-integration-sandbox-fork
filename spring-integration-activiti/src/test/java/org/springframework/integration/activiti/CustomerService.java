@@ -14,11 +14,11 @@ import java.util.Map;
  */
 public class CustomerService {
 
-	private DataSource dataSource ;
+	//private DataSource dataSource ;
 	private SimpleJdbcTemplate jdbcTemplate;
 
 	public void setDataSource(DataSource dataSource) {
-		this.dataSource = dataSource;
+		///this.dataSource = dataSource;
 		this.jdbcTemplate = new SimpleJdbcTemplate ( dataSource);
 	}
 
