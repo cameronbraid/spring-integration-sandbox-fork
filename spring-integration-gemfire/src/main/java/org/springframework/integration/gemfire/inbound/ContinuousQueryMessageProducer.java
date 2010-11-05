@@ -23,12 +23,17 @@ import org.springframework.util.StringUtils;
  *
  * @author Josh Long
  */
-@SuppressWarnings({"rawtypes",
-    "unchecked"
-})
+@SuppressWarnings({"rawtypes", "unchecked" })
 public class ContinuousQueryMessageProducer extends MessageProducerSupport {
-    private Pool pool;
+
+
+
     private final Log logger = LogFactory.getLog(this.getClass());
+
+	/**
+	 * Not sure yet if there's a way to avoid depending on this.
+	 */
+    private Pool pool;
 
     /**
      * Must be provided by the client of this class
@@ -165,7 +170,7 @@ public class ContinuousQueryMessageProducer extends MessageProducerSupport {
             queryName = StringUtils.hasText(queryName) ? queryName : defaultName;
 
             this.cqQuery = registerContinuousQuery(queryService, queryName,
-                    this.queryString, true, new MessageProducingCqListener());
+                    this.queryString, this.durable, new MessageProducingCqListener());
 
         } catch (Throwable e) {
             throw new RuntimeException("Couldn't properly setup the " +
