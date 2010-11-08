@@ -31,25 +31,20 @@ public class GemfireMessageStore implements MessageStore {
 
 	private final Region<UUID, Message<?>> region;
 
-
 	public GemfireMessageStore(Region<UUID, Message<?>> region) {
 		Assert.notNull(region, "region must not be null");
 		this.region = region;
 	}
 
-
-	@Override
 	public Message<?> getMessage(UUID id) {
 		return this.region.get(id);
 	}
 
-	@Override
 	public <T> Message<T> addMessage(Message<T> message) {
 		this.region.put(message.getHeaders().getId(), message);
 		return message;
 	}
 
-	@Override
 	public Message<?> removeMessage(UUID id) {
 		return this.region.remove(id);
 	}

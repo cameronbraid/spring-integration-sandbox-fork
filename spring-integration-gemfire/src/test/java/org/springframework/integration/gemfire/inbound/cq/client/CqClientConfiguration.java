@@ -62,9 +62,8 @@ public class CqClientConfiguration {
 	@Bean
 	public ContinuousQueryMessageProducer continuousQueryMessageProducer() throws Throwable {
 		ContinuousQueryMessageProducer continuousQueryMessageProducer
-				= new ContinuousQueryMessageProducer(this.clientRegion(), this.query);
+				= new ContinuousQueryMessageProducer( this.clientRegion() , this.pool(), this.query);
 		continuousQueryMessageProducer.setDurable(true);
-		continuousQueryMessageProducer.setPool( this.pool() );
 		continuousQueryMessageProducer.setOutputChannel(this.messageChannel);
 		continuousQueryMessageProducer.setQueryName("pplQuery");
 		return continuousQueryMessageProducer;

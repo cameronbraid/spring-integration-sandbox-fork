@@ -70,13 +70,7 @@ public class ContinuousQueryMessageProducer extends MessageProducerSupport {
      */
     private volatile String queryName;
 
-    /**
-     * {@link com.gemstone.gemfire.cache.query.CqAttributes} attributes as factoried
-     * from a {@link com.gemstone.gemfire.cache.query.CqAttributesFactory}
-     */
-    private volatile CqAttributes cqAttributes;
-
-    /**
+     /**
      * a {@link com.gemstone.gemfire.cache.query.CqAttributesFactory} to
      * factory the {@link com.gemstone.gemfire.cache.query.CqAttributes} that in turn hold the refernece to the
      * listener that we register to in turn funnel messages to the clients of this adapter
@@ -101,9 +95,7 @@ public class ContinuousQueryMessageProducer extends MessageProducerSupport {
         Assert.hasText(this.queryString, "You must provide a queryString to evaluate against the region");
     }
 
-    public void setPool(Pool pool) {
-        this.pool = pool;
-    }
+
 
     /**
      * whether or not the query is durable (that is, whether or not this query should live beyond the registered query)
