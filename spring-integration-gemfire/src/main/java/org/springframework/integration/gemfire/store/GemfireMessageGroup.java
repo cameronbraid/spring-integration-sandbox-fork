@@ -2,15 +2,17 @@ package org.springframework.integration.gemfire.store;
 
 import com.gemstone.gemfire.cache.Region;
 
+import org.apache.commons.lang.builder.ToStringBuilder;
 import org.springframework.integration.Message;
 import org.springframework.integration.store.MessageGroup;
+
+import java.io.Serializable;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
 
 
 /**
@@ -20,7 +22,7 @@ import java.util.concurrent.locks.Lock;
  *
  * @author Josh Long
  */
-public class GemfireMessageGroup implements MessageGroup {
+public class GemfireMessageGroup implements MessageGroup, Serializable {
     /**
      * this should not be persisted. it's passed in through {@link GemfireMessageGroupStore}, which has the reference to the {@link com.gemstone.gemfire.cache.Region}s
      */
@@ -86,7 +88,11 @@ public class GemfireMessageGroup implements MessageGroup {
     }
 
     public void add(Message<?> message) {
-        addUnmarked(message);
+        if (isMember(message)) {
+            return;
+        }
+        String unmarkedKey = this.unmarkedKey(message);
+        this.unmarked.put(unmarkedKey, (Message<?>) message);
     }
 
     private String markedKey(Message<?> msg) {
@@ -98,6 +104,7 @@ public class GemfireMessageGroup implements MessageGroup {
     }
 
     public void remove(Message<?> message) {
+		System.out.println( "remove(" + ToStringBuilder.reflectionToString(message)+")");
         if (unmarked.containsValue(message)) {
             unmarked.remove(unmarkedKey(message));
         }
@@ -107,28 +114,8 @@ public class GemfireMessageGroup implements MessageGroup {
         }
     }
 
-    private boolean addUnmarked(Message<?> message) {
-        if (isMember(message)) {
-            return false;
-        }
-
-        this.unmarked.put(this.unmarkedKey(message), message);
-
-        return true;
-    }
-
-    private boolean addMarked(Message<?> message) {
-        if (isMember(message)) {
-            return false;
-        }
-
-        this.marked.put(this.markedKey(message), message);
-
-        return true;
-    }
-
     private String groupKey() {
-        return Integer.toString(getGroupId().hashCode());
+        return (getGroupId()).toString();
     }
 
     private String baseKey(Message<?> msg) {
@@ -136,12 +123,13 @@ public class GemfireMessageGroup implements MessageGroup {
         UUID id = msg.getHeaders().getId();
         Integer sn = msg.getHeaders().getSequenceNumber();
         Integer ss = msg.getHeaders().getSequenceSize();
-        return String.format("%s-%s-%s-%s", groupKey, id.toString(),
-            sn.toString(), ss.toString());
+        return String.format("%s-%s-%s-%s", groupKey, id.toString(), sn.toString(), ss.toString());
     }
 
     public Collection<Message<?>> getUnmarked() {
-        return getMessagesForMessageGroup(this.unmarked);
+        Collection<Message<?>> msgs = getMessagesForMessageGroup(this.unmarked);
+
+        return msgs;
     }
 
     /**
@@ -170,7 +158,9 @@ public class GemfireMessageGroup implements MessageGroup {
     }
 
     public Collection<Message<?>> getMarked() {
-        return getMessagesForMessageGroup(this.marked);
+        Collection<Message<?>> m = getMessagesForMessageGroup(this.marked);
+
+        return m;
     }
 
     public Object getGroupId() {
@@ -181,7 +171,9 @@ public class GemfireMessageGroup implements MessageGroup {
         if (size() == 0) {
             return true;
         }
+
         int sequenceSize = getSequenceSize();
+
         return (sequenceSize > 0) && (sequenceSize == size());
     }
 
@@ -189,6 +181,7 @@ public class GemfireMessageGroup implements MessageGroup {
         if (size() == 0) {
             return 0;
         }
+
         return getOne().getHeaders().getSequenceSize();
     }
 
@@ -200,7 +193,10 @@ public class GemfireMessageGroup implements MessageGroup {
      * @param messageToMark
      */
     public void mark(Message<?> messageToMark) {
-        this.unmarked.remove(baseKey(messageToMark));
+        if (this.unmarked.containsValue(messageToMark)) {
+            this.unmarked.remove(baseKey(messageToMark));
+        }
+
         this.marked.put(baseKey(messageToMark), messageToMark);
     }
 
@@ -208,33 +204,33 @@ public class GemfireMessageGroup implements MessageGroup {
         for (Message<?> msg : getUnmarked())
             mark(msg);
 
-/*
-Lock mLock = null;
-Lock uLock = null;
-try {
-if (this.marked instanceof Region && this.unmarked instanceof Region) {
-Region<String, Message<?>> mRegion = (Region<String, Message<?>>) this.marked;
-Region<String, Message<?>> uRegion = (Region<String, Message<?>>) this.unmarked;
-uLock = uRegion.getRegionDistributedLock();
-mLock = mRegion.getRegionDistributedLock();
+        /*
+        Lock mLock = null;
+        Lock uLock = null;
+        try {
+        if (this.marked instanceof Region && this.unmarked instanceof Region) {
+        Region<String, Message<?>> mRegion = (Region<String, Message<?>>) this.marked;
+        Region<String, Message<?>> uRegion = (Region<String, Message<?>>) this.unmarked;
+        uLock = uRegion.getRegionDistributedLock();
+        mLock = mRegion.getRegionDistributedLock();
 
-if (uLock.tryLock(this.lockAttemptPeriod, this.timeUnit) && mLock.tryLock(this.lockAttemptPeriod, this.timeUnit)) {
+        if (uLock.tryLock(this.lockAttemptPeriod, this.timeUnit) && mLock.tryLock(this.lockAttemptPeriod, this.timeUnit)) {
 
-	 for( Message<?> msg : this.getMessagesForMessageGroup(this.unmarked)){
-					 this.mark(msg);
-	 }
-}
-}
-} catch (Throwable th) {
-throw new RuntimeException(th);
-} finally {
-if (uLock != null) {
-uLock.unlock();
-}
-if (mLock != null) {
-mLock.unlock();
-}
-}*/
+                 for( Message<?> msg : this.getMessagesForMessageGroup(this.unmarked)){
+                                                 this.mark(msg);
+                 }
+        }
+        }
+        } catch (Throwable th) {
+        throw new RuntimeException(th);
+        } finally {
+        if (uLock != null) {
+        uLock.unlock();
+        }
+        if (mLock != null) {
+        mLock.unlock();
+        }
+        }*/
     }
 
     public int size() {
@@ -261,14 +257,19 @@ mLock.unlock();
         if (size() == 0) {
             return false;
         }
+
         Integer messageSequenceNumber = message.getHeaders().getSequenceNumber();
+
         if ((messageSequenceNumber != null) && (messageSequenceNumber > 0)) {
             Integer messageSequenceSize = message.getHeaders().getSequenceSize();
+
             if (!messageSequenceSize.equals(getSequenceSize())) {
                 return true;
             } else {
-                if (containsSequenceNumber(unmarked.values(), messageSequenceNumber)
-						|| containsSequenceNumber(marked.values(), messageSequenceNumber)) {
+                if (containsSequenceNumber(unmarked.values(),
+                            messageSequenceNumber) ||
+                        containsSequenceNumber(marked.values(),
+                            messageSequenceNumber)) {
                     return true;
                 }
             }
@@ -277,9 +278,12 @@ mLock.unlock();
         return false;
     }
 
-    private boolean containsSequenceNumber(Collection<Message<?>> messages, Integer messageSequenceNumber) {
+    private boolean containsSequenceNumber(Collection<Message<?>> messages,
+        Integer messageSequenceNumber) {
         for (Message<?> member : messages) {
-            Integer memberSequenceNumber = member.getHeaders().getSequenceNumber();
+            Integer memberSequenceNumber = member.getHeaders()
+                                                 .getSequenceNumber();
+
             if (messageSequenceNumber.equals(memberSequenceNumber)) {
                 return true;
             }

@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentMap;
  *
  * @author Josh Long
  */
-public class GemfireMessageGroupStore extends AbstractMessageGroupStore implements MessageStore, MessageGroupStore {
+public class GemfireMessageGroupStore extends AbstractMessageGroupStore /*implements MessageStore, MessageGroupStore */{
 
 	/**
      * required {@link com.gemstone.gemfire.cache.Region} to manage the association of {@link java.util.UUID} => {@link org.springframework.integration.Message}
@@ -54,15 +54,21 @@ public class GemfireMessageGroupStore extends AbstractMessageGroupStore implemen
      */
     public GemfireMessageGroupStore(
         ConcurrentMap<UUID, Message<?>> idToMessage,
-        ConcurrentMap<Object, GemfireMessageGroup> groupIdToMessageGroup) {
-        this.idToMessage = idToMessage;
-        Assert.notNull(this.idToMessage,
-            "you must provide a Region to hold associations of ids to messages ('idToMessage')");
+        ConcurrentMap<Object, GemfireMessageGroup> groupIdToMessageGroup,
+		ConcurrentMap<String,Message<?>> marked,
+		ConcurrentMap<String,Message<?>> unmarked) {
+
+		this.marked = marked ;
+		Assert.notNull( this.marked , "you must provide an Region to hold String => Message<?> for marked");
+
+		this.unmarked = unmarked ;
+		Assert.notNull( this.unmarked , "you must provide an Region to hold String => Message<?> for unmarked");
+
+		this.idToMessage = idToMessage;
+        Assert.notNull(this.idToMessage, "you must provide a Region to hold associations of ids to messages ('idToMessage')");
 
         this.groupIdToMessageGroup = groupIdToMessageGroup;
-        Assert.notNull(this.groupIdToMessageGroup,
-            "you must provide a Region to hold associations of group ids to message groups ('groupIdToMessageGroup')");
-
+        Assert.notNull(this.groupIdToMessageGroup, "you must provide a Region to hold associations of group ids to message groups ('groupIdToMessageGroup')");
 
     }
 
@@ -75,10 +81,8 @@ public class GemfireMessageGroupStore extends AbstractMessageGroupStore implemen
     }
 
     public <T> Message<T> addMessage(Message<T> message) {
-        Assert.isInstanceOf(Serializable.class, message.getPayload(),
-            "the payload must be assignable to java.io.Serializable");
+        Assert.isInstanceOf(Serializable.class, message.getPayload(), "the payload must be assignable to java.io.Serializable");
         this.idToMessage.put(message.getHeaders().getId(), message);
-
         return message;
     }
 
@@ -106,14 +110,7 @@ public class GemfireMessageGroupStore extends AbstractMessageGroupStore implemen
 
     public MessageGroup getMessageGroup(Object groupId) {
         Assert.notNull(groupId, "'groupId' must not be null");
-
-        GemfireMessageGroup group = groupIdToMessageGroup.get(groupId);
-
-        if (group == null) {
-            return new SimpleMessageGroup(groupId);
-        }
-
-        return new SimpleMessageGroup(group);
+        return this.getMessageGroupInternal(groupId);
     }
 
     public MessageGroup addMessageToGroup(Object groupId, Message<?> message) {
@@ -145,24 +142,26 @@ public class GemfireMessageGroupStore extends AbstractMessageGroupStore implemen
         return group;
     }
 
+	
     @Override
     public Iterator<MessageGroup> iterator() {
         return new HashSet<MessageGroup>(groupIdToMessageGroup.values()).iterator();
     }
 
-    private GemfireMessageGroup ensureSetup(
-        GemfireMessageGroup gemfireMessageGroup) {
+    private GemfireMessageGroup ensureMessageGroupHasReferencesToRegions( GemfireMessageGroup gemfireMessageGroup) {
+		if(gemfireMessageGroup == null)
+			return null;
         gemfireMessageGroup.setMarked(this.marked);
-        gemfireMessageGroup.setUnmarked(this.unmarked);
+		gemfireMessageGroup.setUnmarked(this.unmarked);
         return gemfireMessageGroup;
     }
 
     private GemfireMessageGroup getMessageGroupInternal(Object groupId) {
-        if (!groupIdToMessageGroup.containsKey(groupId)) {
-            groupIdToMessageGroup.putIfAbsent(groupId,
-                new GemfireMessageGroup(groupId));
-        }
+        if (!groupIdToMessageGroup.containsKey(groupId))
+            groupIdToMessageGroup.putIfAbsent(groupId, new GemfireMessageGroup(groupId));
 
-        return ensureSetup(groupIdToMessageGroup.get(groupId));
+		// todo lets investigate the Instantiator that Costin's put into SGF to handle just this sort of thing
+		// todo  -- is the Instantiator unqiue to DataSerializable entities or does it also support regular serialized Java objects? (which Gemfire supports as well)
+        return ensureMessageGroupHasReferencesToRegions(groupIdToMessageGroup.get(groupId));
     }
 }

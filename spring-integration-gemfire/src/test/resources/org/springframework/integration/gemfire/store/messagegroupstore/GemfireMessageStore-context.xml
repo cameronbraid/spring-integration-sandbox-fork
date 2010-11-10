@@ -10,15 +10,37 @@
 		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
 		http://www.springframework.org/schema/gemfire http://www.springframework.org/schema/gemfire/spring-gemfire.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
 
-
+    <context:property-placeholder location="org/springframework/integration/gemfire/inbound/cq/common.properties"/>
+    
     <context:component-scan base-package="org.springframework.integration.gemfire.store.messagegroupstore"/>
+
 
     <int:channel id="i"/>
 
-    <int:aggregator correlation-strategy="" message-store="" input-channel="i"  />
+    <int:aggregator  release-strategy="releaseStrategy" correlation-strategy="correlationStrategy" message-store="gemfireMessageGroupStore" input-channel="i" output-channel="o"  />
 
-    <int:channel id="y"/>
+    <int:channel id="o"/>
 
-    <int:service-activator input-channel="y" ref="messageGroupStoreActivator" />
+    <int:service-activator input-channel="o" ref="messageGroupStoreActivator" />
+
+
+
+    <!-- gemfire components -->
+    <util:properties id="props" location="org/springframework/integration/gemfire/inbound/cq/gfe-cache.properties"/>
+    <gfe:cache properties-ref="props" id="c"/>
+    <gfe:transaction-manager cache-ref="c"/>
+
+    <gfe:replicated-region id="unmarkedRegion"      cache-ref="c"/>
+    <gfe:replicated-region id="markedRegion"        cache-ref="c"/>
+    <gfe:replicated-region id="messageGroupRegion"  cache-ref="c"/>
+    <gfe:replicated-region id="messagesRegion"      cache-ref="c"/>
+
+    
+
+
+
+
+
+    <!-- beans for our aggregator-->
 
 </beans>
