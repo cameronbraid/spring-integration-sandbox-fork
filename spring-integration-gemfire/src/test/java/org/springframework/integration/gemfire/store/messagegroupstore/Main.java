@@ -6,7 +6,10 @@ import java.util.Arrays;
 
 
 /**
- * simple example demonstrating the use of a {@link org.springframework.integration.gemfire.store.GemfireMessageGroupStore}
+ * simple example demonstrating the use of a {@link org.springframework.integration.gemfire.store.KeyValueMessageGroupStore}
+ *
+ * @author Josh Long
+ *
  */
 public class Main {
     public static void main(String[] args) throws Throwable {

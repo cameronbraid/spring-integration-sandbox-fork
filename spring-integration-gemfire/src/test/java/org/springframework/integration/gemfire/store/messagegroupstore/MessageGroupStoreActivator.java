@@ -15,9 +15,9 @@ import java.util.Collection;
  */
 @Component
 public class MessageGroupStoreActivator {
+	
     @ServiceActivator
-    public void activate(Message<Collection<Object>> msg)
-        throws Throwable {
+    public void activate(Message<Collection<Object>> msg) throws Throwable {
         Collection<Object> payloads = msg.getPayload();
 
         System.out.println(StringUtils.repeat("-", 100));
