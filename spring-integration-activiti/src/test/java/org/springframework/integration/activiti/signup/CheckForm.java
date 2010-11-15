@@ -16,7 +16,6 @@
 			activityExecution.setVariable( "formOK",  formOK);
 			System.out.println( getClass()+" : form OK? " + formOK);
 
-
 			performDefaultOutgoingBehavior( activityExecution );
 
 		}

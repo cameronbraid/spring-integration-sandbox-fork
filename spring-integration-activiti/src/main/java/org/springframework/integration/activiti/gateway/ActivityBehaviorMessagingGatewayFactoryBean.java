@@ -39,7 +39,7 @@ public class ActivityBehaviorMessagingGatewayFactoryBean
             AsyncActivityBehaviorMessagingGateway asyncActivityBehaviorMessagingGateway = new AsyncActivityBehaviorMessagingGateway();
             asyncActivityBehaviorMessagingGateway.setForwardProcessVariablesAsMessageHeaders(this.forwardProcessVariablesAsMessageHeaders);
             asyncActivityBehaviorMessagingGateway.setUpdateProcessVariablesFromReplyMessageHeaders(this.updateProcessVariablesFromReplyMessageHeaders);
-            asyncActivityBehaviorMessagingGateway.setPlatformTransactionManager(this.platformTransactionManager);
+//            asyncActivityBehaviorMessagingGateway.setPlatformTransactionManager(this.platformTransactionManager);
             asyncActivityBehaviorMessagingGateway.setReplyChannel(this.replyChannel);
             asyncActivityBehaviorMessagingGateway.setProcessEngine(this.processEngine);
             asyncActivityBehaviorMessagingGateway.setRequestChannel(this.requestChannel);

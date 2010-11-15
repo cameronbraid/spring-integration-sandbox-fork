@@ -37,6 +37,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.util.Assert;
 
 import org.activiti.engine.runtime.Execution ;
+
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -101,7 +103,7 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
 	/**
 	 * Forwarded to the {@link org.springframework.integration.core.MessagingTemplate} instance.
 	 */
-	private volatile PlatformTransactionManager platformTransactionManager;
+//	private volatile PlatformTransactionManager platformTransactionManager;
 
 	/**
 	 * A reference to the {@link org.springframework.beans.factory.BeanFactory} that's hosting this component. Spring will inject this reference automatically assuming
@@ -120,10 +122,10 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
 	private ProcessSupport processSupport = new ProcessSupport();
 	private String beanName;
 
-	@SuppressWarnings("unused")
+/*	@SuppressWarnings("unused")
 	public void setPlatformTransactionManager(PlatformTransactionManager platformTransactionManager) {
 		this.platformTransactionManager = platformTransactionManager;
-	}
+	}*/
 
 	@SuppressWarnings("unused")
 	public void setRequestChannel(MessageChannel requestChannel) {
@@ -150,8 +152,7 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
 		this.updateProcessVariablesFromReplyMessageHeaders = updateProcessVariablesFromReplyMessageHeaders;
 	}
 
-	public void setBeanFactory(BeanFactory beanFactory)
-			throws BeansException {
+	public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
 		this.beanFactory = beanFactory;
 	}
 
@@ -176,6 +177,15 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
 	}
 
 	/**
+	 * Provides an opportunity for subclasses to provide extra headers to the outbound message
+	 */
+	protected Map<String,Object> outboundMessageConfigurationHook ( ActivityExecution activityExecution ) throws Exception {
+		return new HashMap<String,Object>();
+	}
+
+
+
+	/**
 	 * This is the main interface method from {@link ActivityBehavior}. It will be called when the BPMN process executes the node referencing this logic.
 	 *
 	 * @param execution the {@link  ActivityExecution} as given to use by the engine
@@ -184,7 +194,9 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
 	public void execute(ActivityExecution execution) throws Exception {
 		String executionId = execution.getId();
 
-		MessageBuilder<?> messageBuilder = MessageBuilder.withPayload(execution).setHeader(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY, executionId).setCorrelationId(executionId);
+		MessageBuilder<?> messageBuilder = MessageBuilder.withPayload(execution).setHeader(
+				ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY, executionId)
+				.setCorrelationId(executionId) .copyHeadersIfAbsent(  this.outboundMessageConfigurationHook( execution ));
 
 		if (this.forwardProcessVariablesAsMessageHeaders) {
 			Map<String, Object> variables =  execution.getVariables();
@@ -212,16 +224,11 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
 
 		processService = this.processEngine.getRuntimeService();
 
-		if (this.platformTransactionManager != null) {
-
-// todo 			this.messagingTemplate.setTransactionManager(this.platformTransactionManager);
-		}
-
 		MessageHandler handler = new ReplyMessageHandler();
 
 		PollerMetadata pollerMetadata = new PollerMetadata();
 		pollerMetadata.setReceiveTimeout(-1);
-// todo 		pollerMetadata.setTransactionManager(this.platformTransactionManager);
+		// todo pollerMetadata.setTransactionManager(this.platformTransactionManager);
 		pollerMetadata.setTrigger(new PeriodicTrigger(10));
 
 		ConsumerEndpointFactoryBean consumerEndpointFactoryBean = new ConsumerEndpointFactoryBean();
@@ -250,7 +257,7 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
 	 * This class listens for results on the reply channel and causes the flow of execution to proceed inside the business process
 	 */
 	class ReplyMessageHandler implements MessageHandler {
-		public void handleMessage(Message<?> message) throws   MessageHandlingException, MessageDeliveryException {
+		public void handleMessage(Message<?> message) throws MessageHandlingException, MessageDeliveryException {
 			try {
 				MessageHeaders messageHeaders = message.getHeaders();
 				String executionId = (String) message.getHeaders().get(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY);
