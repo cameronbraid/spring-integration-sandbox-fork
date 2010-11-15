@@ -13,7 +13,6 @@
 
 package org.springframework.integration.activiti;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,11 +25,9 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @ContextConfiguration
 @RunWith(SpringJUnit4ClassRunner.class)
-
 public class OutboundAdapterTest {
 
-
-	@Value( "#{tc}")
+	@Value( "#{triggerChannel}")
 	private MessageChannel messageChannel ;
 
 	private MessagingTemplate messagingTemplate  = new MessagingTemplate();
@@ -39,6 +36,7 @@ public class OutboundAdapterTest {
 	public void testOutboundAdapter() throws Throwable {
 		this.messagingTemplate.send( this.messageChannel , MessageBuilder.withPayload( "hello, from "+ System.currentTimeMillis())
 				.setHeader( ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY+"customerId",2324).build());
+		Thread.sleep(1000 *  10);
 	}
 
 }

@@ -62,7 +62,8 @@ public class SignupClient {
     }
 
     public static void main(String[] args) throws Throwable {
-        ClassPathXmlApplicationContext classPathXmlApplicationContext = new ClassPathXmlApplicationContext("/org/springframework/integration/activiti/SignupTest-context.xml");
+        ClassPathXmlApplicationContext classPathXmlApplicationContext = new ClassPathXmlApplicationContext(
+						"/org/springframework/integration/activiti/SignupTest-context.xml");
         classPathXmlApplicationContext.start();
 
         SignupClient signupClient = classPathXmlApplicationContext.getBean(SignupClient.class);

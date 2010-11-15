@@ -30,7 +30,7 @@ import java.util.Map;
  * <p/>
  * This support is simialar to the classic EIP book's "Process Manager" pattern.
  * <p/>
- * Thanks to Mark Fisherfor the idea.
+ * Thanks to Mark Fisher for the idea.
  *
  * @author Josh Long
  */

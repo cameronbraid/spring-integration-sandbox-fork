@@ -42,7 +42,7 @@ public class GatewayTest extends AbstractJUnit4SpringContextTests {
 		Map<String, Object> vars = new HashMap<String, Object>();
 		vars.put("customerId", 232);
 		processEngine.getRuntimeService().startProcessInstanceByKey("sigatewayProcess", vars);
-		Thread.sleep(10000);
+		Thread.sleep(10 * 1000);
 
 	}
 }

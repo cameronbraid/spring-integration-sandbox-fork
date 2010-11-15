@@ -15,11 +15,7 @@ import org.springframework.integration.gemfire.inbound.cq.CqServiceActivator;
 
 @Configuration
 public class CqClientConfiguration {
-
-//	private volatile Pool pool;
-	//  private volatile ClientCache cache;
-//	private volatile Region<?,?> region;
-//	private volatile CqQuery cqQuery ;
+ 
 
 	@Value("${region-name}")
 	private String regionName;
