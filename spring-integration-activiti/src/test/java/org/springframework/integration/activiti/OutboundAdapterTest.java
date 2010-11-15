@@ -16,6 +16,7 @@ package org.springframework.integration.activiti;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.integration.Message;
 import org.springframework.integration.MessageChannel;
 import org.springframework.integration.core.MessagingTemplate;
 import org.springframework.integration.support.MessageBuilder;
@@ -34,8 +35,10 @@ public class OutboundAdapterTest {
 
 	@Test
 	public void testOutboundAdapter() throws Throwable {
-		this.messagingTemplate.send( this.messageChannel , MessageBuilder.withPayload( "hello, from "+ System.currentTimeMillis())
-				.setHeader( ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY+"customerId",2324).build());
+		Message<?> msg = 	MessageBuilder.withPayload( "hello, from "+ System.currentTimeMillis())
+				.setHeader( ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY+"customerId",2324)
+				.build();
+		messagingTemplate.send( this.messageChannel , msg	);
 		Thread.sleep(1000 *  10);
 	}
 

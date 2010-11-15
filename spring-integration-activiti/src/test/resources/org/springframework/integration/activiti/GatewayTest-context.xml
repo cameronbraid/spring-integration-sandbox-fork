@@ -76,7 +76,7 @@
     <!-- where the service activator eventually reads the request channel and does some processing
 			(though, of course, this may as well have been a JMS adapter or an email adapter). Finally the response is created and sent on..
 		-->
-    <bean id="echoServiceActivator" class="org.springframework.integration.activiti.impls.DelayedchoServiceActivator"/>
+    <bean id="echoServiceActivator" class="org.springframework.integration.activiti.impls.DelayedServiceActivator"/>
 
     <int:service-activator input-channel="request" ref="echoServiceActivator" output-channel="response"/>
 
