@@ -2,17 +2,11 @@ package org.springframework.integration.activiti;
 
 import org.activiti.engine.DbSchemaStrategy;
 import org.activiti.engine.impl.cfg.spring.ProcessEngineFactoryBean;
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-
 import org.springframework.context.annotation.Bean;
-
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy;
-
 import org.springframework.stereotype.Component;
-
 import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
