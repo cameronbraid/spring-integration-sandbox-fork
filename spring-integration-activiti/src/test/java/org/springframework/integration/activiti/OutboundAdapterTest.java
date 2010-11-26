@@ -28,18 +28,18 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 public class OutboundAdapterTest {
 
-	@Value( "#{triggerChannel}")
-	private MessageChannel messageChannel ;
+	@Value("#{triggerChannel}")
+	private MessageChannel messageChannel;
 
-	private MessagingTemplate messagingTemplate  = new MessagingTemplate();
+	private MessagingTemplate messagingTemplate = new MessagingTemplate();
 
 	@Test
 	public void testOutboundAdapter() throws Throwable {
-		Message<?> msg = 	MessageBuilder.withPayload( "hello, from "+ System.currentTimeMillis())
-				.setHeader( ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY+"customerId",2324)
+		Message<?> msg = MessageBuilder.withPayload("hello, from " + System.currentTimeMillis())
+				.setHeader(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY + "customerId", 2324)
 				.build();
-		messagingTemplate.send( this.messageChannel , msg	);
-		Thread.sleep(1000 *  10);
+		messagingTemplate.send(this.messageChannel, msg);
+		Thread.sleep(1000 * 10);
 	}
 
 }

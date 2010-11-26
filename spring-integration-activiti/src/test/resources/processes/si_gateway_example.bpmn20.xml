@@ -2,7 +2,7 @@
 <definitions id="definitions"
 			 xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
 			 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-			 xmlns:activiti="http://activiti.org/bpmn-extensions"
+			 xmlns:activiti="http://activiti.org/bpmn"
 			 typeLanguage="http://www.w3.org/2001/XMLSchema"
 			 expressionLanguage="http://www.w3.org/1999/XPath"
 			 targetNamespace="http://www.activiti.org/bpmn2.0">
@@ -11,11 +11,11 @@
 
 		<startEvent id="theStart"/>
 
-			<sequenceFlow id="flow1" sourceRef="theStart" targetRef="sigw"/>
+		<sequenceFlow id="flow1" sourceRef="theStart" targetRef="sigw"/>
 
-		<serviceTask id="sigw" name="Spring Integration Gateway" activiti:class="#{gateway}"/>
+		<serviceTask id="sigw" name="Spring Integration Gateway"  activiti:delegateExpression="#{gateway}"/>
 
-			<sequenceFlow id="flow2" sourceRef="sigw" targetRef="theEnd"/>
+		<sequenceFlow id="flow2" sourceRef="sigw" targetRef="theEnd"/>
 
 		<endEvent id="theEnd"/>
 

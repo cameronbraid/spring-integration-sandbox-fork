@@ -36,7 +36,7 @@ import java.util.Map;
  */
 public class ActivitiOutboundChannelAdapter extends IntegrationObjectSupport implements MessageHandler {
 	/**
-	 * A reference to the {@link ProcessEngine} (see {@link org.activiti.engine.impl.cfg.spring.ProcessEngineFactoryBean}
+	 * A reference to the {@link ProcessEngine} (see {@link  org.activiti.spring.ProcessEngineFactoryBean}
 	 */
 	private ProcessEngine processEngine;
 

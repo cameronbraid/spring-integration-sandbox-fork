@@ -2,7 +2,7 @@
 <definitions id="definitions"
 			 xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
 			 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-			 xmlns:activiti="http://activiti.org/bpmn-extensions"
+			xmlns:activiti="http://activiti.org/bpmn"
 			 typeLanguage="http://www.w3.org/2001/XMLSchema"
 			 expressionLanguage="http://www.w3.org/1999/XPath"
 			 targetNamespace="http://www.activiti.org/bpmn2.0">
@@ -12,7 +12,7 @@
 
 		<sequenceFlow sourceRef="start" targetRef="sign-up"/>
 
-		<userTask name = "sign-up" id="sign-up">
+		<userTask name="sign-up" id="sign-up">
 			<documentation>
 				the potential customer must fill out the form online first
 			</documentation>
@@ -25,7 +25,7 @@
 
 		<sequenceFlow sourceRef="sign-up" targetRef="check-form"/>
 
-		<serviceTask id="check-form" activiti:class = "#{checkForm}"/>
+		<serviceTask id="check-form" activiti:delegateExpression="#{checkForm}"/>
 
 		<sequenceFlow sourceRef="check-form" targetRef="form-completed-decision-gateway"/>
 
@@ -52,7 +52,7 @@
 
 		<sequenceFlow sourceRef="fix-errors" targetRef="check-form"/>
 
-		<serviceTask id="send-confirmation-email" activiti:class = "#{sendEmail}"/>
+		<serviceTask id="send-confirmation-email" activiti:delegateExpression="#{sendEmail}"  />
 
 		<sequenceFlow sourceRef="send-confirmation-email" targetRef="confirm-email"/>
 

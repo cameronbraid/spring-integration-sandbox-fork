@@ -34,7 +34,8 @@ import java.util.Map;
 @RunWith(SpringJUnit4ClassRunner.class)
 public class GatewayTest extends AbstractJUnit4SpringContextTests {
 
-	@Autowired private ProcessEngine processEngine ;
+	@Autowired
+	private ProcessEngine processEngine;
 
 	@Test
 	public void testGateway() throws Throwable {

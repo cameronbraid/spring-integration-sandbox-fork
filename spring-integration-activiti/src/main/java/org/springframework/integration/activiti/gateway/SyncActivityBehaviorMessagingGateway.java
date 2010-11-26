@@ -15,11 +15,10 @@ package org.springframework.integration.activiti.gateway;
 
 import org.activiti.engine.ProcessEngine;
 import org.activiti.engine.RuntimeService;
+import org.activiti.engine.impl.pvm.delegate.ActivityBehavior;
+import org.activiti.engine.impl.pvm.delegate.ActivityExecution;
 import org.activiti.engine.impl.runtime.ExecutionEntity;
 import org.activiti.engine.runtime.Execution;
-import org.activiti.pvm.activity.ActivityBehavior;
-import org.activiti.pvm.activity.ActivityExecution;
-import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
@@ -29,7 +28,9 @@ import org.springframework.integration.*;
 import org.springframework.integration.activiti.ActivitiConstants;
 import org.springframework.integration.activiti.ProcessSupport;
 import org.springframework.integration.config.ConsumerEndpointFactoryBean;
-import org.springframework.integration.core.*;
+import org.springframework.integration.core.MessageHandler;
+import org.springframework.integration.core.MessagingTemplate;
+import org.springframework.integration.core.PollableChannel;
 import org.springframework.integration.endpoint.AbstractEndpoint;
 import org.springframework.integration.scheduling.PollerMetadata;
 import org.springframework.integration.support.MessageBuilder;
@@ -66,9 +67,9 @@ import java.util.Set;
  * which is modeled as a wait-state and deals perfectly with asynchronous continuations.
  *
  * @author Josh Long
- * @see org.activiti.engine.impl.bpmn.ReceiveTaskActivity  the {@link org.activiti.pvm.activity.ActivityBehavior} impl that ships w/ Activiti that has the machinery to wake up when signaled
+ * @see org.activiti.engine.impl.bpmn.ReceiveTaskActivity  the {@link  ActivityBehavior} impl that ships w/ Activiti that has the machinery to wake up when signaled
  * @see org.activiti.engine.ProcessEngine the process engine instance is required to be able to use this namespace
- * @see org.activiti.engine.impl.cfg.spring.ProcessEngineFactoryBean - use this class to create the aforementioned ProcessEngine instance!
+ * @see org.activiti.spring.ProcessEngineFactoryBean - use this class to create the aforementioned ProcessEngine instance!
  */
 public class SyncActivityBehaviorMessagingGateway implements BeanFactoryAware, BeanNameAware, ActivityBehavior, InitializingBean {
 	/**
@@ -88,7 +89,7 @@ public class SyncActivityBehaviorMessagingGateway implements BeanFactoryAware, B
 	private volatile MessageChannel replyChannel;
 
 	/**
-	 * Injected from Spring or some other mechanism. Recommended approach is through a {@link org.activiti.engine.impl.cfg.spring.ProcessEngineFactoryBean}
+	 * Injected from Spring or some other mechanism. Recommended approach is through a {@link org.activiti.spring.ProcessEngineFactoryBean}
 	 */
 	private volatile ProcessEngine processEngine;
 
@@ -158,7 +159,7 @@ public class SyncActivityBehaviorMessagingGateway implements BeanFactoryAware, B
 			throws BeansException {
 		this.beanFactory = beanFactory;
 	}
-	
+
 	/**
 	 * This is the main interface method from {@link ActivityBehavior}. It will be called when the BPMN process executes the node referencing this logic.
 	 *
@@ -189,9 +190,10 @@ public class SyncActivityBehaviorMessagingGateway implements BeanFactoryAware, B
 
 	/**
 	 * The transaction won't have committed, so there's simply no need to
+	 *
 	 * @param execution the execution
-	 * @param msg the inbound message
-	 * @throws Exception escape hatch exception  
+	 * @param msg       the inbound message
+	 * @throws Exception escape hatch exception
 	 */
 	protected void handleReply(ExecutionEntity execution, Message<?> msg)
 			throws Exception {
@@ -258,12 +260,23 @@ public class SyncActivityBehaviorMessagingGateway implements BeanFactoryAware, B
 	 * This class listens for results on the reply channel and causes the flow of execution to proceed inside the business process
 	 */
 	class ReplyMessageHandler implements MessageHandler {
-		public void handleMessage(Message<?> message) throws   MessageHandlingException, MessageDeliveryException {
+		public void handleMessage(Message<?> message) throws MessageHandlingException, MessageDeliveryException {
 			try {
 				MessageHeaders messageHeaders = message.getHeaders();
 				String executionId = (String) message.getHeaders().get(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY);
-				Execution execution = runtimeService.findExecutionById(executionId);
-				processEngine.getRuntimeService().signal(execution.getId(), StringUtils.EMPTY, messageHeaders);
+				Execution execution = runtimeService.createExecutionQuery().executionId(executionId).singleResult();
+
+				if (updateProcessVariablesFromReplyMessageHeaders) {
+					ActivityExecution activityExecution = (ActivityExecution) execution;
+					Map<String, Object> vars = ((ActivityExecution) execution).getVariables();
+					Set<String> existingVars = vars.keySet();
+
+					Map<String, Object> procVars = processSupport.processVariablesFromMessageHeaders(existingVars, messageHeaders);
+
+					for (String key : procVars.keySet())
+						activityExecution.setVariable(key, procVars.get(key));
+				}
+				processEngine.getRuntimeService().signal(executionId);
 			} catch (Throwable throwable) {
 				throw new RuntimeException(throwable);
 			}

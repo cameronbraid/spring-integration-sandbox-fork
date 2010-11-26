@@ -1,24 +1,24 @@
-	package org.springframework.integration.activiti.signup;
+package org.springframework.integration.activiti.signup;
 
-	import org.activiti.engine.impl.bpmn.BpmnActivityBehavior;
-	import org.activiti.pvm.activity.ActivityBehavior;
-	import org.activiti.pvm.activity.ActivityExecution;
-	import org.springframework.stereotype.Component;
+import org.activiti.engine.impl.bpmn.BpmnActivityBehavior;
+import org.activiti.engine.impl.pvm.delegate.ActivityBehavior;
+import org.activiti.engine.impl.pvm.delegate.ActivityExecution;
+import org.springframework.stereotype.Component;
 
-	@Component
-	public class CheckForm extends BpmnActivityBehavior implements ActivityBehavior {
+@Component
+public class CheckForm extends BpmnActivityBehavior implements ActivityBehavior {
 
-		public void execute(ActivityExecution activityExecution) throws Exception {
-			System.out.println( getClass()+" : checking form: ");
+	public void execute(ActivityExecution activityExecution) throws Exception {
+		System.out.println(getClass() + " : checking form: ");
 
-			boolean formOK = Math.random() > .7 ;
+		boolean formOK = Math.random() > .7;
 
-			activityExecution.setVariable( "formOK",  formOK);
-			System.out.println( getClass()+" : form OK? " + formOK);
+		activityExecution.setVariable("formOK", formOK);
+		System.out.println(getClass() + " : form OK? " + formOK);
 
-			performDefaultOutgoingBehavior( activityExecution );
+		performDefaultOutgoingBehavior(activityExecution);
 
-		}
 	}
+}
 
 

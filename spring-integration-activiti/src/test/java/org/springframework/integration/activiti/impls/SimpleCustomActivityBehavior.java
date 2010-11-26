@@ -12,38 +12,35 @@
  */
 package org.springframework.integration.activiti.impls;
 
-import org.activiti.engine.impl.runtime.ExecutionEntity;
-
-import org.activiti.pvm.activity.ActivityBehavior;
-import org.activiti.pvm.activity.ActivityExecution;
-import org.activiti.pvm.process.PvmTransition;
-
+import org.activiti.engine.impl.pvm.PvmTransition;
+import org.activiti.engine.impl.pvm.delegate.ActivityBehavior;
+import org.activiti.engine.impl.pvm.delegate.ActivityExecution;
 import org.springframework.beans.factory.InitializingBean;
 
 import java.util.List;
 
 
 /**
- * A simple component that implements {@link ActivityBehavior}
+ * A simple component that implements {@link org.activiti.engine.impl.pvm.delegate.ActivityBehavior}
  *
  * @author Josh Long
  */
 public class SimpleCustomActivityBehavior implements ActivityBehavior, InitializingBean {
-    public void execute(ActivityExecution dbExecution)
-        throws Exception {
-        System.out.println("Hello from a custom ActivityBehavior hosted in the Spring context. " + this);
+	public void execute(ActivityExecution dbExecution)
+			throws Exception {
+		System.out.println("Hello from a custom ActivityBehavior hosted in the Spring context. " + this);
 
 
-        for (String varName : dbExecution.getVariables().keySet())
-            System.out.println(varName + "=" + dbExecution.getVariable(varName));
+		for (String varName : dbExecution.getVariables().keySet())
+			System.out.println(varName + "=" + dbExecution.getVariable(varName));
 
-       
-        List<PvmTransition> transitions = dbExecution.getActivity().getOutgoingTransitions();
 
-        dbExecution.take(((null == transitions) || (transitions.size() == 0)) ? null : transitions.get(0));
-    }
+		List<PvmTransition> transitions = dbExecution.getActivity().getOutgoingTransitions();
 
-    public void afterPropertiesSet() throws Exception {
-        System.out.println("Starting " + SimpleCustomActivityBehavior.class.getName());
-    }
+		dbExecution.take(((null == transitions) || (transitions.size() == 0)) ? null : transitions.get(0));
+	}
+
+	public void afterPropertiesSet() throws Exception {
+		System.out.println("Starting " + SimpleCustomActivityBehavior.class.getName());
+	}
 }

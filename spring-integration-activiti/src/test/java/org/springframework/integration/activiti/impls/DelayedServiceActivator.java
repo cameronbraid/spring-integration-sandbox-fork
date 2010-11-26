@@ -36,10 +36,10 @@ public class DelayedServiceActivator {
 
 
 		System.out.println("entering ServiceActivator:sayHello");
-		Map<String,Object> headers = requestComingFromActiviti.getHeaders() ;
+		Map<String, Object> headers = requestComingFromActiviti.getHeaders();
 
-		for(String k : headers.keySet())
-			System.out.println( String.format( "%s = %s" , k, headers.get( k)));
+		for (String k : headers.keySet())
+			System.out.println(String.format("%s = %s", k, headers.get(k)));
 
 		Thread.sleep(5 * 1000);
 		System.out.println("exiting ServiceActivator:sayHello");
@@ -47,7 +47,7 @@ public class DelayedServiceActivator {
 
 		return MessageBuilder.withPayload(requestComingFromActiviti.getPayload()).
 				copyHeadersIfAbsent(requestComingFromActiviti.getHeaders())
-				.setHeader( ActivitiConstants.WELL_KNOWN_SPRING_INTEGRATION_HEADER_PREFIX + "test", "1 + 1").
-				build();
+				.setHeader(ActivitiConstants.WELL_KNOWN_SPRING_INTEGRATION_HEADER_PREFIX + "test", "1 + 1").
+						build();
 	}
 }

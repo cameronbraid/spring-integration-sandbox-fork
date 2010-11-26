@@ -16,9 +16,9 @@ package org.springframework.integration.activiti.gateway;
 import org.activiti.engine.ProcessEngine;
 import org.activiti.engine.RuntimeService;
 import org.activiti.engine.impl.bpmn.ReceiveTaskActivity;
-import org.activiti.engine.impl.cfg.spring.ProcessEngineFactoryBean;
-import org.activiti.pvm.activity.ActivityBehavior;
-import org.activiti.pvm.activity.ActivityExecution;
+import org.activiti.engine.impl.pvm.delegate.ActivityBehavior;
+import org.activiti.engine.impl.pvm.delegate.ActivityExecution;
+import org.activiti.engine.runtime.Execution;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
@@ -28,15 +28,14 @@ import org.springframework.integration.*;
 import org.springframework.integration.activiti.ActivitiConstants;
 import org.springframework.integration.activiti.ProcessSupport;
 import org.springframework.integration.config.ConsumerEndpointFactoryBean;
-import org.springframework.integration.core.*;
+import org.springframework.integration.core.MessageHandler;
+import org.springframework.integration.core.MessagingTemplate;
+import org.springframework.integration.core.PollableChannel;
 import org.springframework.integration.endpoint.AbstractEndpoint;
 import org.springframework.integration.scheduling.PollerMetadata;
 import org.springframework.integration.support.MessageBuilder;
 import org.springframework.scheduling.support.PeriodicTrigger;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.util.Assert;
-
-import org.activiti.engine.runtime.Execution ;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -66,7 +65,7 @@ import java.util.Set;
  * @author Josh Long
  * @see ReceiveTaskActivity  the {@link ActivityBehavior} impl that ships w/ Activiti that has the machinery to wake up when signaled
  * @see ProcessEngine the process engine instance is required to be able to use this namespace
- * @see ProcessEngineFactoryBean - use this class to create the aforementioned ProcessEngine instance!
+ * @see org.activiti.spring.ProcessEngineFactoryBean - use this class to create the aforementioned ProcessEngine instance!
  */
 public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity implements BeanFactoryAware, BeanNameAware, ActivityBehavior, InitializingBean {
 	/**
@@ -86,7 +85,7 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
 	private volatile MessageChannel replyChannel;
 
 	/**
-	 * Injected from Spring or some other mechanism. Recommended approach is through a {@link  ProcessEngineFactoryBean}
+	 * Injected from Spring or some other mechanism. Recommended approach is through a {@link  org.activiti.spring.ProcessEngineFactoryBean}
 	 */
 	private volatile ProcessEngine processEngine;
 
@@ -112,7 +111,7 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
 	private volatile BeanFactory beanFactory;
 
 	/**
-	 * The process engine instance that controls the Activiti PVM. Recommended creation is through {@link ProcessEngineFactoryBean}
+	 * The process engine instance that controls the Activiti PVM. Recommended creation is through {@link org.activiti.spring.ProcessEngineFactoryBean}
 	 */
 	private RuntimeService processService;
 
@@ -158,31 +157,15 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
 
 	@Override
 	public void signal(ActivityExecution execution, String signalName, Object data) throws Exception {
-
-		if (data instanceof MessageHeaders) {
-			MessageHeaders messageHeaders = (MessageHeaders) data;
-
-			if (this.updateProcessVariablesFromReplyMessageHeaders) {
-				Map<String, Object> vars = execution .getVariables();
-				Set<String> existingVars = vars.keySet();
-
-				Map<String, Object> procVars = this.processSupport.processVariablesFromMessageHeaders(existingVars, messageHeaders);
-
-				for (String key : procVars.keySet())
-					execution.setVariable(key, procVars.get(key));
-			}
-		}
-
 		super.signal(execution, signalName, data);
 	}
 
 	/**
 	 * Provides an opportunity for subclasses to provide extra headers to the outbound message
 	 */
-	protected Map<String,Object> outboundMessageConfigurationHook ( ActivityExecution activityExecution ) throws Exception {
-		return new HashMap<String,Object>();
+	protected Map<String, Object> outboundMessageConfigurationHook(ActivityExecution activityExecution) throws Exception {
+		return new HashMap<String, Object>();
 	}
-
 
 
 	/**
@@ -196,10 +179,10 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
 
 		MessageBuilder<?> messageBuilder = MessageBuilder.withPayload(execution).setHeader(
 				ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY, executionId)
-				.setCorrelationId(executionId) .copyHeadersIfAbsent(  this.outboundMessageConfigurationHook( execution ));
+				.setCorrelationId(executionId).copyHeadersIfAbsent(this.outboundMessageConfigurationHook(execution));
 
 		if (this.forwardProcessVariablesAsMessageHeaders) {
-			Map<String, Object> variables =  execution.getVariables();
+			Map<String, Object> variables = execution.getVariables();
 
 			if ((variables != null) && (variables.size() > 0)) {
 				messageBuilder = messageBuilder.copyHeadersIfAbsent(variables);
@@ -261,8 +244,19 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
 			try {
 				MessageHeaders messageHeaders = message.getHeaders();
 				String executionId = (String) message.getHeaders().get(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY);
-				Execution execution = processService.findExecutionById(executionId);
-				processEngine.getRuntimeService().signal(execution.getId(), AsyncActivityBehaviorMessagingGateway.class.getName() , messageHeaders);
+				Execution execution = processService.createExecutionQuery().executionId(executionId).singleResult();
+
+				if (updateProcessVariablesFromReplyMessageHeaders) {
+					ActivityExecution activityExecution = (ActivityExecution) execution;
+					Map<String, Object> vars = ((ActivityExecution) execution).getVariables();
+					Set<String> existingVars = vars.keySet();
+
+					Map<String, Object> procVars = processSupport.processVariablesFromMessageHeaders(existingVars, messageHeaders);
+
+					for (String key : procVars.keySet())
+						activityExecution.setVariable(key, procVars.get(key));
+				}
+				processEngine.getRuntimeService().signal(executionId);
 			} catch (Throwable throwable) {
 				throw new RuntimeException(throwable);
 			}
