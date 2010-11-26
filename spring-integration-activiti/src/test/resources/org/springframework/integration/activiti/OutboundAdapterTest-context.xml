@@ -48,17 +48,7 @@
 	</bean>
 
 
-	<bean lazy-init="true" class="org.springframework.integration.activiti.impls.SimpleCustomActivityBehavior"
-		  id="activityBehavior"/>
-
-
-	<!--
-		==========================================================
-		  Spring Integration Flow
-		==========================================================
-	   -->
-
-	<!-- Activiti sends a message 'to' (inbound) Spring Integration 'from' Activiti -->
+	<bean lazy-init="true" class="org.springframework.integration.activiti.impls.SimpleCustomActivityBehavior" id="activityBehavior"/>
 
 	<bean class="org.springframework.integration.activiti.impls.AnnouncingServiceActivator" id="activator"/>
 

@@ -35,9 +35,9 @@ public class SimpleCustomActivityBehavior implements ActivityBehavior, Initializ
 			System.out.println(varName + "=" + dbExecution.getVariable(varName));
 
 
-		List<PvmTransition> transitions = dbExecution.getActivity().getOutgoingTransitions();
+		/*List<PvmTransition> transitions = dbExecution.getActivity().getOutgoingTransitions();
 
-		dbExecution.take(((null == transitions) || (transitions.size() == 0)) ? null : transitions.get(0));
+		dbExecution.take(((null == transitions) || (transitions.size() == 0)) ? null : transitions.get(0));*/
 	}
 
 	public void afterPropertiesSet() throws Exception {
