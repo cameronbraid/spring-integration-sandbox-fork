@@ -16,7 +16,10 @@ import org.springframework.integration.Message;
 @SuppressWarnings("unused")
 public class GemfireMessageGroupStore extends KeyValueMessageGroupStore {
 
-	public GemfireMessageGroupStore(Region<Object, KeyValueMessageGroup> groupIdToMessageGroup, Region<String, Message<?>> marked, Region<String, Message<?>> unmarked) {
+	public GemfireMessageGroupStore(
+			Region<Object, KeyValueMessageGroup> groupIdToMessageGroup,
+			Region<String, Message<?>> marked,
+			Region<String, Message<?>> unmarked ) {
 		super(groupIdToMessageGroup, marked, unmarked);
 	}
 }

@@ -1,7 +1,6 @@
 package org.springframework.integration.gemfire.inbound;
 
 import com.gemstone.gemfire.cache.Region;
-import com.gemstone.gemfire.cache.RegionService;
 import com.gemstone.gemfire.cache.client.Pool;
 import com.gemstone.gemfire.cache.query.*;
 
@@ -54,11 +53,6 @@ public class ContinuousQueryMessageProducer extends MessageProducerSupport {
      * the query to be registered against the cache
      */
     private final String queryString;
-
-    /**
-     * a reference to the {@link com.gemstone.gemfire.cache.RegionService} that is obtained through the region
-     */
-    private volatile RegionService regionService;
 
     /**
      * a reference to a {@link com.gemstone.gemfire.cache.query.QueryService} that is obtained through the #regionService instance.
@@ -152,7 +146,7 @@ public class ContinuousQueryMessageProducer extends MessageProducerSupport {
         try {
             super.onInit();
 
-            regionService = this.region.getRegionService();
+          //  regionService = this.region.getRegionService();
 
             queryService = this.pool.getQueryService();
 

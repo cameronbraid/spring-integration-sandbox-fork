@@ -5,6 +5,7 @@ import org.springframework.integration.Message;
 import org.springframework.integration.annotation.ServiceActivator;
 
 public class CqServiceActivator {
+  
 
 	@ServiceActivator
 	public void handleMessage(Message<CqEvent> msg) throws Exception {

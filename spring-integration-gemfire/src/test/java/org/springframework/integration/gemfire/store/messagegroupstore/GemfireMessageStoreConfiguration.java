@@ -47,7 +47,7 @@ public class GemfireMessageStoreConfiguration {
 	}
 
 	@Bean
-	public KeyValueMessageGroupStore gemfireMessageGroupStore() {
+	public GemfireMessageGroupStore gemfireMessageGroupStore() {
 		return new GemfireMessageGroupStore (this.messageGroupRegion, this.marked , this.unmarked );
 	}
 }

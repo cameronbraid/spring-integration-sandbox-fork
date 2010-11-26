@@ -3,19 +3,25 @@ package org.springframework.integration.gemfire.inbound.cq.client;
 import com.gemstone.gemfire.cache.Region;
 import com.gemstone.gemfire.cache.client.*;
 import com.gemstone.gemfire.cache.query.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.ehcache.EhCacheFactoryBean;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.core.style.ToStringCreator;
+import org.springframework.data.gemfire.client.ClientRegionFactoryBean;
 import org.springframework.integration.MessageChannel;
 import org.springframework.integration.gemfire.inbound.ContinuousQueryMessageProducer;
 import org.springframework.integration.gemfire.inbound.cq.CqServiceActivator;
 
+import javax.sql.DataSource;
+import java.util.Map;
+
 
 @Configuration
 public class CqClientConfiguration {
- 
 
 	@Value("${region-name}")
 	private String regionName;
@@ -32,12 +38,19 @@ public class CqClientConfiguration {
 	@Value("#{cqIn}")
 	private MessageChannel messageChannel;
 
+	@Bean
+	public DataSource dataSource(){
+		return null;
+	}
 
 	@Bean
 	public CqServiceActivator cqServiceActivator() {
 		return new CqServiceActivator();
 	}
-
+   /* todo 
+   	protected ClientCache buildCache() throws Throwable {
+		return new ClientCacheFactory().create();
+	}
 	@Bean
 	public ClientCache clientCache() throws Throwable {
 		return buildCache();
@@ -45,17 +58,20 @@ public class CqClientConfiguration {
 
 	@Bean
 	public Region<?, ?> clientRegion() throws Throwable {
-		ClientRegionFactory<?, ?> clientRegionFactory =
-				clientCache().createClientRegionFactory(ClientRegionShortcut.PROXY);
+		ClientRegionFactory<?, ?> clientRegionFactory = clientCache().createClientRegionFactory(ClientRegionShortcut.PROXY);
 		return clientRegionFactory.create(this.regionName);
 	}
+*/
+
+
+
 
 	@Bean
 	public Pool pool() throws Throwable {
 		return this.buildPool(this.host, this.port);
 	}
 
-	@Bean
+	/*@Bean
 	public ContinuousQueryMessageProducer continuousQueryMessageProducer() throws Throwable {
 		ContinuousQueryMessageProducer continuousQueryMessageProducer
 				= new ContinuousQueryMessageProducer( this.clientRegion() , this.pool(), this.query);
@@ -64,7 +80,7 @@ public class CqClientConfiguration {
 		continuousQueryMessageProducer.setQueryName("pplQuery");
 		return continuousQueryMessageProducer;
 	}
-
+*/
 /*	protected CqQuery registerContinuousQuery(QueryService queryService, String name, String query, boolean durable, CqListener cqListener) throws Throwable {
 		CqAttributesFactory cqAttributesFactory = new CqAttributesFactory();
 		cqAttributesFactory.addCqListener(cqListener);
@@ -74,9 +90,7 @@ public class CqClientConfiguration {
 		return cqQuery;
 	}*/
 
-	protected ClientCache buildCache() throws Throwable {
-		return new ClientCacheFactory().create();
-	}
+
 
 	protected Pool buildPool(String host, int port) throws Throwable {
 		Pool pool = PoolManager.createFactory()

@@ -22,8 +22,10 @@
 
     <int:service-activator input-channel="o" ref="messageGroupStoreActivator" />
 
+
     <util:properties id="props" location="org/springframework/integration/gemfire/inbound/cq/gfe-cache.properties"/>
-    <gfe:cache properties-ref="props" id="c"/>
+
+	<gfe:cache properties-ref="props" id="c"/>
     <gfe:transaction-manager cache-ref="c"/>
 
     <gfe:replicated-region id="unmarkedRegion"      cache-ref="c"/>
