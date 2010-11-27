@@ -19,7 +19,7 @@ public class Main {
 
 		Producer producer = classPathXmlApplicationContext.getBean(Producer.class);
 
-		for(int i =0 ;  i < 10 ; i++ ) // each iteration will create a new, unique MessageGroup instance in the MessageGroupStore 
+		for(int i =0 ;  i < 10 ; i++ )
 			producer.sendManyMessages(  i, Arrays.asList("1,2,3,4,5".split(",")));
 
 

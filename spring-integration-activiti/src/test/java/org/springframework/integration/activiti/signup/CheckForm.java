@@ -16,7 +16,7 @@ public class CheckForm extends BpmnActivityBehavior implements ActivityBehavior 
 		activityExecution.setVariable("formOK", formOK);
 		System.out.println(getClass() + " : form OK? " + formOK);
 
-		performDefaultOutgoingBehavior(activityExecution);
+//		performDefaultOutgoingBehavior(activityExecution);
 
 	}
 }

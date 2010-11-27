@@ -245,8 +245,8 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
 				MessageHeaders messageHeaders = message.getHeaders();
 				String executionId = (String) message.getHeaders().get(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY);
 				Execution execution = processService.createExecutionQuery().executionId(executionId).singleResult();
-
-				if (updateProcessVariablesFromReplyMessageHeaders) {
+				
+				 if( null!=execution && updateProcessVariablesFromReplyMessageHeaders) {
 					ActivityExecution activityExecution = (ActivityExecution) execution;
 					Map<String, Object> vars = ((ActivityExecution) execution).getVariables();
 					Set<String> existingVars = vars.keySet();

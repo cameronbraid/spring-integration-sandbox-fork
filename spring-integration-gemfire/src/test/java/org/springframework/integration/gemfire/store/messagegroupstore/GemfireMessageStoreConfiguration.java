@@ -13,6 +13,8 @@ import org.springframework.integration.gemfire.store.GemfireMessageGroupStore;
 import org.springframework.integration.gemfire.store.KeyValueMessageGroup;
 import org.springframework.integration.gemfire.store.KeyValueMessageGroupStore;
 
+import java.util.Map;
+
 
 /**
  * Our aggregator needs a {@link org.springframework.integration.gemfire.store.KeyValueMessageGroupStore}
@@ -28,13 +30,13 @@ public class GemfireMessageStoreConfiguration {
 	private String correlationHeader;
 
 	@Value("#{unmarkedRegion}")
-	private Region<String, Message<?>> unmarked;
+	private Map<String, Message<?>> unmarked;
 
 	@Value("#{markedRegion}")
-	private Region<String, Message<?>> marked;
+	private Map<String, Message<?>> marked;
 
 	@Value("#{messageGroupRegion}")
-	private Region<Object, KeyValueMessageGroup> messageGroupRegion;
+	private Map<Object, KeyValueMessageGroup> messageGroupRegion;
 
 	@Bean
 	public ReleaseStrategy releaseStrategy() {
@@ -47,7 +49,7 @@ public class GemfireMessageStoreConfiguration {
 	}
 
 	@Bean
-	public GemfireMessageGroupStore gemfireMessageGroupStore() {
-		return new GemfireMessageGroupStore (this.messageGroupRegion, this.marked , this.unmarked );
+	public KeyValueMessageGroupStore gemfireMessageGroupStore() {
+		return new KeyValueMessageGroupStore(this.messageGroupRegion, this.marked , this.unmarked );
 	}
 }

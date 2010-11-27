@@ -18,10 +18,14 @@
 
 	<context:component-scan base-package="org.springframework.integration.activiti.signup"/>
 
-	<bean id="dataSource"
-		  class="org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy">
+	<bean id="dataSource" class="org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy">
 		<property name="targetDataSource">
-			<jdbc:embedded-database type="H2"/>
+			<bean class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+				<property name="driverClassName" value="org.h2.Driver"/>
+				<property name="username" value="sa"/>
+				<property name="password" value=""/>
+				<property name="url" value="jdbc:h2:tcp://localhost/~/activiti_example" />
+			</bean>
 		</property>
 	</bean>
 
@@ -34,7 +38,8 @@
 			<bean class="org.activiti.spring.SpringProcessEngineConfiguration">
 				<property name="dataSource" ref="dataSource"/>
 				<property name="transactionManager" ref="transactionManager"/>
-				<property name="databaseSchemaUpdate" value="create-drop"/>
+				<!--<property name="databaseSchemaUpdate" value="create-drop"/>-->
+				<!--<property name="databaseSchemaUpdate" value="create"/>-->
 				<property name="deploymentResources" value="classpath:/processes/signup.bpmn20.xml"/>
 			</bean>
 		</property>

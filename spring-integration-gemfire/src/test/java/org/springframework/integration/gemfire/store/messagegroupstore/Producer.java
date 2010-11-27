@@ -39,12 +39,13 @@ public class Producer {
 		Assert.notNull( lines, "the collection must be non-null");
 		Assert.notEmpty( lines, "the collection must not be empty");
 
-		int ctr = 0, size = lines.size() ;
+		int ctr = 0,
+			size = lines.size() ;
 
 		for (String l : lines){
 			Message<?> msg = MessageBuilder.withPayload(l)
 					.setCorrelationId( this.correlationHeader)
-					.setHeader( this.correlationHeader , correlationValue )
+				    .setHeader( this.correlationHeader , correlationValue )
 					.setSequenceNumber(++ctr)
 					.setSequenceSize( size)
 					.build();

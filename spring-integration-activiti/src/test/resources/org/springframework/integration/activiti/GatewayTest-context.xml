@@ -23,11 +23,21 @@
 
 	<context:annotation-config/>
 
+	<bean id="processEngine"  class="org.activiti.spring.ProcessEngineFactoryBean" >
+		<property name="processEngineConfiguration">
+			<bean class="org.activiti.spring.SpringProcessEngineConfiguration"
+				  p:dataSource-ref="dataSource"
+				  p:transactionManager-ref="transactionManager"
+		/><!--		  p:databaseSchemaUpdate="create"-->
+		</property>
+	</bean>
+
+
+
+
 	<int:poller default="true">
 		<int:interval-trigger interval="1000"/>
 	</int:poller>
-
-	<jdbc:embedded-database type="H2" id="ds"/>
 
 	<bean id="dataSource" class="org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy">
 		 <property name="targetDataSource">
@@ -38,37 +48,22 @@
 				  p:password=""
 					/>
 		</property>
-		<!--<property name="targetDataSource" ref="ds"/>-->
 	</bean>
 
-	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager"
-		  p:dataSource-ref="dataSource"/>
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager" p:dataSource-ref="dataSource"/>
 
-	<bean id="processEngine"  class="org.activiti.spring.ProcessEngineFactoryBean" >
-		<property name="processEngineConfiguration">
-			<bean class="org.activiti.spring.SpringProcessEngineConfiguration">
-				<property name="dataSource" ref="dataSource"/>
-				<property name="transactionManager" ref="transactionManager"/>
-				<property name="databaseSchemaUpdate" value="create-drop"/>
-			</bean>
-		</property>
-	</bean>
-	             <!--		  p:dataSource-ref="dataSource"
-		  p:transactionManager-ref="transactionManager"
-		  p:dbSchemaStrategy="CREATE"-->
 
-	<!--
-		==========================================================
-		  Spring Integration Flow
-		==========================================================
-	   -->
+
 
 	<!-- Activiti sends a message 'to' (inbound) Spring Integration 'from' Activiti -->
 	<activiti:inbound-gateway
 			process-engine="processEngine"
-			request-channel="request"
+
 			async="true"
+
+			request-channel="request"
 			reply-channel="response"
+
 			forward-process-variables-as-message-headers="true"
 			update-process-variables-from-reply-message-headers="true"
 			id="gateway"
@@ -79,14 +74,11 @@
 		<int:queue capacity="10"/>
 	</int:channel>
 
-	<!-- where the service activator eventually reads the request channel and does some processing
-		   (though, of course, this may as well have been a JMS adapter or an email adapter). Finally the response is created and sent on..
-	   -->
+
 	<bean id="echoServiceActivator" class="org.springframework.integration.activiti.impls.DelayedServiceActivator"/>
 
 	<int:service-activator input-channel="request" ref="echoServiceActivator" output-channel="response"/>
 
-	<!--the response channel -->
 	<int:channel id="response"/>
 
 

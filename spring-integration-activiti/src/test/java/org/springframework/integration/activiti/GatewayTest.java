@@ -39,10 +39,15 @@ public class GatewayTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testGateway() throws Throwable {
+		// setup
 		processEngine.getRepositoryService().createDeployment().addClasspathResource("processes/si_gateway_example.bpmn20.xml").deploy();
+
+		// launch a process
 		Map<String, Object> vars = new HashMap<String, Object>();
 		vars.put("customerId", 232);
+
 		processEngine.getRuntimeService().startProcessInstanceByKey("sigatewayProcess", vars);
+
 		Thread.sleep(10 * 1000);
 
 	}

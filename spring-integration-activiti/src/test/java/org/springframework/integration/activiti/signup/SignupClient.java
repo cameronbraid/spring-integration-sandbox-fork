@@ -44,6 +44,7 @@ public class SignupClient {
 		boolean workToBeDone = false;
 		for (Task t : tasksForUser(user, taskName)) {
 			workToBeDone = true;
+			taskService.claim(t.getId(), user);
 			System.out.println("starting " + t.getId() + " : " + t.getName());
 			taskService.complete(t.getId());
 			System.out.println("completed " + t.getId() + " : " + t.getName());
@@ -65,13 +66,15 @@ public class SignupClient {
 
 		SignupClient signupClient = classPathXmlApplicationContext.getBean(SignupClient.class);
 		signupClient.startSignupProcess(System.currentTimeMillis());
-		signupClient.handleWorkForUser("customer", "sign-up");
+
+		while (signupClient.handleWorkForUser("customer", "sign-up"))
+			;
 
 		while (signupClient.handleWorkForUser("customer", "fix-errors"))
 			;
-
+/*
 		signupClient.handleWorkForUser("customer", "confirm-email");
 
-
+*/
 	}
 }

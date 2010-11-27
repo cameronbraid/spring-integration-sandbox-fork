@@ -130,12 +130,9 @@ public class ContinuousQueryMessageProducer extends MessageProducerSupport {
     /**
      * hook to handle registration of the query
      */
-    protected CqQuery registerContinuousQuery(QueryService queryService,
-        String name, String query, boolean durable, CqListener cqListener)
-        throws Throwable {
+    protected CqQuery registerContinuousQuery(QueryService queryService, String name, String query, boolean durable, CqListener cqListener) throws Throwable {
         CqAttributesFactory cqAttributesFactory = new CqAttributesFactory();
         cqAttributesFactory.addCqListener(cqListener);
-
         CqAttributes attrs = cqAttributesFactory.create();
         CqQuery cqQuery = queryService.newCq(name, query, attrs, durable);
         return cqQuery;
@@ -169,7 +166,8 @@ public class ContinuousQueryMessageProducer extends MessageProducerSupport {
      * the evaluation of a continuous query {@link CqQuery}.
      */
     class MessageProducingCqListener implements CqListener {
-        public void onEvent(CqEvent cqEvent) {
+
+	    public void onEvent(CqEvent cqEvent) {
             Message<CqEvent> cqEventMessage = MessageBuilder.withPayload(cqEvent).build();
             sendMessage(cqEventMessage);
         }

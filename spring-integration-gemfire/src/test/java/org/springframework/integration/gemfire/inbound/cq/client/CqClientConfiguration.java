@@ -38,10 +38,7 @@ public class CqClientConfiguration {
 	@Value("#{cqIn}")
 	private MessageChannel messageChannel;
 
-	@Bean
-	public DataSource dataSource(){
-		return null;
-	}
+
 
 	@Bean
 	public CqServiceActivator cqServiceActivator() {
