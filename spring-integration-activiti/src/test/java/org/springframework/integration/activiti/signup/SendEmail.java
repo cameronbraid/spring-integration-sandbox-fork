@@ -12,6 +12,6 @@ public class SendEmail extends BpmnActivityBehavior implements ActivityBehavior 
 	public void execute(ActivityExecution activityExecution) throws Exception {
 		System.out.println(getClass() + ": sending email ");
 
-		this.performDefaultOutgoingBehavior(activityExecution);
+	//	this.performDefaultOutgoingBehavior(activityExecution);
 	}
 }
