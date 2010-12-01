@@ -48,7 +48,7 @@ public class GatewayTest extends AbstractJUnit4SpringContextTests {
 
 		processEngine.getRuntimeService().startProcessInstanceByKey("sigatewayProcess", vars);
 
-		Thread.sleep(10 * 1000);
+		Thread.sleep(40 * 1000);
 
 	}
 }

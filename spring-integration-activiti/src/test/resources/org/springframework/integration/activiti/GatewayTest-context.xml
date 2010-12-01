@@ -41,16 +41,17 @@
 
 	<bean id="dataSource" class="org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy">
 		 <property name="targetDataSource">
-			<bean class="org.apache.commons.dbcp.BasicDataSource"
+			<bean class="org.springframework.jdbc.datasource.SimpleDriverDataSource"
+				  p:driverClass="org.h2.Driver"
 				  p:url="jdbc:h2:tcp://localhost/~/activiti_example"
-				  p:driverClassName="org.h2.Driver"
 				  p:username="sa"
 				  p:password=""
 					/>
 		</property>
 	</bean>
 
-	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager" p:dataSource-ref="dataSource"/>
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager"
+		  p:dataSource-ref="dataSource"/>
 
 
 

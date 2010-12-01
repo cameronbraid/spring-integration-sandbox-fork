@@ -13,6 +13,8 @@
 package org.springframework.integration.activiti;
 
 /**
+ * Represents header keys common to the bidirectional interaction with Spring Integration and Activiti
+ *
  * @author Josh Long
  */
 public class ActivitiConstants {
@@ -22,6 +24,12 @@ public class ActivitiConstants {
 	 * the <code>executionId</code> is expected to be under this header.
 	 */
 	public static final String WELL_KNOWN_EXECUTION_ID_HEADER_KEY = "activiti_spring_integration_executionId";
+
+	public static final String WELL_KNOWN_ACTIVITY_ID_HEADER_KEY = "activiti_spring_integration_activityId";
+
+	public static final String WELL_KNOWN_PROCESS_DEFINITION_ID_HEADER_KEY = "activiti_spring_integration_processDefinitionId";
+
+	public static final String WELL_KNOWN_PROCESS_INSTANCE_ID_HEADER_KEY = "activiti_spring_integration_processInstanceId";
 
 	/**
 	 * Assuming #updateProcessVariablesFromReplyMessageHeaders is true, then any {@link org.springframework.integration.MessageHeaders} header key that starts with String will be propagated as an Activiti process variable.

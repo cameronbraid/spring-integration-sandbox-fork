@@ -33,13 +33,11 @@ public class SignupClient {
 		repositoryService.createDeployment().addClasspathResource("processes/signup.bpmn20.xml").deploy();
 	}
 
-	private List<Task> tasksForUser(String user, String name)
-			throws Exception {
+	private List<Task> tasksForUser(String user, String name) throws Exception {
 		return taskService.createTaskQuery().taskName(name).taskAssignee(user).list();
 	}
 
-	private boolean handleWorkForUser(String user, String taskName)
-			throws Exception {
+	private boolean handleWorkForUser(String user, String taskName) throws Exception {
 
 		boolean workToBeDone = false;
 		for (Task t : tasksForUser(user, taskName)) {
