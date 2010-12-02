@@ -50,8 +50,7 @@
 		</property>
 	</bean>
 
-	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager"
-		  p:dataSource-ref="dataSource"/>
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager" p:dataSource-ref="dataSource"/>
 
 
 
@@ -65,8 +64,8 @@
 			request-channel="request"
 			reply-channel="response"
 
-			forward-process-variables-as-message-headers="true"
-			update-process-variables-from-reply-message-headers="true"
+			forward-process-variables-as-message-headers="false"
+			update-process-variables-from-reply-message-headers="false"
 			id="gateway"
 			/>
 

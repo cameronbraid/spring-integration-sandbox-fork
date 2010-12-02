@@ -195,16 +195,6 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
         String executionId = execution.getId();
         String pvmActivityId = pvmActivity.getId();
 
-        //        String businessKey = executionEntity.getBusinessKey();
-        //        List<?extends PvmActivity> activities = pvmActivity.getActivities();
-        //          System.out.println(StringUtils.join(activities, ","));
-        //        ActivityImpl activity = (ActivityImpl) pvmActivity;
-        //        ExecutionImpl ei = ((ExecutionEntity) execution).getReplacedBy();
-        //        System.out.println("activityImpl#id:" + activity.getId() + "; execitionImpl:" + ToStringBuilder.reflectionToString(ei));
-        // execution.activiti.parent.deploymentId
-        //	ScopeImpl si =executionEntity.getActivity().getParent();
-        //        System.out.println("processDefinitionId:" + procDefId + "; businessKey: " + businessKey + "; executionId: " + executionId + "; pvmActivityId: " + pvmActivityId + "; processInstanceId: " +
-        //            procInstanceId);
         MessageBuilder<?> messageBuilder = MessageBuilder.withPayload(execution).setHeader(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY, executionId)
                                                          .setHeader(ActivitiConstants.WELL_KNOWN_ACTIVITY_ID_HEADER_KEY, pvmActivityId)
                                                          .setHeader(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_ID_HEADER_KEY, procDefId)
@@ -222,6 +212,8 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
         Message<?> msg = messageBuilder.setReplyChannel(replyChannel).build();
 
         this.messagingTemplate.send(this.requestChannel, msg);
+
+	    super.execute( execution );
     }
 
     /**
@@ -273,31 +265,50 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
     class ReplyMessageHandler implements MessageHandler {
         public void handleMessage(Message<?> message) throws MessageHandlingException, MessageDeliveryException {
             try {
-                MessageHeaders messageHeaders = message.getHeaders();
+
+	            RuntimeService runtimeService =  processEngine.getRuntimeService();
+
+	            MessageHeaders messageHeaders = message.getHeaders();
+				String executionId = (String) message.getHeaders().get(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY);
+				Execution execution = runtimeService.createExecutionQuery().executionId(executionId).singleResult();
+
+				if (updateProcessVariablesFromReplyMessageHeaders) {
+					ActivityExecution activityExecution = (ActivityExecution) execution;
+					Map<String, Object> vars = ((ActivityExecution) execution).getVariables();
+					Set<String> existingVars = vars.keySet();
+
+					Map<String, Object> procVars = processSupport.processVariablesFromMessageHeaders(existingVars, messageHeaders);
+
+					for (String key : procVars.keySet())
+						activityExecution.setVariable(key, procVars.get(key));
+				}
+				runtimeService.signal(executionId);
+	            
+                /*MessageHeaders messageHeaders = message.getHeaders();
 
 
 	            String executionId = (String) message.getHeaders().get(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY);
                 String activityId = (String) message.getHeaders().get(ActivitiConstants.WELL_KNOWN_ACTIVITY_ID_HEADER_KEY);
 
 
-                /*
+                *//*
                      todo this is now broken as of the update to 5.0 GA. executionId, procDefId, instanceId, nothing seems to be able to get
                      todo (cont'd) me the execution. NB, it doesn't seem to be persisted, but it is reflected in history tables
 
 
-                     */
-                RuntimeServiceImpl service = (RuntimeServiceImpl) processService;
+                     *//*
+//                RuntimeServiceImpl service = (RuntimeServiceImpl) processService;
 
-                service.signal(activityId);
+                 processService.signal(activityId);
 
                 //  DbSqlSession dbSqlSession = CommandContext.getCurrent().getDbSqlSession();
                 //  ExecutionEntity ee = dbSqlSession.selectById(ExecutionEntity.class, executionId);
 
                 //  ProcessInstance pi = processService.createProcessInstanceQuery().processDefinitionId(procDefId).singleResult();
 
-                /*  return (List) commandContext
+                *//*  return (List) commandContext
                 .getRuntimeSession()
-                .findExecutionsByQueryCriteria(this, page);*/
+                .findExecutionsByQueryCriteria(this, page);*//*
 
                 //      RuntimeServiceImpl runtimeService = (RuntimeServiceImpl) processService;
 
@@ -307,8 +318,8 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
                 //     ExecutionQueryImpl executionQuery = (ExecutionQueryImpl) processService.createExecutionQuery();
 
                 //				System.out.println( "execution = " + ToStringBuilder.reflectionToString(execution));
-                /*
-                                       */
+                *//*
+                                       *//*
                 Execution execution = null; // todo fixme
 
                 if ((null != execution) && updateProcessVariablesFromReplyMessageHeaders) {
@@ -322,7 +333,7 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
                         activityExecution.setVariable(key, procVars.get(key));
                 }
 
-                processEngine.getRuntimeService().signal(executionId);
+                processEngine.getRuntimeService().signal(executionId);*/
             } catch (Throwable throwable) {
                 throw new RuntimeException(throwable);
             }
