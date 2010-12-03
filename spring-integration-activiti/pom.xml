@@ -14,6 +14,8 @@
 		<spring.version>3.0.3.RELEASE</spring.version>
 	</properties>
 	<dependencies>
+
+
 		<dependency>
 			<groupId>commons-dbcp</groupId>
 			<artifactId>commons-dbcp</artifactId>
@@ -93,12 +95,12 @@
 		<dependency>
 			<groupId>org.activiti</groupId>
 			<artifactId>activiti-engine</artifactId>
-			<version>5.0</version>
+		    <version>5.1-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.activiti</groupId>
 			<artifactId>activiti-spring</artifactId>
-			<version>5.0</version>
+		    <version>5.1-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>

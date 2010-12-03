@@ -168,7 +168,7 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
     @Override
     public void signal(ActivityExecution execution, String signalName, Object data)
         throws Exception {
-        super.signal(execution, signalName, data);
+       leave(execution );
     }
 
     /**
@@ -195,11 +195,12 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
         String executionId = execution.getId();
         String pvmActivityId = pvmActivity.getId();
 
-        MessageBuilder<?> messageBuilder = MessageBuilder.withPayload(execution).setHeader(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY, executionId)
-                                                         .setHeader(ActivitiConstants.WELL_KNOWN_ACTIVITY_ID_HEADER_KEY, pvmActivityId)
-                                                         .setHeader(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_ID_HEADER_KEY, procDefId)
-                                                         .setHeader(ActivitiConstants.WELL_KNOWN_PROCESS_INSTANCE_ID_HEADER_KEY, procInstanceId).setCorrelationId(executionId)
-                                                         .copyHeadersIfAbsent(this.outboundMessageConfigurationHook(execution));
+        MessageBuilder<?> messageBuilder = MessageBuilder.withPayload(execution)
+		        .setHeader(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY, executionId)
+		        .setHeader(ActivitiConstants.WELL_KNOWN_ACTIVITY_ID_HEADER_KEY, pvmActivityId)
+		        .setHeader(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_ID_HEADER_KEY, procDefId)
+		        .setHeader(ActivitiConstants.WELL_KNOWN_PROCESS_INSTANCE_ID_HEADER_KEY, procInstanceId).setCorrelationId(executionId)
+		        .copyHeadersIfAbsent(this.outboundMessageConfigurationHook(execution));
 
         if (this.forwardProcessVariablesAsMessageHeaders) {
             Map<String, Object> variables = execution.getVariables();
@@ -283,57 +284,7 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
 						activityExecution.setVariable(key, procVars.get(key));
 				}
 				runtimeService.signal(executionId);
-	            
-                /*MessageHeaders messageHeaders = message.getHeaders();
 
-
-	            String executionId = (String) message.getHeaders().get(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY);
-                String activityId = (String) message.getHeaders().get(ActivitiConstants.WELL_KNOWN_ACTIVITY_ID_HEADER_KEY);
-
-
-                *//*
-                     todo this is now broken as of the update to 5.0 GA. executionId, procDefId, instanceId, nothing seems to be able to get
-                     todo (cont'd) me the execution. NB, it doesn't seem to be persisted, but it is reflected in history tables
-
-
-                     *//*
-//                RuntimeServiceImpl service = (RuntimeServiceImpl) processService;
-
-                 processService.signal(activityId);
-
-                //  DbSqlSession dbSqlSession = CommandContext.getCurrent().getDbSqlSession();
-                //  ExecutionEntity ee = dbSqlSession.selectById(ExecutionEntity.class, executionId);
-
-                //  ProcessInstance pi = processService.createProcessInstanceQuery().processDefinitionId(procDefId).singleResult();
-
-                *//*  return (List) commandContext
-                .getRuntimeSession()
-                .findExecutionsByQueryCriteria(this, page);*//*
-
-                //      RuntimeServiceImpl runtimeService = (RuntimeServiceImpl) processService;
-
-                //    List<String> activityIds = runtimeService.getActiveActivityIds(executionId);
-                //     System.out.println(StringUtils.join(activityIds.iterator(), ","));
-
-                //     ExecutionQueryImpl executionQuery = (ExecutionQueryImpl) processService.createExecutionQuery();
-
-                //				System.out.println( "execution = " + ToStringBuilder.reflectionToString(execution));
-                *//*
-                                       *//*
-                Execution execution = null; // todo fixme
-
-                if ((null != execution) && updateProcessVariablesFromReplyMessageHeaders) {
-                    ActivityExecution activityExecution = (ActivityExecution) execution;
-                    Map<String, Object> vars = ((ActivityExecution) execution).getVariables();
-                    Set<String> existingVars = vars.keySet();
-
-                    Map<String, Object> procVars = processSupport.processVariablesFromMessageHeaders(existingVars, messageHeaders);
-
-                    for (String key : procVars.keySet())
-                        activityExecution.setVariable(key, procVars.get(key));
-                }
-
-                processEngine.getRuntimeService().signal(executionId);*/
             } catch (Throwable throwable) {
                 throw new RuntimeException(throwable);
             }
