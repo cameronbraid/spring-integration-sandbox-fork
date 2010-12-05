@@ -1,10 +1,10 @@
 package org.springframework.integration.dwr;
 
 /**
- * constants for the various message headers on inbound {@link org.springframework.integration.Message} messages
+ * Constants for the various message headers on inbound {@link org.springframework.integration.Message} messages.
  *
- * @since 1.0
  * @author Josh Long
+ * @since 1.0
  */
 public class DwrMessageHeaders {
 
@@ -17,5 +17,13 @@ public class DwrMessageHeaders {
 	 * the name of the function to be invoked on the client when a message is pushed down
 	 */
 	public static final String DWR_SCRIPT_FUNCTION_NAME =  DWR_PREFIX + "CallbackFunctionName";
+
+	/**
+	 * the DWR session to which the message should be routed, in specific.
+	 *
+	 * the session is a client-created value that DWR uses to startup an adapter
+	 *
+	 */
+	public static final String DWR_TARGET_SESSION_ID =  DWR_PREFIX + "TargetDwrSessionId";
 
 }
