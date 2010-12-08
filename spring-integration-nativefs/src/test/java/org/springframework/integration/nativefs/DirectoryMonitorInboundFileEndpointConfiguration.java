@@ -1,11 +1,10 @@
-package org.springframework.integration.nativefs.eventdriven;
+package org.springframework.integration.nativefs;
 
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.integration.MessageChannel;
-import org.springframework.integration.nativefs.DirectoryMonitorInboundFileEndpoint;
 
 import javax.annotation.PostConstruct;
 import java.io.File;

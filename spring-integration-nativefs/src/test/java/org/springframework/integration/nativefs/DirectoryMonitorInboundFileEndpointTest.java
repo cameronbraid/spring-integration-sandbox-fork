@@ -1,4 +1,4 @@
-package org.springframework.integration.nativefs.eventdriven;
+package org.springframework.integration.nativefs;
 
 import junit.framework.Assert;
 import org.apache.commons.io.IOUtils;
@@ -115,8 +115,7 @@ public class DirectoryMonitorInboundFileEndpointTest implements BeanFactoryAware
 	}
 
 	@Override
-	public void setBeanFactory(BeanFactory beanFactory)
-			throws BeansException {
+	public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
 		this.beanFactory = beanFactory;
 	}
 }

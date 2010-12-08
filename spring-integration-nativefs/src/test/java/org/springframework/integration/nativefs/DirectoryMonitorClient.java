@@ -1,4 +1,4 @@
-package org.springframework.integration.nativefs.eventdriven;
+package org.springframework.integration.nativefs;
 
 import org.apache.commons.lang.SystemUtils;
 import org.springframework.integration.nativefs.fsmon.DirectoryMonitor;

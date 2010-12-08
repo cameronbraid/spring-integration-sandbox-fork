@@ -21,9 +21,13 @@ import java.util.concurrent.Executors;
 public abstract class AbstractDirectoryMonitor implements DirectoryMonitor, DisposableBean, InitializingBean {
 	
 	protected Logger logger = Logger.getLogger(AbstractDirectoryMonitor.class);
+
 	protected volatile Executor executor;
+
 	protected volatile ConcurrentHashMap<File, FileAddedListener> monitors = new ConcurrentHashMap<File, FileAddedListener>();
+
 	protected Map<String, File> mapOfDirectoriesUnderMonitor = new ConcurrentHashMap<String, File>();
+
 	protected boolean autoCreateDirectory = true;
 
 	/**
