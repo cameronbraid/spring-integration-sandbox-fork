@@ -4,21 +4,21 @@ import org.springframework.integration.nativefs.fsmon.DirectoryMonitor;
 import org.springframework.integration.nativefs.fsmon.Nio2WatchServiceDirectoryMonitor;
 
 /**
+ * Simple implementation of {@link AbstractDirectoryMonitorClient}
+ *
  * @author Josh Long
- *         <p/>
- *         Simple implementation of {@link AbstractDirectoryMonitorClient}
  */
 public class Nio2WatcherServiceDirectoryMonitorClient extends AbstractDirectoryMonitorClient {
 	@Override
 	protected DirectoryMonitor initDirectoryMonitor() throws Throwable {
-		Nio2WatchServiceDirectoryMonitor m = new Nio2WatchServiceDirectoryMonitor();
-		m.setExecutor(this.executor);
-		m.afterPropertiesSet();
-		return m;
+		Nio2WatchServiceDirectoryMonitor directoryMonitor = new Nio2WatchServiceDirectoryMonitor();
+		directoryMonitor.setExecutor(this.executor);
+		directoryMonitor.afterPropertiesSet();
+		return directoryMonitor;
 	}
 
 	public static void main(String[] a) throws Throwable {
-		Nio2WatcherServiceDirectoryMonitorClient c = new Nio2WatcherServiceDirectoryMonitorClient();
-		c.start();
+		Nio2WatcherServiceDirectoryMonitorClient watcherServiceDirectoryMonitorClient = new Nio2WatcherServiceDirectoryMonitorClient();
+		watcherServiceDirectoryMonitorClient.start();
 	}
 }
