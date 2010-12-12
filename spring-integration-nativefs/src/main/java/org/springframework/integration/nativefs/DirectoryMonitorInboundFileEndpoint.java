@@ -25,8 +25,6 @@ import java.util.concurrent.Executor;
  */
 public class DirectoryMonitorInboundFileEndpoint extends MessageProducerSupport {
 
-	private static Logger logger = Logger.getLogger( DirectoryMonitorInboundFileEndpoint.class);
-
 	private File directoryToMonitor;
 	private DirectoryMonitor monitor;
 	private Executor executor;
@@ -37,12 +35,12 @@ public class DirectoryMonitorInboundFileEndpoint extends MessageProducerSupport 
 	 * @return
 	 */
 	private boolean hasJdk7WatchService() {
-		String watchService = "java.nio.file.WatchService";
-
+		String watchServiceAvailable = "java.nio.file.WatchService";
+		
 		boolean hasWatchServiceClazz = true;
 
 		try {
-			ClassUtils.forName(watchService, ClassUtils.getDefaultClassLoader());
+			ClassUtils.forName(watchServiceAvailable, ClassUtils.getDefaultClassLoader());
 		} catch (Exception e) {
 			hasWatchServiceClazz = false;
 		}
@@ -124,13 +122,14 @@ public class DirectoryMonitorInboundFileEndpoint extends MessageProducerSupport 
 		this.directoryToMonitor = directoryToMonitor;
 	}
 
+	/**
+	 * {@link DirectoryMonitor.FileAddedListener} implementation that forwards events through a {@link org.springframework.integration.MessageChannel}
+	 */
 	class MessageProducingFileAddedListener implements DirectoryMonitor.FileAddedListener {
 		@Override
 		public void fileAdded(File dir, String fn) {
 			File fi = new File(dir, fn);
-			Message<File> msg = MessageBuilder.withPayload(fi)
-					.setHeader(FileHeaders.FILENAME,
-							fi.getPath()).build();
+			Message<File> msg = MessageBuilder.withPayload(fi).setHeader(FileHeaders.FILENAME, fi.getPath()).build();
 			sendMessage(msg);
 		}
 	}
