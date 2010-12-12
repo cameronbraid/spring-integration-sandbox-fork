@@ -10,68 +10,48 @@ import java.util.concurrent.ConcurrentHashMap;
 import static java.nio.file.StandardWatchEventKind.*;
 
 /**
- * this will be an implementation that delegates to a a JDK 7 NIO.2 based WatchService if available
+ * this is an implementation that delegates to a a JDK 7 NIO.2 based WatchService if available.
  *
  * @author Josh Long
  * @since 2.1
  */
-public class Nio2WatchServiceDirectoryMonitor extends AbstractDirectoryMonitor {
+public class Nio2WatchServiceDirectoryMonitor extends AbstractDirectoryMonitor implements Runnable {
 
     private Logger logger = Logger.getLogger(Nio2WatchServiceDirectoryMonitor.class);
 
+    /**
+     * this is the JDK NIO2 instance that's used to fire events as file system entries are detected
+     */
     private WatchService watchService;
 
+    /**
+     * if the background loop's been started, then there's no need to start another one. this mutex provides that guarantee.
+     */
+    private volatile boolean backgroundLoopStarted;
+
+    /**
+     * we need to make sure that the background processing thread is setup and running only once
+     */
+    private final Object backgroundLoopMonitor = new Object();
+
+    /**
+     * mapping between watchkeys (as created when a directory is newly registered with the {@link #watchService}) and {@link Path}
+     */
     private Map<WatchKey, Path> keys = new ConcurrentHashMap<WatchKey, Path>();
 
-    @Override
-    protected void onInit() {
-        try {
-            this.watchService = FileSystems.getDefault().newWatchService();
-        } catch (IOException e) {
-            logger.debug("exception when trying to accquire a WatchService", e);
-        }
-    }
-
-
-    @Override
-    protected void startMonitor(String path) {
-        try {
-            this.register(Paths.get(path));
-        } catch (IOException e) {
-            logger.debug("exception when trying to register the path to be watched: " + path);
-        }
-    }
-
-    @Override
-    protected void stopMonitor(String path) {
-        //  noop
-    }
-
-    protected void register(Path path) throws IOException {
-        WatchKey key = path.register(this.watchService, ENTRY_CREATE, ENTRY_MODIFY);
-        this.keys.put(key, path);
-    }
-
     /**
-     * Picked up this little hack from the JDK 7 samples. EEeWww.
+     * this will be executed inside of a {@link java.lang.Thread} once submitted to a {@link java.util.concurrent.Executor} instance
      */
-    @SuppressWarnings("unchecked")
-    private <T> WatchEvent<T> cast(WatchEvent<?> event) {
-        return (WatchEvent<T>) event;
-    }
-
-
-    /**
-     * this will be run inside a thread
-     */
-    protected void processEvents() {
+    @Override
+    public void run() {
         while (true) {
 
             // wait for key to be signalled
             WatchKey key;
             try {
                 key = this.watchService.take();
-            } catch (InterruptedException x) {
+            } catch (Throwable x) {
+                logger.debug("Exception when trying to take key from watchService: ", x);
                 return;
             }
 
@@ -83,168 +63,73 @@ public class Nio2WatchServiceDirectoryMonitor extends AbstractDirectoryMonitor {
 
             for (WatchEvent<?> event : key.pollEvents()) {
                 WatchEvent.Kind kind = event.kind();
-
-                // TBD - provide example of how OVERFLOW event is handled
-                if (kind == OVERFLOW) {
-                    continue;
-                }
-
-                // Context for directory entry event is the file name of entry
                 WatchEvent<Path> ev = cast(event);
-                Path name = ev.context();
-                Path child = dir.resolve(name);
 
-                // print out event
-                logger.debug(String.format("%s: %s\n", event.kind().name(), child));
+                if (kind == ENTRY_CREATE) {
+                    doReceive(ev, dir);
+                    if (!key.reset())
+                        keys.remove(key);
 
-
-            }
-
-            // reset key and remove from set if directory no longer accessible
-            boolean valid = key.reset();
-            if (!valid) {
-                keys.remove(key);
-
-                // all directories are inaccessible
-                if (keys.isEmpty()) {
-                    break;
                 }
             }
         }
     }
 
+    /**
+     * @param evt the event that was provided from the {@link WatchService}
+     * @param dir the directory used as a key
+     */
+    private void doReceive(WatchEvent<?> evt, Path dir) {
+        Object ctx = evt.context();
+        if (ctx instanceof Path) {
+            Path p = (Path) ctx;
+            String dirStr = dir.toString();
+            String fileStr = p.getName().toString();
+            fileReceived(dirStr, fileStr);
+        }
+    }
 
-    /*    @SuppressWarnings("unchecked")
-             static <T> WatchEvent<T> cast(WatchEvent<?> event) {
-                     return (WatchEvent<T>)event;
-             }
+    @Override
+    protected void onInit() {
+        try {
+            this.watchService = FileSystems.getDefault().newWatchService();
+            synchronized (this.backgroundLoopMonitor) {
+                if (!this.backgroundLoopStarted) {
+                    this.backgroundLoopStarted = true;
+                    Runnable runnable = this;
+                    this.executor.execute(runnable);
+                }
+            }
+        } catch (Throwable e) {
+            logger.debug("exception when trying to accquire a WatchService", e);
+        }
+    }
 
-             private void register(Path dir) throws IOException {
-                     WatchKey key = dir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
-                     if (trace) {
-                             FileRef prev = keys.get(key);
-                             if (prev == null) {
-                                     System.out.format("register: %s\n", dir);
-                             } else {
-                                     if (!dir.equals(prev)) {
-                                             System.out.format("update: %s -> %s\n", prev, dir);
-                                     }
-                             }
-                     }
-                     keys.put(key, dir);
-             }
+    @Override
+    protected void startMonitor(String path) {
+        try {
+            Path path1 = Paths.get(path);
+            WatchKey key = path1.register(this.watchService, ENTRY_CREATE/*, ENTRY_MODIFY*/);
+            this.keys.put(key, path1);
+        } catch (IOException e) {
+            logger.debug("exception when trying to register the path to be watched: " + path);
+        }
+    }
 
-             private void registerAll(final Path start) throws IOException {
-                     // register directory and sub-directories
-                     Files.walkFileTree(start, new SimpleFileVisitor<Path>() {
-                             @Override
-                             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
-                                     throws IOException
-                             {
-                                     register(dir);
-                                     return FileVisitResult.CONTINUE;
-                             }
-                     });
-             }
+    @Override
+    protected void stopMonitor(String path) {
+        Path p = Paths.get(path);
+        if (this.keys.containsKey(p))
+            this.keys.remove(p);
+    }
 
+    /**
+     * Picked up this little hack from the JDK 7 samples. EEeWww.
+     */
+    @SuppressWarnings("unchecked")
+    private <T> WatchEvent<T> cast(WatchEvent<?> event) {
+        return (WatchEvent<T>) event;
+    }
 
-             WatchDir(Path dir, boolean recursive) throws IOException {
-                     this.watcher = FileSystems.getDefault().newWatchService();
-                     this.keys = new HashMap<WatchKey,Path>();
-                     this.recursive = recursive;
-
-                     if (recursive) {
-                             System.out.format("Scanning %s ...\n", dir);
-                             registerAll(dir);
-                             System.out.println("Done.");
-                     } else {
-                             register(dir);
-                     }
-
-                     // enable trace after initial registration
-                     this.trace = true;
-             }
-
-             void processEvents() {
-                     for (;;) {
-
-                             // wait for key to be signalled
-                             WatchKey key;
-                             try {
-                                     key = watcher.take();
-                             } catch (InterruptedException x) {
-                                     return;
-                             }
-
-                             Path dir = keys.get(key);
-                             if (dir == null) {
-                                     System.err.println("WatchKey not recognized!!");
-                                     continue;
-                             }
-
-                             for (WatchEvent<?> event: key.pollEvents()) {
-                                     WatchEvent.Kind kind = event.kind();
-
-                                     // TBD - provide example of how OVERFLOW event is handled
-                                     if (kind == OVERFLOW) {
-                                             continue;
-                                     }
-
-                                     // Context for directory entry event is the file name of entry
-                                     WatchEvent<Path> ev = cast(event);
-                                     Path name = ev.context();
-                                     Path child = dir.resolve(name);
-
-                                     // print out event
-                                     System.out.format("%s: %s\n", event.kind().name(), child);
-
-                                     // if directory is created, and watching recursively, then
-                                     // register it and its sub-directories
-                                     if (recursive && (kind == ENTRY_CREATE)) {
-                                             try {
-                                                     if (Attributes.readBasicFileAttributes(child, NOFOLLOW_LINKS).isDirectory()) {
-                                                             registerAll(child);
-                                                     }
-                                             } catch (IOException x) {
-                                                     // ignore to keep sample readbale
-                                             }
-                                     }
-                             }
-
-                             // reset key and remove from set if directory no longer accessible
-                             boolean valid = key.reset();
-                             if (!valid) {
-                                     keys.remove(key);
-
-                                     // all directories are inaccessible
-                                     if (keys.isEmpty()) {
-                                             break;
-                                     }
-                             }
-                     }
-             }
-
-             static void usage() {
-                     System.err.println("usage: java WatchDir [-r] dir");
-                     System.exit(-1);
-             }
-
-             public static void main(String[] args) throws IOException {
-                     // parse arguments
-                     if (args.length == 0 || args.length > 2)
-                             usage();
-                     boolean recursive = false;
-                     int dirArg = 0;
-                     if (args[0].equals("-r")) {
-                             if (args.length < 2)
-                                     usage();
-                             recursive = true;
-                             dirArg++;
-                     }
-
-                     // register directory and process its events
-                     Path dir = Paths.get(args[dirArg]);
-                     new WatchDir(dir, recursive).processEvents();
-             }*/
 
 }

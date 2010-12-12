@@ -53,8 +53,7 @@ public abstract class AbstractDirectoryMonitor implements DirectoryMonitor, Disp
 			}
 		}
 
-		Assert.state(dir.exists(),
-				"the directory " + dir.getAbsolutePath() + " doesn't exist");
+		Assert.state(dir.exists(), "the directory " + dir.getAbsolutePath() + " doesn't exist");
 
 		return dir.exists();
 	}

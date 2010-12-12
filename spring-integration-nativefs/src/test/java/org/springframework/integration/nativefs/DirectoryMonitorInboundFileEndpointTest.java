@@ -16,7 +16,6 @@ import org.springframework.integration.MessagingException;
 import org.springframework.integration.config.ConsumerEndpointFactoryBean;
 import org.springframework.integration.core.MessageHandler;
 import org.springframework.integration.endpoint.AbstractEndpoint;
-import org.springframework.integration.nativefs.DirectoryMonitorInboundFileEndpoint;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -33,89 +32,93 @@ import java.util.concurrent.TimeUnit;
  * Handles testing receiving messages from the filesystem.
  *
  * @author Josh Long
+ * @since 2.1
  */
 @ContextConfiguration
 @RunWith(SpringJUnit4ClassRunner.class)
 public class DirectoryMonitorInboundFileEndpointTest implements BeanFactoryAware {
 
-	@Value("${test-folder}")
-	private String folder;
+    @Value("${test-folder}")
+    private String folder;
 
-	@Value("#{fileChannel}")
-	private MessageChannel messageChannel;
+    @Value("#{fileChannel}")
+    private MessageChannel messageChannel;
 
-	private File directoryToMonitor;
-	private BeanFactory beanFactory;
+    private File directoryToMonitor;
 
-	public AbstractEndpoint createConsumer(MessageChannel messageChannel,
-																				 MessageHandler messageHandler) throws Throwable {
-		ConsumerEndpointFactoryBean consumerEndpointFactoryBean = new ConsumerEndpointFactoryBean();
-		consumerEndpointFactoryBean.setInputChannel(messageChannel);
-		consumerEndpointFactoryBean.setBeanName(DirectoryMonitorInboundFileEndpoint.class.getName());
-		consumerEndpointFactoryBean.setBeanFactory(beanFactory);
-		consumerEndpointFactoryBean.setHandler(messageHandler);
-		consumerEndpointFactoryBean.setBeanClassLoader(ClassLoader.getSystemClassLoader());
-		consumerEndpointFactoryBean.afterPropertiesSet();
+    private BeanFactory beanFactory;
 
-		AbstractEndpoint abstractEndpoint = consumerEndpointFactoryBean.getObject();
-		abstractEndpoint.start();
+    /**
+     * we need this to support testing.
+     */
+    public AbstractEndpoint createConsumer(MessageChannel messageChannel, MessageHandler messageHandler) throws Throwable {
 
-		return abstractEndpoint;
-	}
+        ConsumerEndpointFactoryBean consumerEndpointFactoryBean = new ConsumerEndpointFactoryBean();
+        consumerEndpointFactoryBean.setInputChannel(messageChannel);
+        consumerEndpointFactoryBean.setBeanName(DirectoryMonitorInboundFileEndpoint.class.getName());
+        consumerEndpointFactoryBean.setBeanFactory(beanFactory);
+        consumerEndpointFactoryBean.setHandler(messageHandler);
+        consumerEndpointFactoryBean.setBeanClassLoader(ClassLoader.getSystemClassLoader());
+        consumerEndpointFactoryBean.afterPropertiesSet();
 
-	@After
-	public void stop() throws Throwable {
-		if ((this.directoryToMonitor != null) &&
-				this.directoryToMonitor.exists()) {
-			try {
-				this.directoryToMonitor.delete();
-			} catch (Exception ex) {
-				// noop
-			}
-		}
-	}
+        AbstractEndpoint abstractEndpoint = consumerEndpointFactoryBean.getObject();
+        abstractEndpoint.start();
 
-	@Before
-	public void start() throws Throwable {
-		directoryToMonitor = new File(this.folder);
+        return abstractEndpoint;
+    }
 
-		if (directoryToMonitor.exists()) {
-			directoryToMonitor.delete();
-		}
+    @After
+    public void stop() throws Throwable {
+        if ((this.directoryToMonitor != null) && this.directoryToMonitor.exists()) {
+            try {
+                this.directoryToMonitor.delete();
+            } catch (Exception ex) {
+                // noop
+            }
+        }
+    }
 
-		directoryToMonitor.mkdir();
-	}
+    @Before
+    public void start() throws Throwable {
+        directoryToMonitor = new File(this.folder);
 
-	@Test
-	public void testReceivingFiles() throws Throwable {
-		final Set<String> files = new ConcurrentSkipListSet<String>();
+        if (directoryToMonitor.exists()) {
+            directoryToMonitor.delete();
+        }
 
-		createConsumer(this.messageChannel,
-				new MessageHandler() {
-					@Override
-					public void handleMessage(Message<?> message)
-							throws MessagingException {
-						File file = (File) message.getPayload();
-						String filePath = file.getPath();
-						files.add(filePath);
-					}
-				});
+        directoryToMonitor.mkdir();
+    }
 
-		int cnt = 10;
+    @Test
+    public void testReceivingFiles() throws Throwable {
+        final Set<String> files = new ConcurrentSkipListSet<String>();
 
-		for (int i = 0; i < cnt; i++) {
-			File out = new File(directoryToMonitor, i + ".txt");
-			Writer w = new BufferedWriter(new FileWriter(out));
-			IOUtils.write("test" + i, w);
-			IOUtils.closeQuietly(w);
-		}
+        createConsumer(this.messageChannel,
+                new MessageHandler() {
+                    @Override
+                    public void handleMessage(Message<?> message)
+                            throws MessagingException {
+                        File file = (File) message.getPayload();
+                        String filePath = file.getPath();
+                        files.add(filePath);
+                    }
+                });
 
-		Thread.sleep(TimeUnit.SECONDS.toMillis(20));
-		Assert.assertEquals(cnt, files.size());
-	}
+        int cnt = 10;
 
-	@Override
-	public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
-		this.beanFactory = beanFactory;
-	}
+        for (int i = 0; i < cnt; i++) {
+            File out = new File(directoryToMonitor, i + ".txt");
+            Writer w = new BufferedWriter(new FileWriter(out));
+            IOUtils.write("test" + i, w);
+            IOUtils.closeQuietly(w);
+        }
+
+        Thread.sleep(TimeUnit.SECONDS.toMillis(20));
+        Assert.assertEquals(cnt, files.size());
+    }
+
+    @Override
+    public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
+        this.beanFactory = beanFactory;
+    }
 }

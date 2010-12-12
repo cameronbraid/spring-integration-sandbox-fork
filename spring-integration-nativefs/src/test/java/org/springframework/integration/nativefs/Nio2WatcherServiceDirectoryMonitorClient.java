@@ -14,11 +14,14 @@ public class Nio2WatcherServiceDirectoryMonitorClient extends AbstractDirectoryM
 		Nio2WatchServiceDirectoryMonitor directoryMonitor = new Nio2WatchServiceDirectoryMonitor();
 		directoryMonitor.setExecutor(this.executor);
 		directoryMonitor.afterPropertiesSet();
+
 		return directoryMonitor;
 	}
 
 	public static void main(String[] a) throws Throwable {
-		Nio2WatcherServiceDirectoryMonitorClient watcherServiceDirectoryMonitorClient = new Nio2WatcherServiceDirectoryMonitorClient();
+		Nio2WatcherServiceDirectoryMonitorClient watcherServiceDirectoryMonitorClient =
+                new Nio2WatcherServiceDirectoryMonitorClient();
+
 		watcherServiceDirectoryMonitorClient.start();
 	}
 }
