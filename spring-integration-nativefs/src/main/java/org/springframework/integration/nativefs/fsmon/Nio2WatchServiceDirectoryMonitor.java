@@ -79,14 +79,11 @@ public class Nio2WatchServiceDirectoryMonitor extends AbstractDirectoryMonitor i
      * @param evt the event that was provided from the {@link WatchService}
      * @param dir the directory used as a key
      */
-    private void doReceive(WatchEvent<?> evt, Path dir) {
-        Object ctx = evt.context();
-        if (ctx instanceof Path) {
-            Path p = (Path) ctx;
-            String dirStr = dir.toString();
-            String fileStr = p.getName().toString();
-            fileReceived(dirStr, fileStr);
-        }
+    private void doReceive(WatchEvent<Path> evt, Path dir) {
+        Path ctx = evt.context();
+        String dirStr = dir.toString();
+        String fileStr = ctx.getName().toString();
+        fileReceived(dirStr, fileStr);
     }
 
     @Override
@@ -118,18 +115,16 @@ public class Nio2WatchServiceDirectoryMonitor extends AbstractDirectoryMonitor i
 
     @Override
     protected void stopMonitor(String path) {
-        Path p = Paths.get(path);
-        if (this.keys.containsKey(p))
-            this.keys.remove(p);
+        /// noop for now
     }
 
     /**
      * Picked up this little hack from the JDK 7 samples. EEeWww.
+     * @return  a type-casted instance of the {@link WatchEvent}
+     * @param event the event with an untyped generic parameter
      */
     @SuppressWarnings("unchecked")
     private <T> WatchEvent<T> cast(WatchEvent<?> event) {
         return (WatchEvent<T>) event;
     }
-
-
 }
