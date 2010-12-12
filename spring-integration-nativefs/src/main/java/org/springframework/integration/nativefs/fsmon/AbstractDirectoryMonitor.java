@@ -22,12 +22,25 @@ public abstract class AbstractDirectoryMonitor implements DirectoryMonitor, Disp
 	
 	protected Logger logger = Logger.getLogger(AbstractDirectoryMonitor.class);
 
+    /**
+     * the executor is what's used to manage threading concerns for {@link DirectoryMonitor} implementations. Clients can provide their own, just know that subclasses
+     * can "see" this instance and are encouraged to rely on it for their implementation specific use cases.
+     */
 	protected volatile Executor executor;
 
+    /**
+     * registry of {@link File} to {@link FileAddedListener} listeners.
+     */
 	protected volatile ConcurrentHashMap<File, FileAddedListener> monitors = new ConcurrentHashMap<File, FileAddedListener>();
 
+    /**
+     * mapping of directory path's to fully resolved {@link java.io.File} instances. {@link File} references are expensive, so it's valuable to precache them.
+     */
 	protected Map<String, File> mapOfDirectoriesUnderMonitor = new ConcurrentHashMap<String, File>();
 
+    /**
+     * should the object setup the directory on behalf of the client?
+     */
 	protected boolean autoCreateDirectory = true;
 
 	/**
@@ -69,11 +82,17 @@ public abstract class AbstractDirectoryMonitor implements DirectoryMonitor, Disp
 		this.monitors.get(dirFile).fileAdded(dirFile, fileName);
 	}
 
+    /**
+     * register a listener for a given directory
+     *
+     * @param dir the directory for which the {@link FileAddedListener} should be registered / invoked
+     * @param fileAddedListener the {@link DirectoryMonitor.FileAddedListener} provides
+     */
 	@Override
-	public void monitor(final File dir, final FileAddedListener fal) {
+	public void monitor(final File dir, final FileAddedListener fileAddedListener) {
 		if (ensureExists(dir)) {
 			mapOfDirectoriesUnderMonitor.put(dir.getAbsolutePath(), dir);
-			monitors.putIfAbsent(dir, fal);
+			monitors.putIfAbsent(dir, fileAddedListener);
 			executor.execute(new Runnable() {
 				@Override
 				public void run() {
@@ -83,6 +102,10 @@ public abstract class AbstractDirectoryMonitor implements DirectoryMonitor, Disp
 		}
 	}
 
+    /**
+     * tear down the machinery for each monitor
+     * @throws Exception
+     */
 	@Override
 	public void destroy() throws Exception {
 		for (File file : this.monitors.keySet())
@@ -98,6 +121,10 @@ public abstract class AbstractDirectoryMonitor implements DirectoryMonitor, Disp
 		this.executor = executor;
 	}
 
+    /**
+     * use this as a hook to make sure certain things are correctly setup by default (eg: {@link #executor} can't be null)
+     * @throws Exception
+     */
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		if (this.executor == null) {
