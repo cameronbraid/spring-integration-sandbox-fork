@@ -50,15 +50,19 @@ void notifyPathChanged(char *path){
 
 
     jclass cls = ( *sharedEnv)->GetObjectClass(sharedEnv,  sharedObj );
-    printf( "retrived cls\n");
+    if(cls)  printf( "retrived cls\n");
     fflush(stdout);
 
-    jmethodID mid = (*sharedEnv)->GetMethodID(sharedEnv, cls, "pathChanged", "(Ljava/lang/String;)V");
-    printf( "the mid has been retreived");
+    jmethodID mid = (*sharedEnv)->GetMethodID(sharedEnv, cls, "pathChanged", "(Ljava/lang/String;)V");      // (Ljava/lang/String;)V
+    if(mid) printf( "the mid has been retreived");
     fflush(stdout);
 
 
-    jstring jpath = (*sharedEnv)->NewStringUTF( sharedEnv, (const char*)  path  );
+    jstring jpath = (*sharedEnv)->NewStringUTF( sharedEnv, path  );
+
+    if(  jpath) printf("the jpath is not null");
+    fflush(stdout);
+
     (*sharedEnv)->CallVoidMethod(sharedEnv, sharedObj , mid,  jpath );
 
 }
