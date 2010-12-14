@@ -153,7 +153,7 @@
 				<configuration>
                                         <verbose>true</verbose>
 					<fork>true</fork>
-                                        <executable>${JDK_7_HOME}/bin/javac</executable>
+                                        <!-- <executable>${JDK_7_HOME}/bin/javac</executable> -->
 					<source>1.6</source>
 					<target>1.6</target>
 				</configuration>
