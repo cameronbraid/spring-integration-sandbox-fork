@@ -27,43 +27,43 @@
  JNIEnv * sharedEnv ; // shared reference to the JNIEnv
  jobject  sharedObj ;     // shared reference to the jobject
 
+// provides the jni context
+struct jnictx {
+    JNIEnv * env ; /* the reference to the JNIenv when we launched the monitor from Java */
+    char * path ;  /* the original path registered*/
+    jobject thisPtr;  /* reference to the Java 'this' pointer */
+
+};
+
 
  /**  
   * this is where we'll inject the JNI notification logic. this doesn't tell us which file 
   * has changed, but it is enough to trigger a rescan from the java side 
   */
-void notifyPathChanged(char *path){ 
-	//printf("path: %s \n",path);
-	// fflush(stdout);
+void notifyPathChanged( struct jnictx *ctx, char *path){
 
-    if( sharedObj  )
-    {
-        printf( "sharedObject is not null\n");
-        fflush(stdout);
-    }
+    printf( "inside notifyPathChanged");
 
-    if(  sharedEnv  )
-    {
-        printf( "sharedEnv is not null\n");
-        fflush(stdout);
-    }
+    JNIEnv * env = (*ctx).env;
+    jobject obj = (*ctx).thisPtr ;
 
 
-    jclass cls = ( *sharedEnv)->GetObjectClass(sharedEnv,  sharedObj );
+
+    jclass cls = ( *env)->GetObjectClass( env,  obj);
     if(cls)  printf( "retrived cls\n");
     fflush(stdout);
 
-    jmethodID mid = (*sharedEnv)->GetMethodID(sharedEnv, cls, "pathChanged", "(Ljava/lang/String;)V");      // (Ljava/lang/String;)V
+    jmethodID mid = (*env)->GetMethodID(env, cls, "pathChanged", "(Ljava/lang/String;)V");      // (Ljava/lang/String;)V
     if(mid) printf( "the mid has been retreived");
     fflush(stdout);
 
 
-    jstring jpath = (*sharedEnv)->NewStringUTF( sharedEnv, path  );
+    jstring jpath = (*env)->NewStringUTF( env , path  );
 
     if(  jpath) printf("the jpath is not null");
     fflush(stdout);
 
-    (*sharedEnv)->CallVoidMethod(sharedEnv, sharedObj , mid,  jpath );
+    (*env)->CallVoidMethod(env, obj , mid,  jpath );
 
 }
 
@@ -71,6 +71,20 @@ void notifyPathChanged(char *path){
 
 
 void fileSystemChangedCallback(ConstFSEventStreamRef streamRef, void *clientCallBackInfo, size_t numEvents, void *eventPaths, const FSEventStreamEventFlags eventFlags[], const FSEventStreamEventId eventIds[]) {
+    struct FSEventStreamContext *ctx = (FSEventStreamContext*) clientCallBackInfo ;
+    if(ctx) printf( "FSEventStreamContext ctx \n"); fflush(stdout);
+
+    void *info = (*ctx).info ;
+    if( info ) printf( "info is not null\n"); fflush(stdout);
+
+    struct jnictx * jctx = (struct jnictx*) info;
+
+    if( jctx) printf( "jctx is not null"); fflush(stdout);
+
+    char * p = (char*)( (*jctx).path );
+    if(p) printf( "the path inside fileSystemChangedCallback: %s \n",p);
+    fflush(stdout);
+
     char **paths = eventPaths;
     int i;
     for (i=0; i<numEvents; i++) {
@@ -80,26 +94,43 @@ void fileSystemChangedCallback(ConstFSEventStreamRef streamRef, void *clientCall
 			// noop 
 		}
 		else if ((flags & kFSEventStreamEventFlagMustScanSubDirs) != 0) {
-			notifyPathChanged(paths[i]);
+			notifyPathChanged(jctx,paths[i]);
 		}
 		else if (eventFlags[i] != kFSEventStreamEventFlagNone) {
 			// noop 
 		}
 		else {
-			notifyPathChanged(paths[i]);
+			notifyPathChanged(jctx,paths[i]);
 		}
     }
 } 
 
 /** the logic run with a thread */
 void *event_processing_thread(void *data) {
-	char *pathToMonitor = (char*) data; 	
+
+	struct jnictx *ctx = (struct jnictx*) data;
+	printf( "inside event_processing_thread, the path is: %s \n", (*ctx).path);
+	fflush(stdout);
+
+    struct FSEventStreamContext fsc = { NULL, ctx, NULL, NULL, NULL } ;
+
+    /*({
+        CFIndex version;
+        void *info;
+        CFAllocatorRetainCallBack retain;
+        CFAllocatorReleaseCallBack release;
+        CFAllocatorCopyDescriptionCallBack copyDescription;
+    }; */
+
+
+	char *pathToMonitor =  ctx->path;
+
     CFStringRef mypath = CFStringCreateWithCString(NULL, (const char*)pathToMonitor, NULL);
 	
     CFArrayRef pathsToWatch = CFArrayCreate(NULL, (const void **)&mypath, 1, NULL);
-    void *cbInfo = NULL;
+    //void *cbInfo = NULL;
     CFAbsoluteTime latency = 0.3; 	
-    FSEventStreamRef stream = FSEventStreamCreate(NULL, &fileSystemChangedCallback, cbInfo,
+    FSEventStreamRef stream = FSEventStreamCreate(NULL, &fileSystemChangedCallback, &fsc,
              pathsToWatch, kFSEventStreamEventIdSinceNow, latency, kFSEventStreamCreateFlagNoDefer);
 	
     FSEventStreamScheduleWithRunLoop(stream, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
@@ -109,8 +140,16 @@ void *event_processing_thread(void *data) {
     return NULL;
 }
 
+
+
+
 /** this is the hook we'll export for clients to consume. */
-void startMonitor( JNIEnv * env, char *path ){
+void startMonitor( struct jnictx *ctx ){
+
+    char * path = (*ctx).path ;
+    printf( "startMonitor: %s \n", path);
+    fflush(stdout);
+
 
     if (FSEventStreamCreate == NULL) {
 		printf("the file system event stream API isn't available (must be run on OS X 10.5 or later)\n");
@@ -118,7 +157,7 @@ void startMonitor( JNIEnv * env, char *path ){
     }
 	
     pthread_t thread_id;
-    int threadId = pthread_create(&thread_id, NULL, event_processing_thread, path);
+    int threadId = pthread_create(&thread_id, NULL, event_processing_thread, ctx);
 	
     if (threadId != 0) {
 		printf("couldn't spawn thread for event processing.\n");
@@ -149,13 +188,14 @@ void startMonitor( JNIEnv * env, char *path ){
 
 		fflush(stdout); // multithreaded access compels us to flush the output
 
-        /** make sure we have a valid reference  */
-        if( !sharedEnv ) {
-            sharedEnv = env;
-        }
-        if(!sharedObj) sharedObj = obj;
+		struct jnictx jc = { env, path, obj } ;
 
-		startMonitor( env, path);
+        /** make sure we have a valid reference  */
+        // if( !sharedEnv )  sharedEnv = env;
+
+        //if(!sharedObj) sharedObj = obj;
+
+		startMonitor(  &jc );
 	}
 
 #ifdef __cplusplus

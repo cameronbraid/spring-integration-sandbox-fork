@@ -1,11 +1,14 @@
 package org.springframework.integration.nativefs.fsmon;
 
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.SystemUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.log4j.Logger;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.util.concurrent.Executors;
 
 /***
  *
@@ -22,6 +25,8 @@ public class OsXDirectoryMonitor extends AbstractDirectoryMonitor {
         OsXDirectoryMonitor dmOsXDirectoryMonitor = new OsXDirectoryMonitor();
         File desktop = new File(SystemUtils.getUserHome(),"Desktop");
         File foo = new File(desktop, "foo");
+        dmOsXDirectoryMonitor.setExecutor(Executors.newFixedThreadPool(10));
+        dmOsXDirectoryMonitor.onInit();
         dmOsXDirectoryMonitor.monitor(foo.getAbsolutePath());
     }
 
@@ -67,5 +72,22 @@ public class OsXDirectoryMonitor extends AbstractDirectoryMonitor {
 
 	@Override
 	protected void onInit() {
+       this.executor.execute(new Runnable(){
+
+           @Override
+           public void run() {
+               try {
+                   Thread.sleep(1000 * 5);
+                   System.out.println( "writing a file");
+                    File f = new File( "/Users/jolong/Desktop/foo");
+                    File out  = new File(f, "outx.txt");
+                    FileOutputStream fout=new FileOutputStream(out);
+                    IOUtils.write("Hello, world!", fout );
+                    IOUtils.closeQuietly( fout);
+               } catch (Throwable th){
+                   System.out.println( "Exceptions: " + ExceptionUtils.getFullStackTrace( th ));
+               }
+           }
+       });
 	}
 }
