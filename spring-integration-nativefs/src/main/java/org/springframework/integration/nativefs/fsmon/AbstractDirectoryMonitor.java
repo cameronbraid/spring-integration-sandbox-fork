@@ -97,13 +97,14 @@ public abstract class AbstractDirectoryMonitor implements DirectoryMonitor, Disp
 				@Override
 				public void run() {
                     String path = dir.getAbsolutePath();
-                    if( path!=null && !path.endsWith("/"))
-                        path = path +"/";
+
 					startMonitor( path );
 				}
 			});
 		}
 	}
+
+
 
     /**
      * tear down the machinery for each monitor

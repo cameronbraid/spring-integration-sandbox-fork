@@ -33,7 +33,13 @@ public class OsXDirectoryMonitor extends AbstractDirectoryMonitor {
 
     @Override
     protected void startMonitor(String path) {
+
+        // OSX specific adaptation because the kernel delivers events with file system paths that end with '/' so we need to be able to match that
+        if( path!=null && !path.endsWith("/"))
+            path = path +"/";
+
         this.monitor(path);
+
     }
 
     @Override

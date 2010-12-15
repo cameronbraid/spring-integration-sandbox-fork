@@ -19,7 +19,7 @@
  *
  * based on the logic demonstrated in the fsnotifier agent shipped with the IntelliJ IDEA Community Edition project
  *
- * #include <sys/mount.h>
+ *
  */
 
 #include <CoreServices/CoreServices.h>
@@ -30,8 +30,11 @@
 /** 
  * shared map of contexts so that multiple threads of execution can contain references to unique JNI constructs
  */
-static struct jnictx *contexts = NULL ; // the hash *must* be intialized to null
+static struct jnictx *contexts = NULL;  // the hash *must* be intialized to null
 
+/** 
+ * the JNI context is our encapsulation of the various JNI constructs, as well as the path under monitor. We store it in the contexts* uthash and look up entries by the path experiencing an event.
+ */
 struct jnictx {
     JNIEnv * env ;
 	jobject thisPtr;
@@ -41,6 +44,9 @@ struct jnictx {
 	UT_hash_handle hh ; // to make this hashable
 };
 
+/**
+ * simple 'DAO' function to add a record to the contexts* hash 
+ */
 void add_jnictx( char *path, JNIEnv *env, jclass clz, jobject thisPtr, jmethodID mid  ){
     struct jnictx * ctx;
     ctx = (struct jnictx*) malloc( sizeof(struct jnictx) );
@@ -51,50 +57,22 @@ void add_jnictx( char *path, JNIEnv *env, jclass clz, jobject thisPtr, jmethodID
     ctx->classId = clz;
     HASH_ADD_KEYPTR( hh, contexts , ctx->path, strlen(ctx->path),ctx );
 
+	/*
 	unsigned int context_count;
 	context_count = HASH_COUNT( contexts );
 	printf("there are %u contexts\n", context_count ); fflush(stdout) ;
-
+	*/
 }
 
+/** 
+ * looks up jnictx records by path which is the key
+ */
 struct jnictx * find_jnictx(char * path){ 
 	struct jnictx * c;
-	printf( "find_jnictx: %s",path); fflush(stdout);
+//	printf( "find_jnictx: %s",path); fflush(stdout);
 	HASH_FIND_STR( contexts, path, c);
-	
 	return  c;
 }
-/*
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include "uthash.h"
-
-struct my_struct {
-    char *name;
-    int id;
-    UT_hash_handle hh;
-};
-
-
-int main(int argc, char *argv[]) {
-    char **n, *names[] = { "joe", "bob", "betty", NULL };
-    struct my_struct *s, *users = NULL;
-    int i=0;
-
-    for (n = names; *n != NULL; n++) {
-        s = (struct my_struct*)malloc(sizeof(struct my_struct));
-        s->name = *n;
-        s->id = i++;
-        HASH_ADD_KEYPTR( hh, users, s->name, strlen(s->name), s );
-    }
-
-    HASH_FIND_STR( users, "betty", s);
-    if (s) printf("betty's id is %d\n", s->id);
-   return 0;
-}
-*/
-
 
 
  /**  
@@ -102,17 +80,14 @@ int main(int argc, char *argv[]) {
   * has changed, but it is enough to trigger a rescan from the java side 
   */
 void notify_path_changed(char *path){
-    printf( "notify_path_changed: %s",path); fflush(stdout);
+
 	struct jnictx * ctx = find_jnictx( path) ;
-	if(ctx){
-		printf( "the path is %s" , ctx->path ) ;fflush(stdout);
-	}
+
     JNIEnv * env = (*ctx).env;
     jobject obj = (*ctx).thisPtr ;
 
-    if ((*env)->MonitorEnter(env, obj) != JNI_OK)
-    {
-        printf( "couldn't accquire lock!");
+    if ((*env)->MonitorEnter(env, obj) != JNI_OK) {
+        printf( "couldn't accquire JNI monitor lock!");
         fflush(stdout);
     }
 
@@ -123,11 +98,11 @@ void notify_path_changed(char *path){
 
     (*env)->CallVoidMethod(env, obj , mid,  jpath );
 
-	if ((*env)->MonitorExit(env, obj) != JNI_OK)
-	{
-	 	printf("couldn't release lock!"); /* error handling */
+	if ((*env)->MonitorExit(env, obj) != JNI_OK) {
+	 	printf("couldn't release JNI monitor lock!");  
 		fflush(stdout);
 	}
+	
 }
 
 void file_system_changed_callback(ConstFSEventStreamRef streamRef, void *clientCallBackInfo, size_t numEvents, void *eventPaths, const FSEventStreamEventFlags eventFlags[], const FSEventStreamEventId eventIds[]) {
@@ -146,11 +121,9 @@ void file_system_changed_callback(ConstFSEventStreamRef streamRef, void *clientC
 } 
 
 
-void *event_processing_thread(   char * path ) {
+void *event_processing_thread( char * path ) {
 
     char *pathToMonitor =  path ;
-
-	printf("event_processing_thread, the path is %s \n", pathToMonitor ) ;fflush(stdout);
 
     CFStringRef mypath = CFStringCreateWithCString(NULL, pathToMonitor, NULL);
 	
@@ -171,15 +144,15 @@ void *event_processing_thread(   char * path ) {
 
 
 /** this is the hook we'll export for clients to consume. */
-void start_monitor(   char * path ){
-	printf( "startMonitor: %s \n", path); fflush(stdout);
+void start_monitor( char * path ){
+	
 	if (FSEventStreamCreate == NULL) {
 		printf("the file system event stream API isn't available (must be run on OS X 10.5 or later)\n");   fflush(stdout);
 		return ;
 	}
+	
 	event_processing_thread(  path );
-	/* while (TRUE) {
-    } */
+	
 }
 
 
