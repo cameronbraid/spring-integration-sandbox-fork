@@ -62,12 +62,11 @@ public class OsXDirectoryMonitor extends AbstractDirectoryMonitor {
      * We need to keep a stateful view of the path and do deltas.
      * This code will be called FROM JNI, so it needs to be very simple.
      *
-     * @param path the path that's changed
+     * @param  path the path that has received the changes
+     *
      */
-    public void pathChanged(String path){
-
-        System.out.println( String.format( "the path %s has changed; must rescan!" ,path));
-
+    public void pathChanged( String path){
+        System.out.println(   String.format("the path %s has changed; must rescan!" ,path ))  ;
     }
 
 	@Override
@@ -77,8 +76,8 @@ public class OsXDirectoryMonitor extends AbstractDirectoryMonitor {
            @Override
            public void run() {
                try {
-                   Thread.sleep(1000 * 5);
-                   System.out.println( "writing a file");
+                   Thread.sleep(1000 * 3);
+               //    System.out.println( "writing a file");
                     File f = new File( "/Users/jolong/Desktop/foo");
                     File out  = new File(f, "outx.txt");
                     FileOutputStream fout=new FileOutputStream(out);
