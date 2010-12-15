@@ -20,6 +20,8 @@
  * based on the logic demonstrated in the fsnotifier agent shipped with the IntelliJ IDEA Community Edition project
  *
  *
+ * uses code from http://uthash.sourceforge.net/ to handle a hashmap
+ *
  */
 
 #include <CoreServices/CoreServices.h>
@@ -30,7 +32,7 @@
 /** 
  * shared map of contexts so that multiple threads of execution can contain references to unique JNI constructs
  */
-static struct jnictx *contexts = NULL;  // the hash *must* be intialized to null
+static struct jnictx *contexts = NULL;  /* the dictionary *must* be intialized to null */
 
 /** 
  * the JNI context is our encapsulation of the various JNI constructs, as well as the path under monitor. We store it in the contexts* uthash and look up entries by the path experiencing an event.

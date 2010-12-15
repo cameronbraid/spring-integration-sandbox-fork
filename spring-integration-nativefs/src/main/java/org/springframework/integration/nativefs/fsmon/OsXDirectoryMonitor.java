@@ -1,27 +1,36 @@
 package org.springframework.integration.nativefs.fsmon;
 
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.log4j.Logger;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * implementation of the {@link org.springframework.integration.nativefs.fsmon.DirectoryMonitor}
- * interface that supports OS X
+ * interface that supports OS X.
+ *
+ * This works by registering a monitor using OSX's kernel facilities to receive callbacks of file system events.
+ *
+ * As OSX tells this class that <em>something</em> has changed in the underlying file system, we must manually
+ * deliver deltas by scanning and calculating what's new.
+ *
+ * Meanwhile, in delivery threads (one for each directory monitored by this class) we deliver these new files and trigger listeners.
  *
  * @author Josh Long
  */
 public class OsXDirectoryMonitor extends AbstractDirectoryMonitor {
 
     private static Logger logger = Logger.getLogger(OsXDirectoryMonitor.class);
+
+    /**
+     * the mapping of files that we pick up each scanForNewFiles - each file maintains a queue of files to be delivered
+     */
+    private volatile ConcurrentHashMap<File, LinkedBlockingQueue<File>> statefulMappingOfDirectoryContents =
+            new ConcurrentHashMap<File, LinkedBlockingQueue<File>>();
 
     static {
         try {
@@ -31,12 +40,22 @@ public class OsXDirectoryMonitor extends AbstractDirectoryMonitor {
         }
     }
 
+
     @Override
     protected void startMonitor(String path) {
 
         // OSX specific adaptation because the kernel delivers events with file system paths that end with '/' so we need to be able to match that
-        if( path!=null && !path.endsWith("/"))
-            path = path +"/";
+        if (path != null && !path.endsWith("/"))
+            path = path + "/";
+
+        File f = new File(path);
+
+        /**
+         * do one quick scan and get everything preloaded
+         */
+        scanForNewFiles(f);
+
+        this.executor.execute(new DeliveryRunnable(this, f, this.statefulMappingOfDirectoryContents.get(f)));
 
         this.monitor(path);
 
@@ -47,7 +66,6 @@ public class OsXDirectoryMonitor extends AbstractDirectoryMonitor {
         // nooop for now
     }
 
-
     /**
      * this will delegate to the native .dynlib implementation to register a watch on a directory
      *
@@ -55,48 +73,35 @@ public class OsXDirectoryMonitor extends AbstractDirectoryMonitor {
      */
     public native void monitor(String path);
 
-    private final Object scanMonitor = new Object();
-
-
-
     /**
-     * the mapping of files that we pick up each scan
+     * scans the directory and provides a delta for all files that are there now that weren't there in the last scanForNewFiles
+     *
+     * @param theDirectoryToScan the directory we should scanForNewFiles
      */
-    private volatile ConcurrentHashMap<String, Collection<File>> statefulMappingOfDirectoryContents = new ConcurrentHashMap<String, Collection<File>>();
+    private Set<File> scanForNewFiles(File theDirectoryToScan) {
 
-    /**
-     * scan's the directory and provides a delta for all files that are there now that weren't there in the last scan
-     * @param dir
-     */
-    private void scan(String dir) {
+        Collection<File> deltas = new ArrayList<File>();
 
-        synchronized (this.scanMonitor) {
+        if (theDirectoryToScan.exists() && theDirectoryToScan.isDirectory()) {
 
-            File f = new File(dir);
-            if (f.exists() && f.isDirectory()) {
-                File[] dirListing = f.listFiles();
+            File[] dirListing = theDirectoryToScan.listFiles();
 
-                if(dirListing == null) dirListing = new File[0] ;
+            if (dirListing == null)
+                dirListing = new File[0];
 
-                this.statefulMappingOfDirectoryContents.putIfAbsent(dir, new ConcurrentSkipListSet<File>());
-                Collection<File> files = this.statefulMappingOfDirectoryContents.get(dir);
-                Collection<File> deltas = new ArrayList<File>();
+            statefulMappingOfDirectoryContents.putIfAbsent(theDirectoryToScan, new LinkedBlockingQueue<File>());
 
-                for (File ff : dirListing){
-                    if(!files.contains(ff)){
-                        deltas.add(ff);
-                    }
+            Queue<File> filesToDeliver = this.statefulMappingOfDirectoryContents.get(theDirectoryToScan);
+
+            for (File ff : dirListing) {
+                if (!filesToDeliver.contains(ff)) {
+                    deltas.add(ff);
                 }
-
-
-
-                // so, for each file in the current listing, see if it exists in the old scan. if not, then add to deltas
-
-               // for(File f : dirListing)
-
-
             }
         }
+
+
+        return new HashSet<File>(deltas);
     }
 
     /**
@@ -108,26 +113,63 @@ public class OsXDirectoryMonitor extends AbstractDirectoryMonitor {
      */
     public synchronized void pathChanged(String path) {
         System.out.println(String.format("the path %s has changed; must rescan!", path));
+
+        File key = new File(path);
+        Set<File> newFiles = this.scanForNewFiles( key);
+
+        Queue<File> queueOfFiles = this.statefulMappingOfDirectoryContents.get(key);
+
+        // enqueue the new files
+        for(File f : newFiles)
+            queueOfFiles.add( f);
+
+
     }
+
 
     @Override
     protected void onInit() {
-        this.executor.execute(new Runnable() {
+    }
+}
 
-            @Override
-            public void run() {
-                try {
-                    Thread.sleep(1000 * 3);
-                    //    System.out.println( "writing a file");
-                    File f = new File("/Users/jolong/Desktop/foo");
-                    File out = new File(f, "outx.txt");
-                    FileOutputStream fout = new FileOutputStream(out);
-                    IOUtils.write("Hello, world!", fout);
-                    IOUtils.closeQuietly(fout);
-                } catch (Throwable th) {
-                    System.out.println("Exceptions: " + ExceptionUtils.getFullStackTrace(th));
-                }
-            }
-        });
+
+class DeliveryRunnable implements Runnable {
+
+    /**
+     *
+     */
+    private Logger logger = Logger.getLogger(DeliveryRunnable.class);
+
+    /**
+     * reference to the {@link AbstractDirectoryMonitor} that can actually deliver newly detected files
+     */
+    private AbstractDirectoryMonitor monitor;
+
+    /**
+     * the files detected
+     */
+    private LinkedBlockingQueue<File> files;
+
+    /**
+     * the directory under monitor
+     */
+    private File directoryUnderMonitor;
+
+    public DeliveryRunnable(AbstractDirectoryMonitor monitor, File dir, LinkedBlockingQueue<File> files) {
+        this.monitor = monitor;
+        this.files = files;
+        this.directoryUnderMonitor = dir;
+    }
+
+    @Override
+    public void run() {
+        File f;
+        try {
+            while ((f = this.files.take()) != null)
+                this.monitor.fileReceived(directoryUnderMonitor.getAbsolutePath(), f.getAbsolutePath());
+
+        } catch (InterruptedException e) {
+            logger.debug(e);
+        }
     }
 }
