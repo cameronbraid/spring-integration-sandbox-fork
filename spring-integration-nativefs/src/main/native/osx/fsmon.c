@@ -24,50 +24,113 @@
 
 #include <CoreServices/CoreServices.h>
 #include <jni.h>
+#include "utstring.h"
+#include "uthash.h"
 
-// JNIEnv * sharedEnv ; // shared reference to the JNIEnv
-// jobject  sharedObj ;     // shared reference to the jobject
+/** 
+ * shared map of contexts so that multiple threads of execution can contain references to unique JNI constructs
+ */
+static struct jnictx *contexts = NULL ; // the hash *must* be intialized to null
 
-// provides the jni context
 struct jnictx {
-    JNIEnv * env ; /* the reference to the JNIenv when we launched the monitor from Java */
-    char * path ;  /* the original path registered*/
-	jobject thisPtr;  /* reference to the Java 'this' pointer */
-
+    JNIEnv * env ;
+	jobject thisPtr;
+	jclass classId;
+	jmethodID  methodId;
+	char * path;
+	UT_hash_handle hh ; // to make this hashable
 };
 
-static struct jnictx* sharedContext ;
+void add_jnictx( char *path, JNIEnv *env, jclass clz, jobject thisPtr, jmethodID mid  ){
+    struct jnictx * ctx;
+    ctx = (struct jnictx*) malloc( sizeof(struct jnictx) );
+    ctx->path = path;
+    ctx->env = env;
+    ctx->thisPtr = thisPtr;
+    ctx->methodId = mid;
+    ctx->classId = clz;
+    HASH_ADD_KEYPTR( hh, contexts , ctx->path, strlen(ctx->path),ctx );
+
+	unsigned int context_count;
+	context_count = HASH_COUNT( contexts );
+	printf("there are %u contexts\n", context_count ); fflush(stdout) ;
+
+}
+
+struct jnictx * find_jnictx(char * path){ 
+	struct jnictx * c;
+	printf( "find_jnictx: %s",path); fflush(stdout);
+	HASH_FIND_STR( contexts, path, c);
+	
+	return  c;
+}
+/*
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include "uthash.h"
+
+struct my_struct {
+    char *name;
+    int id;
+    UT_hash_handle hh;
+};
+
+
+int main(int argc, char *argv[]) {
+    char **n, *names[] = { "joe", "bob", "betty", NULL };
+    struct my_struct *s, *users = NULL;
+    int i=0;
+
+    for (n = names; *n != NULL; n++) {
+        s = (struct my_struct*)malloc(sizeof(struct my_struct));
+        s->name = *n;
+        s->id = i++;
+        HASH_ADD_KEYPTR( hh, users, s->name, strlen(s->name), s );
+    }
+
+    HASH_FIND_STR( users, "betty", s);
+    if (s) printf("betty's id is %d\n", s->id);
+   return 0;
+}
+*/
+
+
 
  /**  
   * this is where we'll inject the JNI notification logic. this doesn't tell us which file 
   * has changed, but it is enough to trigger a rescan from the java side 
   */
-void notifyPathChanged( struct jnictx * ctx, char *path){
-
-	 	
-	char * p = (*ctx).path ;
+void notify_path_changed(char *path){
+    printf( "notify_path_changed: %s",path); fflush(stdout);
+	struct jnictx * ctx = find_jnictx( path) ;
+	if(ctx){
+		printf( "the path is %s" , ctx->path ) ;fflush(stdout);
+	}
     JNIEnv * env = (*ctx).env;
     jobject obj = (*ctx).thisPtr ;
 
-    jclass cls = (*env)->GetObjectClass( env,  obj);
+    if ((*env)->MonitorEnter(env, obj) != JNI_OK)
+    {
+        printf( "couldn't accquire lock!");
+        fflush(stdout);
+    }
 
-    jmethodID mid =  (*env)->GetMethodID(env, cls, "pathChanged" ,     "(Ljava/lang/String;)V"  );      // (Ljava/lang/String;)V
-
+	char * p =  path;
+    jclass cls =  (*ctx).classId;
+    jmethodID mid = (*ctx).methodId;
     jstring jpath = (*env)->NewStringUTF( env , path  );
 
     (*env)->CallVoidMethod(env, obj , mid,  jpath );
 
+	if ((*env)->MonitorExit(env, obj) != JNI_OK)
+	{
+	 	printf("couldn't release lock!"); /* error handling */
+		fflush(stdout);
+	}
 }
 
-
-
-
-void fileSystemChangedCallback(ConstFSEventStreamRef streamRef, void *clientCallBackInfo, size_t numEvents, void *eventPaths, const FSEventStreamEventFlags eventFlags[], const FSEventStreamEventId eventIds[]) {
-
-    struct jnictx * jctx = sharedContext;
-
-    char * ptm = (*jctx).path ;
-
+void file_system_changed_callback(ConstFSEventStreamRef streamRef, void *clientCallBackInfo, size_t numEvents, void *eventPaths, const FSEventStreamEventFlags eventFlags[], const FSEventStreamEventId eventIds[]) {
     char **paths = eventPaths;
     int i;
     for (i=0; i<numEvents; i++) {
@@ -77,29 +140,24 @@ void fileSystemChangedCallback(ConstFSEventStreamRef streamRef, void *clientCall
 		} else if (eventFlags[i] != kFSEventStreamEventFlagNone) {
 			// noop
 		} else {// if ((flags & kFSEventStreamEventFlagMustScanSubDirs) != 0) {
-			notifyPathChanged(  jctx, paths[i]);
+			notify_path_changed( paths[i] );
 		}
     }
 } 
 
-/** the logic run with a thread */
-void *event_processing_thread(  struct jnictx *ctx  ) {
 
+void *event_processing_thread(   char * path ) {
 
-    if(!sharedContext) sharedContext= ctx;
-    char *pathToMonitor =  ctx->path;
+    char *pathToMonitor =  path ;
 
 	printf("event_processing_thread, the path is %s \n", pathToMonitor ) ;fflush(stdout);
-	
 
     CFStringRef mypath = CFStringCreateWithCString(NULL, pathToMonitor, NULL);
 	
     CFArrayRef pathsToWatch = CFArrayCreate(NULL, (const void **)&mypath, 1, NULL);
 
-    //   struct FSEventStreamContext fsc = { NULL, ctx, NULL, NULL, NULL } ;
-
-    CFAbsoluteTime latency = 0.3; 	
-    FSEventStreamRef stream = FSEventStreamCreate(NULL, &fileSystemChangedCallback, NULL ,
+    CFAbsoluteTime latency = 0.3;
+    FSEventStreamRef stream = FSEventStreamCreate(NULL, &file_system_changed_callback, NULL ,
              pathsToWatch, kFSEventStreamEventIdSinceNow, latency, kFSEventStreamCreateFlagNoDefer);
 	
     FSEventStreamScheduleWithRunLoop(stream, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
@@ -113,65 +171,35 @@ void *event_processing_thread(  struct jnictx *ctx  ) {
 
 
 /** this is the hook we'll export for clients to consume. */
-void startMonitor( struct jnictx *ctx ){
-
-//	if(!sharedContext) sharedContext = ctx;
-	
-    char * path = (*ctx).path ;
-    printf( "startMonitor: %s \n", path);
-    fflush(stdout);
-
-
-    if (FSEventStreamCreate == NULL) {
-		printf("the file system event stream API isn't available (must be run on OS X 10.5 or later)\n");
+void start_monitor(   char * path ){
+	printf( "startMonitor: %s \n", path); fflush(stdout);
+	if (FSEventStreamCreate == NULL) {
+		printf("the file system event stream API isn't available (must be run on OS X 10.5 or later)\n");   fflush(stdout);
 		return ;
-    }  
-	
-   // pthread_t thread_id;
-   /* int threadId = pthread_create(&thread_id, NULL, event_processing_thread, NULL);
-	
-    if (threadId != 0) {
-		printf("couldn't spawn thread for event processing.\n");
-		exit(1);
-    }
-	*/
-
-	event_processing_thread(ctx);
-
-    while (TRUE) {
-	    // noop
-    }
+	}
+	event_processing_thread(  path );
+	/* while (TRUE) {
+    } */
 }
 
-/*
-int main (int argc, const char * argv[]) { 
-	char * path = "/Users/jolong/Desktop/foo"; 	
-	struct jnictx jc ={ NULL,  path , NULL};	
-	startMonitor(&jc);
-} */
-
- 
 
 #ifndef _Included_org_springframework_integration_nativefs_fsmon_OsXDirectoryMonitor
-
 #define _Included_org_springframework_integration_nativefs_fsmon_OsXDirectoryMonitor
-
 #ifdef __cplusplus
-    extern "C" {
+extern "C" {
 #endif
-
-
+	/** used by Java code to start the monitoring process */
 	JNIEXPORT void JNICALL Java_org_springframework_integration_nativefs_fsmon_OsXDirectoryMonitor_monitor( JNIEnv * env,  jobject obj,  jstring javaSpecifiedPath)
 	{
 		char * path = (char *)(*env)->GetStringUTFChars( env, javaSpecifiedPath , NULL ) ;
-		//printf( "monitoring %s \n", path);		fflush(stdout);
-		struct jnictx jc = { env, path, obj }  ;
-		startMonitor(  &jc );
+		jclass cls = (*env)->GetObjectClass( env,  obj);
+        jmethodID mid =  (*env)->GetMethodID(env, cls, "pathChanged", "(Ljava/lang/String;)V"  );
+	 	add_jnictx(  path,  env,  cls,  obj ,  mid  );
+		start_monitor(   path  );
 	}
 
 #ifdef __cplusplus
-    }
+}
 #endif
-
 #endif 
  

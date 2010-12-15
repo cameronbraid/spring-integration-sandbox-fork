@@ -10,7 +10,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 /**
- * implementations can use this to exercise the code.
+ * implementations can use this to exercise the various clients per operating system.
  *
  * @author Josh Long
  * @since 2.1
