@@ -5,6 +5,7 @@ import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.integration.nativefs.fsmon.DirectoryMonitor;
 import org.springframework.integration.nativefs.fsmon.LinuxInotifyDirectoryMonitor;
+import org.springframework.integration.nativefs.fsmon.Nio2WatchServiceDirectoryMonitor;
 import org.springframework.integration.nativefs.fsmon.OsXDirectoryMonitor;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
@@ -14,20 +15,18 @@ import java.util.concurrent.Executors;
 
 /**
  * We can spare the user pain by dynamically loading the smartest implementation available for their host operating system and JDK.
- *
+ * <p/>
  * This will correctly detect support for JDK 7 WatchService implementations, OSX FSEvents, Linux Inotify and Windows.
- *
+ * <p/>
  * Ideally, the JDK 7 implementation will be picked up if available (as of late 2010, it's only available in Linux OpenJDK builds). Failing that, however, the native operating system based implementations will enserviced.
- *
+ * <p/>
  * Users on operating systems that support neither native event dispatch nor JDK 7 (like z/OS) should consider a polling based alternative.
- *
+ * <p/>
  * todo: we should investigate implementing this on BSD. BSD *does* support native event based dispatch, but at the moment we have no support for it.
  * todo: investigate Solaris support (I'm unsure as to whether there exists a working native event-based dispatcher mechanism)
  *
  * @author Josh Long
- *
  * @since 2.1
- *
  */
 public class DirectoryMonitorFactory implements FactoryBean<DirectoryMonitor>, InitializingBean {
 
@@ -159,9 +158,15 @@ public class DirectoryMonitorFactory implements FactoryBean<DirectoryMonitor>, I
             notifyNativeDependencyRequired();
 
         } else if (this.supportsJdk7WatchService()) {
-            // we have an implementation of DirectoryMonitor that works but as the code for that is in OpenJKD and OpenJDK 7 doesn't work on OSX, i need
-            // boot back into Linux to write this code in terms of interfaces and potentially hide the actual dependency
-            //
+            /**
+             * this code will compile, but not run on operating systems without a JDK7 install. Particularly, we need JDK7's watchservice which,
+             * as of this writing, was only available from OpenJDK7 on Linux (presumably for the same reason that our native support was first available
+             * on Linux: it's <em>much</em> easier to get that working than the equivalent OSX or Windows code.
+             */
+            Nio2WatchServiceDirectoryMonitor nio2WatchServiceDirectoryMonitor = new Nio2WatchServiceDirectoryMonitor();
+            nio2WatchServiceDirectoryMonitor.setExecutor( this.executor);
+            nio2WatchServiceDirectoryMonitor.afterPropertiesSet();
+            dm = nio2WatchServiceDirectoryMonitor;
         }
 
         // z/OS?
