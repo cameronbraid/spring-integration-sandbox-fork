@@ -58,12 +58,6 @@ void add_jnictx( char *path, JNIEnv *env, jclass clz, jobject thisPtr, jmethodID
     ctx->methodId = mid;
     ctx->classId = clz;
     HASH_ADD_KEYPTR( hh, contexts , ctx->path, strlen(ctx->path),ctx );
-
-	/*
-	unsigned int context_count;
-	context_count = HASH_COUNT( contexts );
-	printf("there are %u contexts\n", context_count ); fflush(stdout) ;
-	*/
 }
 
 /** 
@@ -71,7 +65,6 @@ void add_jnictx( char *path, JNIEnv *env, jclass clz, jobject thisPtr, jmethodID
  */
 struct jnictx * find_jnictx(char * path){ 
 	struct jnictx * c;
-//	printf( "find_jnictx: %s",path); fflush(stdout);
 	HASH_FIND_STR( contexts, path, c);
 	return  c;
 }
@@ -120,9 +113,12 @@ void file_system_changed_callback(ConstFSEventStreamRef streamRef, void *clientC
 			notify_path_changed( paths[i] );
 		}
     }
-} 
+}
 
-
+/**
+ * initially this logic was being threaded off using pthreads, but the FSEventStreamCreate call itself has its own threading, and there's no need
+ * for this extra layer of threading, especially as it makes it difficult to consume from Java because of the extra complexity of threading in JNI code
+ */
 void *event_processing_thread( char * path ) {
 
     char *pathToMonitor =  path ;
@@ -142,22 +138,19 @@ void *event_processing_thread( char * path ) {
     return NULL;
 }
 
-
-
-
-/** this is the hook we'll export for clients to consume. */
 void start_monitor( char * path ){
-	
 	if (FSEventStreamCreate == NULL) {
-		printf("the file system event stream API isn't available (must be run on OS X 10.5 or later)\n");   fflush(stdout);
+		printf("the file system event stream API isn't available (must be run on OS X 10.5 or later)\n");
+		fflush(stdout);
 		return ;
 	}
-	
 	event_processing_thread(  path );
-	
 }
 
-
+/**
+ * the shared library exports this function specifically for consumption from Java
+ *
+**/
 #ifndef _Included_org_springframework_integration_nativefs_fsmon_OsXDirectoryMonitor
 #define _Included_org_springframework_integration_nativefs_fsmon_OsXDirectoryMonitor
 #ifdef __cplusplus
@@ -168,9 +161,9 @@ extern "C" {
 	{
 		char * path = (char *)(*env)->GetStringUTFChars( env, javaSpecifiedPath , NULL ) ;
 		jclass cls = (*env)->GetObjectClass( env,  obj);
-        jmethodID mid =  (*env)->GetMethodID(env, cls, "pathChanged", "(Ljava/lang/String;)V"  );
-	 	add_jnictx(  path,  env,  cls,  obj ,  mid  );
-		start_monitor(   path  );
+        jmethodID mid = (*env)->GetMethodID(env, cls, "pathChanged", "(Ljava/lang/String;)V");
+	 	add_jnictx(path, env, cls, obj, mid );
+		start_monitor( path );
 	}
 
 #ifdef __cplusplus
