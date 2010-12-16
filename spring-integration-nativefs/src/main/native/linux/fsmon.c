@@ -15,7 +15,7 @@
 
 /**
  * Contributed by:
- * Josh Long (josh@joshlong.com)
+ * Josh Long (josh.long@springsource.com)
  * Mario Gray (mario.gray@gmail.com)
  */
 

@@ -14,8 +14,10 @@
  */
 
 /**
- * @author Mario Gray
- * @author Josh Long
+ * Contributed by:
+ * Mario Gray (mario.gray@gmail.com)
+ * Josh Long (josh.long@springsource.com)
+ *
  *
  * based on the logic demonstrated in the fsnotifier agent shipped with the IntelliJ IDEA Community Edition project
  *
