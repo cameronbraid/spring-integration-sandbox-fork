@@ -164,7 +164,7 @@ public class DirectoryMonitorFactory implements FactoryBean<DirectoryMonitor>, I
              * on Linux: it's <em>much</em> easier to get that working than the equivalent OSX or Windows code.
              */
             Nio2WatchServiceDirectoryMonitor nio2WatchServiceDirectoryMonitor = new Nio2WatchServiceDirectoryMonitor();
-            nio2WatchServiceDirectoryMonitor.setExecutor( this.executor);
+            nio2WatchServiceDirectoryMonitor.setExecutor(this.executor);
             nio2WatchServiceDirectoryMonitor.afterPropertiesSet();
             dm = nio2WatchServiceDirectoryMonitor;
         }
@@ -202,60 +202,61 @@ public class DirectoryMonitorFactory implements FactoryBean<DirectoryMonitor>, I
     }
 
 
-}
+    /**
+     * utility class to facilitate parsing the system version property, which can be tedious.
+     *
+     * @author Josh Long
+     * @since 2.1
+     */
+    private static class SystemVersion {
 
-/**
- * utility class to facilitate parsing the system version property, which can be tedious.
- *
- * @author Josh Long
- * @since 2.1
- */
-class SystemVersion {
+        private boolean hasMicro;
+        private int major, minor, micro;
 
-    private boolean hasMicro;
-    private int major, minor, micro;
-
-    public static SystemVersion getSystemVersion() {
-        return new SystemVersion(System.getProperty("os.version"));
-    }
-
-    public boolean hasMicroVersion() {
-        return this.hasMicro;
-    }
-
-    public int getMajorVersion() {
-        return this.major;
-    }
-
-    public int getMinorVersion() {
-        return this.minor;
-    }
-
-    public int getMicroVersion() {
-        return this.micro;
-    }
-
-    public SystemVersion(String version) {
-        String[] versionPieces = version.split("\\.");
-        if (versionPieces.length >= 2) {
-            int majorVersion = Integer.parseInt(versionPieces[0]);
-            int minorVersion = Integer.parseInt(versionPieces[1]);
-            int microVersion = 0;
-
-            if (versionPieces.length > 2) {
-                String[] microVersionPieces = versionPieces[2].split("-");
-
-                if (microVersionPieces.length > 0) {
-                    microVersion = Integer.parseInt(microVersionPieces[0]);
-                    hasMicro = true;
-                }
-            }
-
-            this.major = majorVersion;
-            this.micro = microVersion;
-            this.minor = minorVersion;
-
+        public static SystemVersion getSystemVersion() {
+            return new SystemVersion(System.getProperty("os.version"));
         }
+
+        public boolean hasMicroVersion() {
+            return this.hasMicro;
+        }
+
+        public int getMajorVersion() {
+            return this.major;
+        }
+
+        public int getMinorVersion() {
+            return this.minor;
+        }
+
+        public int getMicroVersion() {
+            return this.micro;
+        }
+
+        public SystemVersion(String version) {
+            String[] versionPieces = version.split("\\.");
+            if (versionPieces.length >= 2) {
+                int majorVersion = Integer.parseInt(versionPieces[0]);
+                int minorVersion = Integer.parseInt(versionPieces[1]);
+                int microVersion = 0;
+
+                if (versionPieces.length > 2) {
+                    String[] microVersionPieces = versionPieces[2].split("-");
+
+                    if (microVersionPieces.length > 0) {
+                        microVersion = Integer.parseInt(microVersionPieces[0]);
+                        hasMicro = true;
+                    }
+                }
+
+                this.major = majorVersion;
+                this.micro = microVersion;
+                this.minor = minorVersion;
+
+            }
+        }
+
     }
+
 
 }
