@@ -3,6 +3,8 @@ package org.springframework.integration.nativefs.fsmon;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.log4j.Logger;
+import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
 
 import java.io.File;
 import java.util.*;
@@ -20,9 +22,14 @@ import java.util.concurrent.LinkedBlockingQueue;
  *
  * Meanwhile, in delivery threads (one for each directory monitored by this class) we deliver these new files and trigger listeners.
  *
+ *
+ *
  * @author Josh Long
+ * @author 2.1
  */
 public class OsXDirectoryMonitor extends AbstractDirectoryMonitor {
+
+    private final Object queueMonitor = new Object() ;
 
     private static Logger logger = Logger.getLogger(OsXDirectoryMonitor.class);
 
@@ -51,7 +58,8 @@ public class OsXDirectoryMonitor extends AbstractDirectoryMonitor {
         File f = new File(path);
 
         /**
-         * do one quick scan and get everything preloaded
+         * do one quick scan and get everything preloaded. NB: this doesn *not* enqueue files that were already in the directory
+         * when we first run this component. it simply ensures that we have a Queue setup inside #statefulMappingOfDirectoryContents
          */
         scanForNewFiles(f);
 
@@ -77,51 +85,51 @@ public class OsXDirectoryMonitor extends AbstractDirectoryMonitor {
      * scans the directory and provides a delta for all files that are there now that weren't there in the last scanForNewFiles
      *
      * @param theDirectoryToScan the directory we should scanForNewFiles
+     *
+     * todo is it possible that we can deliver two events for the same {@link java.io.File} if the multithreading were to escalate? that is, can we enqueue a second event *as* the first is being delivered?
      */
     private Set<File> scanForNewFiles(File theDirectoryToScan) {
 
         Collection<File> deltas = new ArrayList<File>();
 
-        if (theDirectoryToScan.exists() && theDirectoryToScan.isDirectory()) {
+        Assert.isTrue (theDirectoryToScan.exists() && theDirectoryToScan.isDirectory(), "the directory must still exist for this to work correctly");
 
-            File[] dirListing = theDirectoryToScan.listFiles();
+        File[] dirListing = theDirectoryToScan.listFiles();
 
-            if (dirListing == null)
-                dirListing = new File[0];
+        if (dirListing == null)
+            dirListing = new File[0];
 
-            statefulMappingOfDirectoryContents.putIfAbsent(theDirectoryToScan, new LinkedBlockingQueue<File>());
+        statefulMappingOfDirectoryContents.putIfAbsent(theDirectoryToScan, new LinkedBlockingQueue<File>());
 
-            Queue<File> filesToDeliver = this.statefulMappingOfDirectoryContents.get(theDirectoryToScan);
+        Queue<File> filesToDeliver = this.statefulMappingOfDirectoryContents.get(theDirectoryToScan);
 
-            for (File ff : dirListing) {
-                if (!filesToDeliver.contains(ff)) {
-                    deltas.add(ff);
-                }
+        for (File ff : dirListing) {
+            if (!filesToDeliver.contains(ff)) {
+                deltas.add(ff);
             }
         }
-
 
         return new HashSet<File>(deltas);
     }
 
     /**
-     * this is the path that has changed. It DOES NOT tell us which files have cahnged, just that there was a change.
+     * this is the path that has changed. It DOES NOT tell us which files have changed, just that there was a change.
      * We need to keep a stateful view of the path and do deltas.
-     * This code will be called FROM JNI, so it needs to be very simple.
+     * This code will be called FROM JNI, so it needs to be very simple / quick
      *
      * @param path the path that has received the changes
      */
     public synchronized void pathChanged(String path) {
-        System.out.println(String.format("the path %s has changed; must rescan!", path));
+
+        logger.debug(String.format("the path %s has changed; rescanning....", path));
 
         File key = new File(path);
         Set<File> newFiles = this.scanForNewFiles( key);
 
         Queue<File> queueOfFiles = this.statefulMappingOfDirectoryContents.get(key);
 
-        // enqueue the new files
-        for(File f : newFiles)
-            queueOfFiles.add( f);
+        // enqueue new files
+        queueOfFiles.addAll( newFiles);
 
 
     }
@@ -133,6 +141,16 @@ public class OsXDirectoryMonitor extends AbstractDirectoryMonitor {
 }
 
 
+/**
+ *
+ * This class is spawned each time we start monitoring.
+ * It silently monitors an in-memory {@link java.util.concurrent.LinkedBlockingQueue}
+ * for new files and as soon as one is available, delivers it.
+ *
+ * @author Josh Long
+ * @since 2.1
+ *
+ */
 class DeliveryRunnable implements Runnable {
 
     /**
@@ -159,14 +177,31 @@ class DeliveryRunnable implements Runnable {
         this.monitor = monitor;
         this.files = files;
         this.directoryUnderMonitor = dir;
+
+        Assert.notNull( this.files, "You must pass in a non-empty queue to monitor");
+        Assert.notNull(this.monitor, "you must pass in a non-null reference to the parent OsXDirectoryMonitor") ;
+        Assert.notNull(this.directoryUnderMonitor, "You must provide a non-null reference to the directory to monitor");
     }
 
+    /**
+     * this is naturally synchronized in terms of takes because it only runs when there's something in the queue. there is however no guarantee
+     * that iteration won't <em>see</em> a queue containing doubles
+     */
     @Override
     public void run() {
         File f;
         try {
-            while ((f = this.files.take()) != null)
+            while ((f = this.files.take()) != null){
+
+                int countOfFileInQueue =0;
+                for( File fToCount:this.files)
+                 if(fToCount.equals(f))
+                 countOfFileInQueue +=1;
+
+
+
                 this.monitor.fileReceived(directoryUnderMonitor.getAbsolutePath(), f.getAbsolutePath());
+            }
 
         } catch (InterruptedException e) {
             logger.debug(e);
