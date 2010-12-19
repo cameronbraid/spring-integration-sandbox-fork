@@ -27,19 +27,19 @@ import org.springframework.integration.support.MessageBuilder;
  */
 public class SimpleProcessTriggeringMessageSource implements MessageSource<String> {
 
-	private final Log logger = LogFactory.getLog(SimpleProcessTriggeringMessageSource.class.getName());
+    private final Log logger = LogFactory.getLog(SimpleProcessTriggeringMessageSource.class.getName());
 
-	public Message<String> receive() {
-		try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e) {
-			logger.debug("couldn't sleep 1000 ms", e);
-		}
-		return MessageBuilder.withPayload(
-				"hello from " + System.currentTimeMillis()
-		).
-				setHeader(ActivitiConstants.WELL_KNOWN_SPRING_INTEGRATION_HEADER_PREFIX + "customerId", 232).
-				setHeader(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY, "helloWorldProcess").build();
+    public Message<String> receive() {
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            logger.debug("couldn't sleep 1000 ms", e);
+        }
 
-	}
+        return MessageBuilder.withPayload( "hello from " + System.currentTimeMillis() )
+                .setHeader(ActivitiConstants.WELL_KNOWN_SPRING_INTEGRATION_HEADER_PREFIX + "customerId", 232)
+                .setHeader(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY, "helloWorldProcess")
+                .build();
+
+    }
 }

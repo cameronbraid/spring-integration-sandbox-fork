@@ -15,6 +15,8 @@ package org.springframework.integration.activiti.impls;
 import org.activiti.engine.impl.pvm.PvmTransition;
 import org.activiti.engine.impl.pvm.delegate.ActivityBehavior;
 import org.activiti.engine.impl.pvm.delegate.ActivityExecution;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.InitializingBean;
 
 import java.util.List;
@@ -26,13 +28,15 @@ import java.util.List;
  * @author Josh Long
  */
 public class SimpleCustomActivityBehavior implements ActivityBehavior, InitializingBean {
-	public void execute(ActivityExecution dbExecution)
-			throws Exception {
-		System.out.println("Hello from a custom ActivityBehavior hosted in the Spring context. " + this);
+
+    private Log log = LogFactory.getLog(SimpleCustomActivityBehavior.class );
+
+    public void execute(ActivityExecution dbExecution) throws Exception {
+		log.debug("Hello from a custom ActivityBehavior hosted in the Spring context. " + this);
 
 
 		for (String varName : dbExecution.getVariables().keySet())
-			System.out.println(varName + "=" + dbExecution.getVariable(varName));
+			log.debug(varName + "=" + dbExecution.getVariable(varName));
 
 
 		/*List<PvmTransition> transitions = dbExecution.getActivity().getOutgoingTransitions();
@@ -41,6 +45,6 @@ public class SimpleCustomActivityBehavior implements ActivityBehavior, Initializ
 	}
 
 	public void afterPropertiesSet() throws Exception {
-		System.out.println("Starting " + SimpleCustomActivityBehavior.class.getName());
+		log.debug ("Starting " + SimpleCustomActivityBehavior.class.getName());
 	}
 }

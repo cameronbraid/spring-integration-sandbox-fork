@@ -14,16 +14,15 @@ package org.springframework.integration.activiti.gateway;
 
 import org.activiti.engine.ProcessEngine;
 import org.activiti.engine.RuntimeService;
-import org.activiti.engine.impl.RuntimeServiceImpl;
 import org.activiti.engine.impl.bpmn.ReceiveTaskActivity;
 import org.activiti.engine.impl.pvm.PvmActivity;
 import org.activiti.engine.impl.pvm.delegate.ActivityBehavior;
 import org.activiti.engine.impl.pvm.delegate.ActivityExecution;
-import org.activiti.engine.impl.pvm.process.ActivityImpl;
-import org.activiti.engine.impl.pvm.runtime.ExecutionImpl;
 import org.activiti.engine.impl.runtime.ExecutionEntity;
 import org.activiti.engine.runtime.Execution;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
@@ -33,6 +32,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.integration.*;
 import org.springframework.integration.activiti.ActivitiConstants;
 import org.springframework.integration.activiti.ProcessSupport;
+import org.springframework.integration.activiti.adapter.ExecutionSignallingInboundChannelAdapter;
 import org.springframework.integration.config.ConsumerEndpointFactoryBean;
 import org.springframework.integration.core.MessageHandler;
 import org.springframework.integration.core.MessagingTemplate;
@@ -46,7 +46,6 @@ import org.springframework.scheduling.support.PeriodicTrigger;
 import org.springframework.util.Assert;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -77,6 +76,10 @@ import java.util.Set;
  * @see org.activiti.spring.ProcessEngineFactoryBean - use this class to create the aforementioned ProcessEngine instance!
  */
 public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity implements BeanFactoryAware, BeanNameAware, ActivityBehavior, InitializingBean {
+
+
+    private Log log = LogFactory.getLog(getClass());
+
     /**
      * Used to handle sending in a standard way
      */
@@ -101,18 +104,13 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
     /**
      * Should we update the process variables based on the reply {@link org.springframework.integration.Message}'s {@link org.springframework.integration.MessageHeaders}?
      */
-    private volatile boolean updateProcessVariablesFromReplyMessageHeaders = false;
+    private volatile boolean updateProcessVariablesFromReplyMessageHeaders  ;
 
     /**
      * Should we pass the workflow process variables as message headers when we send a message into the Spring Integration framework?
      */
-    private volatile boolean forwardProcessVariablesAsMessageHeaders = false;
+    private volatile boolean forwardProcessVariablesAsMessageHeaders  ;
 
-    /**
-     * Forwarded to the {@link org.springframework.integration.core.MessagingTemplate} instance.
-     */
-
-    //	private volatile PlatformTransactionManager platformTransactionManager;
 
     /**
      * A reference to the {@link org.springframework.beans.factory.BeanFactory} that's hosting this component. Spring will inject this reference automatically assuming
@@ -121,20 +119,20 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
     private volatile BeanFactory beanFactory;
 
     /**
+     * this handles receiving a message and signaling execution in the process
+     */
+    private ExecutionSignallingInboundChannelAdapter executionSignallingInboundChannelAdapter;
+
+    /**
      * The process engine instance that controls the Activiti PVM. Recommended creation is through {@link org.activiti.spring.ProcessEngineFactoryBean}
      */
     private RuntimeService processService;
 
     /**
-     * Provides common logic for things like sifting through inbound message headers and arriving at process variable candidates
+     * {@link BeanNameAware#setBeanName(String)}
      */
-    private ProcessSupport processSupport = new ProcessSupport();
     private String beanName;
 
-    /*        @SuppressWarnings("unused")
-            public void setPlatformTransactionManager(PlatformTransactionManager platformTransactionManager) {
-                    this.platformTransactionManager = platformTransactionManager;
-            }*/
     @SuppressWarnings("unused")
     public void setRequestChannel(MessageChannel requestChannel) {
         this.requestChannel = requestChannel;
@@ -160,22 +158,22 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
         this.updateProcessVariablesFromReplyMessageHeaders = updateProcessVariablesFromReplyMessageHeaders;
     }
 
-    public void setBeanFactory(BeanFactory beanFactory)
-        throws BeansException {
+    public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
         this.beanFactory = beanFactory;
     }
 
     @Override
-    public void signal(ActivityExecution execution, String signalName, Object data)
-        throws Exception {
-       leave(execution );
+    public void signal(ActivityExecution execution, String signalName, Object data)  throws Exception {
+        leave(execution);
     }
 
     /**
      * Provides an opportunity for subclasses to provide extra headers to the outbound message
+     *
+     * @param activityExecution of the current process as it was received when we entered this {@link ActivityBehavior} instance
      */
-    protected Map<String, Object> outboundMessageConfigurationHook(ActivityExecution activityExecution)
-        throws Exception {
+    @SuppressWarnings("unused")
+    protected Map<String, Object> contributeHeadersForOutboundMessage(ActivityExecution activityExecution) throws Exception {
         return new HashMap<String, Object>();
     }
 
@@ -196,11 +194,11 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
         String pvmActivityId = pvmActivity.getId();
 
         MessageBuilder<?> messageBuilder = MessageBuilder.withPayload(execution)
-		        .setHeader(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY, executionId)
-		        .setHeader(ActivitiConstants.WELL_KNOWN_ACTIVITY_ID_HEADER_KEY, pvmActivityId)
-		        .setHeader(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_ID_HEADER_KEY, procDefId)
-		        .setHeader(ActivitiConstants.WELL_KNOWN_PROCESS_INSTANCE_ID_HEADER_KEY, procInstanceId).setCorrelationId(executionId)
-		        .copyHeadersIfAbsent(this.outboundMessageConfigurationHook(execution));
+                .setHeader(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY, executionId)
+                .setHeader(ActivitiConstants.WELL_KNOWN_ACTIVITY_ID_HEADER_KEY, pvmActivityId)
+                .setHeader(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_ID_HEADER_KEY, procDefId)
+                .setHeader(ActivitiConstants.WELL_KNOWN_PROCESS_INSTANCE_ID_HEADER_KEY, procInstanceId).setCorrelationId(executionId)
+                .copyHeadersIfAbsent(this.contributeHeadersForOutboundMessage(execution));
 
         if (this.forwardProcessVariablesAsMessageHeaders) {
             Map<String, Object> variables = execution.getVariables();
@@ -214,7 +212,7 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
 
         this.messagingTemplate.send(this.requestChannel, msg);
 
-	    super.execute( execution );
+        super.execute(execution);
     }
 
     /**
@@ -229,65 +227,22 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
         Assert.state(this.processEngine != null, "'processEngine' can't be null!");
 
         processService = this.processEngine.getRuntimeService();
+        Assert.notNull(this.processService,"'processService' can't be null");
 
-        MessageHandler handler = new ReplyMessageHandler();
+        ExecutionSignallingInboundChannelAdapter eai= new ExecutionSignallingInboundChannelAdapter() ;
+        eai.setChannel(this.replyChannel);
+        eai.setProcessEngine(this.processEngine);
+        eai.setUpdateProcessVariablesFromReplyMessageHeaders(this.updateProcessVariablesFromReplyMessageHeaders);
+        eai.setAutoStartup(false );
+        eai.setBeanFactory(this.beanFactory);
+        eai.setBeanName(this.beanName);
+        eai.afterPropertiesSet();
 
-        PollerMetadata pollerMetadata = new PollerMetadata();
-        pollerMetadata.setReceiveTimeout(-1);
-        // todo pollerMetadata.setTransactionManager(this.platformTransactionManager);
-        pollerMetadata.setTrigger(new PeriodicTrigger(10));
-
-        ConsumerEndpointFactoryBean consumerEndpointFactoryBean = new ConsumerEndpointFactoryBean();
-        consumerEndpointFactoryBean.setAutoStartup(false);
-
-        if (this.replyChannel instanceof PollableChannel) {
-            consumerEndpointFactoryBean.setPollerMetadata(pollerMetadata);
-        }
-
-        consumerEndpointFactoryBean.setBeanFactory(this.beanFactory);
-        consumerEndpointFactoryBean.setHandler(handler);
-        consumerEndpointFactoryBean.setInputChannel(this.replyChannel);
-        consumerEndpointFactoryBean.setBeanName(this.beanName);
-
-        AbstractEndpoint correlator = consumerEndpointFactoryBean.getObject();
-
-        if (correlator != null) {
-            correlator.start();
-        }
+        executionSignallingInboundChannelAdapter = eai;
+        executionSignallingInboundChannelAdapter.start();
     }
 
     public void setBeanName(String s) {
         this.beanName = s;
-    }
-
-    /**
-     * This class listens for results on the reply channel and causes the flow of execution to proceed inside the business process
-     */
-    class ReplyMessageHandler implements MessageHandler {
-        public void handleMessage(Message<?> message) throws MessageHandlingException, MessageDeliveryException {
-            try {
-
-	            RuntimeService runtimeService =  processEngine.getRuntimeService();
-
-	            MessageHeaders messageHeaders = message.getHeaders();
-				String executionId = (String) message.getHeaders().get(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY);
-				Execution execution = runtimeService.createExecutionQuery().executionId(executionId).singleResult();
-
-				if (updateProcessVariablesFromReplyMessageHeaders) {
-					ActivityExecution activityExecution = (ActivityExecution) execution;
-					Map<String, Object> vars = ((ActivityExecution) execution).getVariables();
-					Set<String> existingVars = vars.keySet();
-
-					Map<String, Object> procVars = processSupport.processVariablesFromMessageHeaders(existingVars, messageHeaders);
-
-					for (String key : procVars.keySet())
-						activityExecution.setVariable(key, procVars.get(key));
-				}
-				runtimeService.signal(executionId);
-
-            } catch (Throwable throwable) {
-                throw new RuntimeException(throwable);
-            }
-        }
     }
 }

@@ -12,13 +12,18 @@
  */
 package org.springframework.integration.activiti.impls;
 
+import org.apache.commons.lang.builder.ToStringBuilder;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.integration.Message;
 import org.springframework.integration.annotation.ServiceActivator;
 
-
 public class AnnouncingServiceActivator {
-	@ServiceActivator
+
+    private Log log  = LogFactory.getLog( AnnouncingServiceActivator.class ) ;
+
+    @ServiceActivator
 	public void hello(Message<?> msg) throws Throwable {
-		System.out.println("got it ");
+	 log.debug("got the message " + ToStringBuilder.reflectionToString(msg) );
 	}
 }

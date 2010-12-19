@@ -15,7 +15,15 @@
 
 		<serviceTask id="sigw" name="Spring Integration Gateway"  activiti:delegateExpression="#{gateway}"/>
 
-				<sequenceFlow id="flow2" sourceRef="sigw" targetRef="theEnd"/>
+            <sequenceFlow id="scriptFlow" sourceRef="sigw" targetRef="theScriptTask" />
+
+        <scriptTask id="theScriptTask" name="Execute script" scriptFormat="groovy">
+            <script>
+            println 'about to finish the script task.'
+            </script>
+        </scriptTask>
+
+        <sequenceFlow id="flow2" sourceRef="theScriptTask" targetRef="theEnd"/>
 
 		<endEvent id="theEnd"/>
 

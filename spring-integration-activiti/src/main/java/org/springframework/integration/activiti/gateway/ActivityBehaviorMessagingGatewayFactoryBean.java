@@ -19,7 +19,7 @@ public class ActivityBehaviorMessagingGatewayFactoryBean
 	private volatile MessageChannel requestChannel;
 	private volatile MessageChannel replyChannel;
 	private volatile ProcessEngine processEngine;
-	private volatile boolean async;
+	private volatile boolean async = true;  // workflow wait states are asynchronous, at least conceptually
 	private BeanFactory beanFactory;
 	private String beanName;
 
@@ -35,7 +35,6 @@ public class ActivityBehaviorMessagingGatewayFactoryBean
 			AsyncActivityBehaviorMessagingGateway asyncActivityBehaviorMessagingGateway = new AsyncActivityBehaviorMessagingGateway();
 			asyncActivityBehaviorMessagingGateway.setForwardProcessVariablesAsMessageHeaders(this.forwardProcessVariablesAsMessageHeaders);
 			asyncActivityBehaviorMessagingGateway.setUpdateProcessVariablesFromReplyMessageHeaders(this.updateProcessVariablesFromReplyMessageHeaders);
-//            asyncActivityBehaviorMessagingGateway.setPlatformTransactionManager(this.platformTransactionManager);
 			asyncActivityBehaviorMessagingGateway.setReplyChannel(this.replyChannel);
 			asyncActivityBehaviorMessagingGateway.setProcessEngine(this.processEngine);
 			asyncActivityBehaviorMessagingGateway.setRequestChannel(this.requestChannel);
@@ -48,7 +47,6 @@ public class ActivityBehaviorMessagingGatewayFactoryBean
 			SyncActivityBehaviorMessagingGateway syncActivityBehaviorMessagingGateway = new SyncActivityBehaviorMessagingGateway();
 			syncActivityBehaviorMessagingGateway.setForwardProcessVariablesAsMessageHeaders(this.forwardProcessVariablesAsMessageHeaders);
 			syncActivityBehaviorMessagingGateway.setUpdateProcessVariablesFromReplyMessageHeaders(this.updateProcessVariablesFromReplyMessageHeaders);
-			syncActivityBehaviorMessagingGateway.setPlatformTransactionManager(this.platformTransactionManager);
 			syncActivityBehaviorMessagingGateway.setReplyChannel(this.replyChannel);
 			syncActivityBehaviorMessagingGateway.setProcessEngine(this.processEngine);
 			syncActivityBehaviorMessagingGateway.setRequestChannel(this.requestChannel);

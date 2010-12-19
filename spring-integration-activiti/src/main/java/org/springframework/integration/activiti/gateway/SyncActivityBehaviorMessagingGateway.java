@@ -71,6 +71,7 @@ import java.util.Set;
  * @see org.activiti.engine.ProcessEngine the process engine instance is required to be able to use this namespace
  * @see org.activiti.spring.ProcessEngineFactoryBean - use this class to create the aforementioned ProcessEngine instance!
  */
+@Deprecated // for now until ive sorted out the role of the other classes
 public class SyncActivityBehaviorMessagingGateway implements BeanFactoryAware, BeanNameAware, ActivityBehavior, InitializingBean {
 	/**
 	 * Used to handle sending in a standard way
@@ -103,10 +104,10 @@ public class SyncActivityBehaviorMessagingGateway implements BeanFactoryAware, B
 	 */
 	private volatile boolean forwardProcessVariablesAsMessageHeaders = false;
 
-	/**
-	 * Forwarded to the {@link org.springframework.integration.core.MessagingTemplate} instance.
-	 */
-	private volatile PlatformTransactionManager platformTransactionManager;
+//	/**
+//	 * Forwarded to the {@link org.springframework.integration.core.MessagingTemplate} instance.
+//	 */
+//	private volatile PlatformTransactionManager platformTransactionManager;
 
 	/**
 	 * A reference to the {@link org.springframework.beans.factory.BeanFactory} that's hosting this component. Spring will inject this reference automatically assuming
@@ -124,11 +125,11 @@ public class SyncActivityBehaviorMessagingGateway implements BeanFactoryAware, B
 	 */
 	private ProcessSupport processSupport = new ProcessSupport();
 	private String beanName;
-
+/*
 	@SuppressWarnings("unused")
 	public void setPlatformTransactionManager(PlatformTransactionManager platformTransactionManager) {
 		this.platformTransactionManager = platformTransactionManager;
-	}
+	}*/
 
 	@SuppressWarnings("unused")
 	public void setRequestChannel(MessageChannel requestChannel) {
@@ -221,10 +222,10 @@ public class SyncActivityBehaviorMessagingGateway implements BeanFactoryAware, B
 		Assert.state(this.processEngine != null, "'processEngine' can't be null!");
 
 		runtimeService = this.processEngine.getRuntimeService();
-
-		if (this.platformTransactionManager != null) {
-			// todo this.messagingTemplate.setTransactionManager(this.platformTransactionManager);
-		}
+//
+//		if (this.platformTransactionManager != null) {
+//			// todo this.messagingTemplate.setTransactionManager(this.platformTransactionManager);
+//		}
 
 		MessageHandler handler = new ReplyMessageHandler();
 

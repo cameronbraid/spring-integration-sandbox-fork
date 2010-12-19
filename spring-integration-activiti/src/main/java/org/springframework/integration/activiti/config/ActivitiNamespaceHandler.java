@@ -20,7 +20,7 @@ import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.xml.AbstractSingleBeanDefinitionParser;
 import org.springframework.beans.factory.xml.NamespaceHandlerSupport;
 import org.springframework.beans.factory.xml.ParserContext;
-import org.springframework.integration.activiti.adapter.ActivitiOutboundChannelAdapter;
+import org.springframework.integration.activiti.adapter.ProcessStartingOutboundChannelAdapter;
 import org.springframework.integration.activiti.gateway.ActivityBehaviorMessagingGatewayFactoryBean;
 import org.springframework.integration.config.xml.AbstractOutboundChannelAdapterParser;
 import org.springframework.integration.config.xml.IntegrationNamespaceUtils;
@@ -28,9 +28,10 @@ import org.w3c.dom.Element;
 
 
 /**
- * Provides namespace support for defining a Gateway that communicates <em>from</em> Acitviti <em>to</em> Spring Integration.
+ * Provides namespace support for all the Activiti support
  *
  * @author Josh Long
+ * @since 2.1
  */
 @SuppressWarnings("unused")
 public class ActivitiNamespaceHandler extends NamespaceHandlerSupport {
@@ -43,7 +44,7 @@ public class ActivitiNamespaceHandler extends NamespaceHandlerSupport {
 	private static class ActivitiOutboundChannelAdapterParser extends AbstractOutboundChannelAdapterParser {
 		@Override
 		protected AbstractBeanDefinition parseConsumer(Element element, ParserContext parserContext) {
-			BeanDefinitionBuilder builder = BeanDefinitionBuilder.genericBeanDefinition(ActivitiOutboundChannelAdapter.class.getName());
+			BeanDefinitionBuilder builder = BeanDefinitionBuilder.genericBeanDefinition(ProcessStartingOutboundChannelAdapter.class.getName());
 			IntegrationNamespaceUtils.setReferenceIfAttributeDefined(builder, element, "process-engine");
 			IntegrationNamespaceUtils.setValueIfAttributeDefined(builder, element, "process-definition-name");
 			return builder.getBeanDefinition();

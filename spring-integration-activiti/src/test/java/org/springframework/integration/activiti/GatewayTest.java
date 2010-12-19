@@ -13,6 +13,9 @@
 package org.springframework.integration.activiti;
 
 import org.activiti.engine.ProcessEngine;
+import org.apache.commons.lang.time.StopWatch;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,14 +33,16 @@ import java.util.Map;
  *
  * @author Josh Long
  */
-@ContextConfiguration
+@ContextConfiguration(locations = "GatewayTest-context.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
-public class GatewayTest extends AbstractJUnit4SpringContextTests {
+public class GatewayTest  {
+
+    private Log log = LogFactory.getLog( getClass());
 
 	@Autowired
 	private ProcessEngine processEngine;
 
-	@Test
+	@Test(timeout = 30 * 1000 )
 	public void testGateway() throws Throwable {
 		// setup
 		processEngine.getRepositoryService().createDeployment().addClasspathResource("processes/si_gateway_example.bpmn20.xml").deploy();
@@ -46,9 +51,12 @@ public class GatewayTest extends AbstractJUnit4SpringContextTests {
 		Map<String, Object> vars = new HashMap<String, Object>();
 		vars.put("customerId", 232);
 
+        log.debug( "about to start the business process");
+        StopWatch sw = new StopWatch();
+        sw.start();
 		processEngine.getRuntimeService().startProcessInstanceByKey("sigatewayProcess", vars);
 
-		Thread.sleep(40 * 1000);
-
+        sw.stop();
+        log.debug( "total time to run the process:" + sw.getTime());
 	}
 }
