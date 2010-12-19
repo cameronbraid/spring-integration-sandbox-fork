@@ -10,8 +10,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import static java.nio.file.StandardWatchEventKind.*;
 
 /**
-* this is an implementation that delegates to a a JDK 7 NIO.2 based WatchService if available.
-*
+ * this is an implementation that delegates to a a JDK 7 NIO.2 based WatchService if available.
+ *
+ * At the time of this writing, the only implementation is the OpenJDK implementation which only works on Linux (AFAIK).
+ *
 * @author Josh Long
 * @since 2.1
 */
