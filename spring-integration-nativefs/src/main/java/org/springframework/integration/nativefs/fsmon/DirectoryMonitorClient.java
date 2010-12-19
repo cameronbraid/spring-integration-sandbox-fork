@@ -10,6 +10,8 @@ import java.util.concurrent.Executors;
 /**
  * Simple client that exercises the {@link org.springframework.integration.nativefs.fsmon.DirectoryMonitor} implementations.
  *
+ * All implementations should behave correctly and consistently
+ *
  * @author Josh Long
  * @since 1.0
  */

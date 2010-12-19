@@ -14,6 +14,23 @@ import java.util.concurrent.Executors;
 
 /**
  * Abstract base class for the other {@link org.springframework.integration.nativefs.fsmon.DirectoryMonitor} implementations.
+ * This class provides hooks for concerns that most implementations will need including event delivery, consumer registration, and
+ * a place to stash a  {@link Executor} which implementations may, or may not, take advantage of.
+ *
+ * Clients can implement the abstract methods to provide implementation specific logic.
+ *
+ * <ol>
+ * <li> {@link #startMonitor(String)} will be called when a path is to be monitored. The path is a path as derived from a {@link java.io.File#getAbsolutePath()}.  </li>
+ * <li> {@link #stopMonitor(String)}  will be called when a path should no longer be monitored. The path is a path retrieved by {@link java.io.File#getAbsolutePath()}. </li>
+ * <li> {@link #onInit()} is a simple callback hook after this class has performed all important setup tasks. </li>
+ * </ol>
+ *
+ * It's up to each implementation to signal to the implementation that a {@link File} has been received by calling {@link #fileReceived(String, String)}.
+ *
+ * The first parameter is the directory (it should match exactly the value passed to an invocation of {@link #startMonitor(String)} ) and the second
+ * should be the name of the file inside that directory (<em>not</em> an absolute path.). This design implies that monitors are only supposed to support
+ * detection one level deep. While recursive file detection is a possibility unique to each implementation, it's not required and there's no guarantees made about its consistent support.
+ *
  *
  * @author Josh Long
  * @since 1.0
@@ -130,7 +147,7 @@ public abstract class AbstractDirectoryMonitor implements DirectoryMonitor, Disp
      * @throws Exception
      */
 	@Override
-	public void afterPropertiesSet() throws Exception {
+	final public void afterPropertiesSet() throws Exception {
 		if (this.executor == null) {
 			this.executor = Executors.newCachedThreadPool();
 		}

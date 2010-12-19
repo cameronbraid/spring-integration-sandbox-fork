@@ -14,22 +14,20 @@ import java.util.concurrent.LinkedBlockingQueue;
 /**
  * implementation of the {@link org.springframework.integration.nativefs.fsmon.DirectoryMonitor}
  * interface that supports OS X.
- *
+ * <p/>
  * This works by registering a monitor using OSX's kernel facilities to receive callbacks of file system events.
- *
+ * <p/>
  * As OSX tells this class that <em>something</em> has changed in the underlying file system, we must manually
  * deliver deltas by scanning and calculating what's new.
- *
+ * <p/>
  * Meanwhile, in delivery threads (one for each directory monitored by this class) we deliver these new files and trigger listeners.
- *
- *
  *
  * @author Josh Long
  * @author 2.1
  */
 public class OsXDirectoryMonitor extends AbstractDirectoryMonitor {
 
-    private final Object queueMonitor = new Object() ;
+    private final Object queueMonitor = new Object();
 
     private static Logger logger = Logger.getLogger(OsXDirectoryMonitor.class);
 
@@ -92,7 +90,7 @@ public class OsXDirectoryMonitor extends AbstractDirectoryMonitor {
 
         Collection<File> deltas = new ArrayList<File>();
 
-        Assert.isTrue (theDirectoryToScan.exists() && theDirectoryToScan.isDirectory(), "the directory must still exist for this to work correctly");
+        Assert.isTrue(theDirectoryToScan.exists() && theDirectoryToScan.isDirectory(), "the directory must still exist for this to work correctly");
 
         File[] dirListing = theDirectoryToScan.listFiles();
 
@@ -115,96 +113,89 @@ public class OsXDirectoryMonitor extends AbstractDirectoryMonitor {
     /**
      * this is the path that has changed. It DOES NOT tell us which files have changed, just that there was a change.
      * We need to keep a stateful view of the path and do deltas.
-     * This code will be called FROM JNI, so it needs to be very simple / quick
+     *
+     * This code will be called <em>from</em> the java native code (JNI), so it needs to be very simple / quick.
      *
      * @param path the path that has received the changes
      */
+    @SuppressWarnings("unused")
     public synchronized void pathChanged(String path) {
 
         logger.debug(String.format("the path %s has changed; rescanning....", path));
 
         File key = new File(path);
-        Set<File> newFiles = this.scanForNewFiles( key);
+        Set<File> newFiles = this.scanForNewFiles(key);
 
         Queue<File> queueOfFiles = this.statefulMappingOfDirectoryContents.get(key);
 
-        // enqueue new files
-        queueOfFiles.addAll( newFiles);
-
-
+        queueOfFiles.addAll(newFiles);
     }
-
 
     @Override
     protected void onInit() {
-    }
-}
-
-
-/**
- *
- * This class is spawned each time we start monitoring.
- * It silently monitors an in-memory {@link java.util.concurrent.LinkedBlockingQueue}
- * for new files and as soon as one is available, delivers it.
- *
- * @author Josh Long
- * @since 2.1
- *
- */
-class DeliveryRunnable implements Runnable {
-
-    /**
-     *
-     */
-    private Logger logger = Logger.getLogger(DeliveryRunnable.class);
-
-    /**
-     * reference to the {@link AbstractDirectoryMonitor} that can actually deliver newly detected files
-     */
-    private AbstractDirectoryMonitor monitor;
-
-    /**
-     * the files detected
-     */
-    private LinkedBlockingQueue<File> files;
-
-    /**
-     * the directory under monitor
-     */
-    private File directoryUnderMonitor;
-
-    public DeliveryRunnable(AbstractDirectoryMonitor monitor, File dir, LinkedBlockingQueue<File> files) {
-        this.monitor = monitor;
-        this.files = files;
-        this.directoryUnderMonitor = dir;
-
-        Assert.notNull( this.files, "You must pass in a non-empty queue to monitor");
-        Assert.notNull(this.monitor, "you must pass in a non-null reference to the parent OsXDirectoryMonitor") ;
-        Assert.notNull(this.directoryUnderMonitor, "You must provide a non-null reference to the directory to monitor");
+        // noop for now
     }
 
     /**
-     * this is naturally synchronized in terms of takes because it only runs when there's something in the queue. there is however no guarantee
-     * that iteration won't <em>see</em> a queue containing doubles
+     * This class is spawned each time we start monitoring.
+     * It silently monitors an in-memory {@link java.util.concurrent.LinkedBlockingQueue}
+     * for new files and as soon as one is available, delivers it.
      */
-    @Override
-    public void run() {
-        File f;
-        try {
-            while ((f = this.files.take()) != null){
+    static class DeliveryRunnable implements Runnable {
 
-                int countOfFileInQueue =0;
-                for( File fToCount:this.files)
-                 if(fToCount.equals(f))
-                 countOfFileInQueue +=1;
+        /**
+         *
+         */
+        private Logger logger = Logger.getLogger(DeliveryRunnable.class);
+
+        /**
+         * reference to the {@link AbstractDirectoryMonitor} that can actually deliver newly detected files
+         */
+        private AbstractDirectoryMonitor monitor;
+
+        /**
+         * the files detected
+         */
+        private LinkedBlockingQueue<File> files;
+
+        /**
+         * the directory under monitor
+         */
+        private File directoryUnderMonitor;
+
+        public DeliveryRunnable(AbstractDirectoryMonitor monitor, File dir, LinkedBlockingQueue<File> files) {
+            this.monitor = monitor;
+            this.files = files;
+            this.directoryUnderMonitor = dir;
+
+            Assert.notNull(this.files, "You must pass in a non-empty queue to monitor");
+            Assert.notNull(this.monitor, "you must pass in a non-null reference to the parent OsXDirectoryMonitor");
+            Assert.notNull(this.directoryUnderMonitor, "You must provide a non-null reference to the directory to monitor");
+        }
+
+        /**
+         * this is naturally synchronized in terms of takes because it only runs when there's something in the queue. there is however no guarantee
+         * that iteration won't <em>see</em> a queue containing doubles
+         */
+        @Override
+        public void run() {
+            File f;
+            try {
+                while ((f = this.files.take()) != null) {
+
+                    int countOfFileInQueue = 0;
+                    for (File fToCount : this.files)
+                        if (fToCount.equals(f))
+                            countOfFileInQueue += 1;
 
 
+                    this.monitor.fileReceived(directoryUnderMonitor.getAbsolutePath(), f.getAbsolutePath());
+                }
 
-                this.monitor.fileReceived(directoryUnderMonitor.getAbsolutePath(), f.getAbsolutePath());
+            } catch (InterruptedException e) {
+                logger.debug(e);
             }
-
-        } catch (InterruptedException e) {
-            logger.debug(e);
         }
     }
 }
+

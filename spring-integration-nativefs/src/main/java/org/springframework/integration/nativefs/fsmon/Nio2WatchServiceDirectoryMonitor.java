@@ -11,7 +11,6 @@ import static java.nio.file.StandardWatchEventKind.*;
 
 /**
  * this is an implementation that delegates to a a JDK 7 NIO.2 based WatchService if available.
- *
  * At the time of this writing, the only implementation is the OpenJDK implementation which only works on Linux (AFAIK).
  *
 * @author Josh Long
@@ -22,7 +21,7 @@ public class Nio2WatchServiceDirectoryMonitor extends AbstractDirectoryMonitor i
     private Logger logger = Logger.getLogger(Nio2WatchServiceDirectoryMonitor.class);
 
     /**
-     * this is the JDK NIO2 instance that's used to fire events as file system entries are detected
+     * JDK NIO2 instance that's used to fire events as file system entries are detected
      */
     private WatchService watchService;
 
@@ -68,24 +67,19 @@ public class Nio2WatchServiceDirectoryMonitor extends AbstractDirectoryMonitor i
                 WatchEvent<Path> ev = cast(event);
 
                 if (kind == ENTRY_CREATE) {
-                    doReceive(ev, dir);
+
+                    Path ctx = ev.context();
+                    String dirStr = dir.toString();
+                    String fileStr = ctx.getName().toString();
+
+                    fileReceived(dirStr, fileStr);
+
                     if (!key.reset())
                         keys.remove(key);
 
                 }
             }
         }
-    }
-
-    /**
-     * @param evt the event that was provided from the {@link WatchService}
-     * @param dir the directory used as a key
-     */
-    private void doReceive(WatchEvent<Path> evt, Path dir) {
-        Path ctx = evt.context();
-        String dirStr = dir.toString();
-        String fileStr = ctx.getName().toString();
-        fileReceived(dirStr, fileStr);
     }
 
     @Override
