@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:echo="http://www.acme.org/schema/echo"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration-2.0.xsd
+		http://www.acme.org/schema/echo http://www.acme.org/schema/echo/echo-1.0.xsd">
+
+	<int:gateway id="echoGateway" default-request-channel="inputChannel" default-reply-channel="outputChannel"/>
+
+	<int:channel id="inputChannel"/>
+	
+	<echo:outbound-gateway id="myEchoService" request-channel="inputChannel" reply-channel="outputChannel"/>
+	
+	<int:channel id="outputChannel"/>
+
+</beans>

@@ -1,0 +1,7 @@
+<module name="echo">
+	<input>
+		<payload type="java.lang.String" values="foo, bar"/>
+	</input>
+	
+		
+</module>

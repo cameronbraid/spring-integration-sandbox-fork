@@ -1,0 +1,2 @@
+http\://www.acme.org/schema/echo/echo-1.0.xsd=META-INF/org/acme/echo/module/config/echo-1.0.xsd
+http\://www.acme.org/schema/echo/echo.xsd=META-INF/org/acme/echo/module/config/echo-1.0.xsd
