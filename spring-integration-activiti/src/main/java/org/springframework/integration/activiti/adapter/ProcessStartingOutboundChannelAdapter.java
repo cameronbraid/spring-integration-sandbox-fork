@@ -21,6 +21,7 @@ import org.springframework.integration.activiti.ProcessSupport;
 import org.springframework.integration.context.IntegrationObjectSupport;
 import org.springframework.integration.core.MessageHandler;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 
 import java.util.Map;
 
@@ -79,7 +80,7 @@ public class ProcessStartingOutboundChannelAdapter extends IntegrationObjectSupp
 
         String processName = (String) message.getHeaders().get(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY);
 
-        if ((processName == null) || processName.trim().equals("")) {
+        if ((processName == null) ||  !StringUtils.hasText(processName)) {
             processName = this.processDefinitionName;
         }
 

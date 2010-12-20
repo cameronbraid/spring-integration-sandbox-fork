@@ -58,7 +58,7 @@ import java.util.Set;
  * <p/>
  * The only requirement for the reply is that the {@link org.springframework.integration.Message} arrive on the #replyChannel and that it contain a header of
  * {@link org.springframework.integration.activiti.ActivitiConstants#WELL_KNOWN_EXECUTION_ID_HEADER_KEY} (which the outbound {@link org.springframework.integration.Message} will have)
- * so that the Activiti runtime can signal that execution has completed successfully.
+ * so that the Activiti runtime can signalProcessExecution that execution has completed successfully.
  * <p/>
  * Thanks to Dave Syer and Tom Baeyens for the help brainstorming.
  * <p/>
@@ -71,7 +71,7 @@ import java.util.Set;
  * @see org.activiti.engine.ProcessEngine the process engine instance is required to be able to use this namespace
  * @see org.activiti.spring.ProcessEngineFactoryBean - use this class to create the aforementioned ProcessEngine instance!
  */
-@Deprecated // for now until ive sorted out the role of the other classes
+@Deprecated
 public class SyncActivityBehaviorMessagingGateway implements BeanFactoryAware, BeanNameAware, ActivityBehavior, InitializingBean {
 	/**
 	 * Used to handle sending in a standard way

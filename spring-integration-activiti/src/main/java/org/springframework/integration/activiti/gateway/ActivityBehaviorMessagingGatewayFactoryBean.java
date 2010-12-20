@@ -10,6 +10,7 @@ import org.springframework.integration.MessageChannel;
 import org.springframework.transaction.PlatformTransactionManager;
 
 
+@Deprecated
 public class ActivityBehaviorMessagingGatewayFactoryBean
 		extends AbstractFactoryBean<Object> implements
 		BeanFactoryAware, BeanNameAware {
