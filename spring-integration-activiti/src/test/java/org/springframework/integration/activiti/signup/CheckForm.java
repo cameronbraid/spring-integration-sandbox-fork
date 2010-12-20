@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class CheckForm extends BpmnActivityBehavior implements ActivityBehavior {
-    private Log log = LogFactory.getLog( CheckForm.class);
+    private Log log = LogFactory.getLog( getClass() );
 
 	public void execute(ActivityExecution activityExecution) throws Exception {
 
