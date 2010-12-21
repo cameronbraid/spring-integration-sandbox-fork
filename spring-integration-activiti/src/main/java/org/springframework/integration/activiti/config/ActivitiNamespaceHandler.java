@@ -38,7 +38,7 @@ public class ActivitiNamespaceHandler extends NamespaceHandlerSupport {
 
 	public void init() {
 		this.registerBeanDefinitionParser("inbound-gateway", new ActivitiInboundGatewayParser());
-		this.registerBeanDefinitionParser("outbound-channel-adapter", new ActivitiOutboundChannelAdapterParser());
+		this.registerBeanDefinitionParser("adapter-channel-adapter", new ActivitiOutboundChannelAdapterParser());
 	}
 
 	private static class ActivitiOutboundChannelAdapterParser extends AbstractOutboundChannelAdapterParser {

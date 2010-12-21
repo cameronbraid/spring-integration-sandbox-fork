@@ -57,11 +57,11 @@ import java.util.Map;
  * The class forwards ("pushes") control from a BPM process (in-thread) to a Spring Integration channel where, of course, Spring Integration acts as a client  and
  * can push the execution forward anyway it wants to.
  * <p/>
- * Possible use cases include forwarding the job through an outbound JMS adapter or gateway, forwarding the job through an XMPP adapter, or forwarding the job through
- * to an outbound email adapter.
+ * Possible use cases include forwarding the job through an adapter JMS adapter or gateway, forwarding the job through an XMPP adapter, or forwarding the job through
+ * to an adapter email adapter.
  * <p/>
  * The only requirement for the reply is that the {@link org.springframework.integration.Message} arrive on the #replyChannel and that it contain a header of
- * {@link org.springframework.integration.activiti.ActivitiConstants#WELL_KNOWN_EXECUTION_ID_HEADER_KEY} (which the outbound {@link org.springframework.integration.Message} will have)
+ * {@link org.springframework.integration.activiti.ActivitiConstants#WELL_KNOWN_EXECUTION_ID_HEADER_KEY} (which the adapter {@link org.springframework.integration.Message} will have)
  * so that the Activiti runtime can signalProcessExecution that execution has completed successfully.
  * <p/>
  * Thanks to Dave Syer and Tom Baeyens for the help brainstorming.
@@ -160,7 +160,7 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
     }
 
     /**
-     * Provides an opportunity for subclasses to provide extra headers to the outbound message
+     * Provides an opportunity for subclasses to provide extra headers to the adapter message
      *
      * @param activityExecution of the current process as it was received when we entered this {@link ActivityBehavior} instance
      */

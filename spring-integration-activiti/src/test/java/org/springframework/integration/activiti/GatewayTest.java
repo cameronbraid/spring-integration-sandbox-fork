@@ -32,7 +32,7 @@ import java.util.Map;
  *
  * @author Josh Long
  */
-@ContextConfiguration(locations = "GatewayTest-context.xml")
+@ContextConfiguration(locations = "gateway/GatewayTest-context.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
 public class GatewayTest  {
 

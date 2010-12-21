@@ -11,22 +11,23 @@
  * limitations under the License.
  */
 
-package org.springframework.integration.activiti;
+package org.springframework.integration.activiti.adapter;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.integration.Message;
 import org.springframework.integration.MessageChannel;
+import org.springframework.integration.activiti.ActivitiConstants;
 import org.springframework.integration.core.MessagingTemplate;
 import org.springframework.integration.support.MessageBuilder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 
-@ContextConfiguration
+@ContextConfiguration (locations = "ProcessStartingOutboundChannelAdapterTest-context.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
-public class OutboundAdapterTest {
+public class ProcessStartingOutboundAdapterTest {
 
 	@Value("#{triggerChannel}")
 	private MessageChannel messageChannel;

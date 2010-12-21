@@ -15,7 +15,8 @@
 		==========================================================
 	   -->
 
-	<context:component-scan base-package="org.springframework.integration.activiti.gateway" />
+	<context:annotation-config/>
+
 
     <context:property-placeholder location="db.properties"/>
 
