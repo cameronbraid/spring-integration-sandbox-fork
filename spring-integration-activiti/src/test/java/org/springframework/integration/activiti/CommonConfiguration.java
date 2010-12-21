@@ -40,7 +40,7 @@ public class CommonConfiguration {
      * clients can override this
      */
     protected String getDatabaseSchemaUpdate(){
-        return SpringProcessEngineConfiguration.DB_SCHEMA_UPDATE_DROP_CREATE;
+        return SpringProcessEngineConfiguration.DB_SCHEMA_UPDATE_CREATE_DROP;
     }
     @Bean
     public ProcessEngineFactoryBean processEngine() {

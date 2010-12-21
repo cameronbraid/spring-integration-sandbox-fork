@@ -33,7 +33,9 @@ import java.util.Map;
  */
 public class PrintingServiceActivator {
 
-    private Log log  = LogFactory.getLog(PrintingServiceActivator.class) ;
+
+
+    private Log log  = LogFactory.getLog( getClass() ) ;
 
     public void setWhatToPrint(String whatToPrint) {
         this.whatToPrint = whatToPrint;

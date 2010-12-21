@@ -9,14 +9,7 @@
             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
             ">
 
-	<!--
-		==========================================================
-		  Context Globals
-		==========================================================
-	   -->
-
-	<context:annotation-config/>
-
+	<context:component-scan base-package="org.springframework.integration.activiti.gateway"/>
 
     <context:property-placeholder location="db.properties"/>
 

@@ -10,7 +10,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.integration.activiti;
+package org.springframework.integration.activiti.gateway;
 
 import org.activiti.engine.ProcessEngine;
 import org.apache.commons.lang.time.StopWatch;
@@ -32,7 +32,7 @@ import java.util.Map;
  *
  * @author Josh Long
  */
-@ContextConfiguration(locations = "gateway/GatewayTest-context.xml")
+@ContextConfiguration(locations = "GatewayTest-context.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
 public class GatewayTest  {
 
@@ -58,6 +58,6 @@ public class GatewayTest  {
         sw.stop();
         log.debug( "total time to run the process:" + sw.getTime());
 
-        Thread.sleep(1000 * 10);
+    //    Thread.sleep(1000 * 10);
 	}
 }

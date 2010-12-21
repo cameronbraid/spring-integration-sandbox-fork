@@ -32,10 +32,10 @@
 		<int:queue capacity="100"/>
 	</int:channel>
 
-	<activiti:outbound-channel-adapter
+	<!--<activiti:outbound-channel-adapter
 			channel="triggerChannel"
 			process-engine="processEngine"
 			process-definition-name="helloWorldProcess"
-			/>
+			/>-->
 
 </beans>
