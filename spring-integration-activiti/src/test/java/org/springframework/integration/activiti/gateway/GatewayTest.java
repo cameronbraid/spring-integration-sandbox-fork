@@ -41,6 +41,7 @@ public class GatewayTest  {
 	@Autowired
 	private ProcessEngine processEngine;
 
+
 	@Test(timeout = 30 * 1000 )
 	public void testGateway() throws Throwable {
 		// setup

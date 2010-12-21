@@ -16,14 +16,13 @@ import org.springframework.integration.core.MessageHandler;
  */
 public class ExecutionSignallingMessageHandler implements MessageHandler {
 
-    private ProcessSupport processSupport = new ProcessSupport();
 
     private ProcessEngine processEngine;
 
     private boolean updateProcessVariablesFromReplyMessageHeaders;
 
     /**
-     * @see org.activiti.spring.ProcessEngineFactoryBean
+     * @see org.activiti.spring.gitProcessEngineFactoryBean
      */
     public void setProcessEngine(ProcessEngine processEngine) {
         this.processEngine = processEngine;
@@ -41,7 +40,7 @@ public class ExecutionSignallingMessageHandler implements MessageHandler {
 
     public void handleMessage(Message<?> message) throws MessagingException {
         try {
-            this.processSupport.signalProcessExecution(this.processEngine, this.updateProcessVariablesFromReplyMessageHeaders, message);
+            ProcessSupport.signalProcessExecution(this.processEngine, this.updateProcessVariablesFromReplyMessageHeaders, message);
         } catch (Exception ex) {
             throw new MessagingException(message, ex);
         }

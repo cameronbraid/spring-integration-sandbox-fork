@@ -123,7 +123,6 @@ public class SyncActivityBehaviorMessagingGateway implements BeanFactoryAware, B
 	/**
 	 * Provides common logic for things like sifting through inbound message headers and arriving at process variable candidates
 	 */
-	private ProcessSupport processSupport = new ProcessSupport();
 	private String beanName;
 /*
 	@SuppressWarnings("unused")
@@ -203,10 +202,10 @@ public class SyncActivityBehaviorMessagingGateway implements BeanFactoryAware, B
 		if (this.updateProcessVariablesFromReplyMessageHeaders) {
 			Map<String, Object> vars = execution.getVariables();
 			Set<String> existingVars = vars.keySet();
-			Map<String, Object> procVars = this.processSupport.processVariablesFromMessageHeaders(existingVars, messageHeaders);
+			//todo Map<String, Object> procVars = ProcessSupport.processVariablesFromMessageHeaders(existingVars, messageHeaders);
 
-			for (String varName : procVars.keySet())
-				execution.getProcessInstance().setVariable(varName, procVars.get(varName));
+//			for (String varName : procVars.keySet())
+//				execution.getProcessInstance().setVariable(varName, procVars.get(varName));
 		}
 	}
 
@@ -272,10 +271,10 @@ public class SyncActivityBehaviorMessagingGateway implements BeanFactoryAware, B
 					Map<String, Object> vars = ((ActivityExecution) execution).getVariables();
 					Set<String> existingVars = vars.keySet();
 
-					Map<String, Object> procVars = processSupport.processVariablesFromMessageHeaders(existingVars, messageHeaders);
+//					Map<String, Object> procVars = processSupport.processVariablesFromMessageHeaders(existingVars, messageHeaders);
 
-					for (String key : procVars.keySet())
-						activityExecution.setVariable(key, procVars.get(key));
+//					for (String key : procVars.keySet())
+//						activityExecution.setVariable(key, procVars.get(key));
 				}
 				processEngine.getRuntimeService().signal(executionId);
 			} catch (Throwable throwable) {

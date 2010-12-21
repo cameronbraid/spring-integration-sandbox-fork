@@ -40,7 +40,7 @@ public class ProcessStartingOutboundAdapterTest {
 				.setHeader(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY + "customerId", 2324)
 				.build();
 		messagingTemplate.send(this.messageChannel, msg);
-		Thread.sleep(1000 * 10);
+		//Thread.sleep(1000 * 10);
 	}
 
 }

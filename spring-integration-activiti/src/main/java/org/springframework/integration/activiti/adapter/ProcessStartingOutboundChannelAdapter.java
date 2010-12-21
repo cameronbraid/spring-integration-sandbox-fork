@@ -23,6 +23,7 @@ import org.springframework.integration.core.MessageHandler;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
+import java.util.HashMap;
 import java.util.Map;
 
 
@@ -55,10 +56,6 @@ public class ProcessStartingOutboundChannelAdapter extends IntegrationObjectSupp
      */
     private String processDefinitionName;
 
-    /**
-     * Provides convenience methods
-     */
-    private ProcessSupport processSupport = new ProcessSupport();
 
     @Override
     protected void onInit() throws Exception {
@@ -76,7 +73,8 @@ public class ProcessStartingOutboundChannelAdapter extends IntegrationObjectSupp
     }
 
     public void handleMessage(Message<?> message) {
-        Map<String, Object> processVariablesFromHeaders = processSupport.processVariablesFromMessageHeaders(message.getHeaders());
+        // todo this needs to be handled by headermapper    Map<String, Object> processVariablesFromHeaders = processSupport.processVariablesFromMessageHeaders(message.getHeaders());
+        Map<String, Object> processVariablesFromHeaders = new HashMap<String,Object>();
 
         String processName = (String) message.getHeaders().get(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY);
 

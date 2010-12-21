@@ -18,6 +18,7 @@ import org.springframework.integration.Message;
 import org.springframework.integration.activiti.ActivitiConstants;
 import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.integration.support.MessageBuilder;
+import org.springframework.util.StringUtils;
 
 import java.util.Map;
 
@@ -48,6 +49,10 @@ public class PrintingServiceActivator {
 
 
 		log.debug("entering ServiceActivator:sayHello");
+
+        if(StringUtils.hasText(this.whatToPrint))
+            log.debug( whatToPrint);
+
 		Map<String, Object> headers = requestComingFromActiviti.getHeaders();
 
 		for (String k : headers.keySet())

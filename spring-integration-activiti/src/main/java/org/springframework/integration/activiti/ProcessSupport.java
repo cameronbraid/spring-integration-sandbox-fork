@@ -15,10 +15,13 @@ package org.springframework.integration.activiti;
 
 import org.activiti.engine.ProcessEngine;
 import org.activiti.engine.RuntimeService;
+import org.activiti.engine.impl.pvm.PvmActivity;
 import org.activiti.engine.impl.pvm.delegate.ActivityExecution;
+import org.activiti.engine.impl.runtime.ExecutionEntity;
 import org.activiti.engine.runtime.Execution;
 import org.springframework.integration.Message;
 import org.springframework.integration.MessageHeaders;
+import org.springframework.integration.support.MessageBuilder;
 import org.springframework.util.Assert;
 
 import java.util.*;
@@ -31,49 +34,66 @@ import java.util.concurrent.ConcurrentSkipListSet;
  *
  * @author Josh Long
  */
-public   class ProcessSupport {
+public abstract class ProcessSupport {
 
-      private final int headerPrefixLength = ActivitiConstants.WELL_KNOWN_SPRING_INTEGRATION_HEADER_PREFIX.length();
+    // static private final int headerPrefixLength = ActivitiConstants.WELL_KNOWN_SPRING_INTEGRATION_HEADER_PREFIX.length();
 
-      private Collection<String> blackList=new ConcurrentSkipListSet<String>(Arrays.asList(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY, ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY));
+    //static private Collection<String> blackList = new ConcurrentSkipListSet<String>(Arrays.asList(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY, ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY));
+/*
 
-
-      public Map<String, Object> processVariablesFromMessageHeaders(MessageHeaders msg) {
+    static public Map<String, Object> processVariablesFromMessageHeaders(MessageHeaders msg) {
         return processVariablesFromMessageHeaders(new HashSet<String>(), msg);
+    }*/
+
+    static public void encodeCommonProcessVariableDataIntoMessage(ActivityExecution execution, Map<String,Object> vars) {
+        PvmActivity pvmActivity = execution.getActivity();
+
+        ExecutionEntity executionEntity = (ExecutionEntity) execution;
+        String procDefId = executionEntity.getProcessDefinitionId();
+        String procInstanceId = executionEntity.getProcessInstanceId();
+
+        String executionId = execution.getId();
+        String pvmActivityId = pvmActivity.getId();
+
+        vars.put(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY, executionId);
+        vars.put(ActivitiConstants.WELL_KNOWN_ACTIVITY_ID_HEADER_KEY, pvmActivityId);
+        vars.put(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_ID_HEADER_KEY, procDefId);
+        vars.put(ActivitiConstants.WELL_KNOWN_PROCESS_INSTANCE_ID_HEADER_KEY, procInstanceId);
     }
 
-      public Map<String, Object> processVariablesFromMessageHeaders(Set<String> whiteListOfMustCopyMessageHeaderKeyNames, MessageHeaders msgHeaders) {
-        Map<String, Object> procVars = new HashMap<String, Object>();
+    /*   static
+        public Map<String, Object> processVariablesFromMessageHeaders(Set<String> whiteListOfMustCopyMessageHeaderKeyNames, MessageHeaders msgHeaders) {
+            Map<String, Object> procVars = new HashMap<String, Object>();
 
-        Set<String> headers = msgHeaders.keySet();
-        Set<String> wl = (whiteListOfMustCopyMessageHeaderKeyNames == null) ? new HashSet<String>() : whiteListOfMustCopyMessageHeaderKeyNames;
+            Set<String> headers = msgHeaders.keySet();
+            Set<String> wl = (whiteListOfMustCopyMessageHeaderKeyNames == null) ? new HashSet<String>() : whiteListOfMustCopyMessageHeaderKeyNames;
 
-        for (String messageHeaderKey : headers) {
-            if ((!blackList.contains(messageHeaderKey) && messageHeaderKey.startsWith(ActivitiConstants.WELL_KNOWN_SPRING_INTEGRATION_HEADER_PREFIX)) || wl.contains(messageHeaderKey)) {
-                String pvName = messageHeaderKey.startsWith(ActivitiConstants.WELL_KNOWN_SPRING_INTEGRATION_HEADER_PREFIX) ? messageHeaderKey.substring(headerPrefixLength) : messageHeaderKey;
-                procVars.put(pvName, msgHeaders.get(messageHeaderKey));
+            for (String messageHeaderKey : headers) {
+                if ((!blackList.contains(messageHeaderKey) && messageHeaderKey.startsWith(ActivitiConstants.WELL_KNOWN_SPRING_INTEGRATION_HEADER_PREFIX)) || wl.contains(messageHeaderKey)) {
+                    String pvName = messageHeaderKey.startsWith(ActivitiConstants.WELL_KNOWN_SPRING_INTEGRATION_HEADER_PREFIX) ? messageHeaderKey.substring(headerPrefixLength) : messageHeaderKey;
+                    procVars.put(pvName, msgHeaders.get(messageHeaderKey));
+                }
             }
+
+            return procVars;
         }
-
-        return procVars;
-    }
-
+    */
 
     /**
      * Utility method that signals the execution of a process based on a {@link org.springframework.integration.Message}
      *
      * @param processEngine the process engine
-     * @param updateProcessVariablesFromReplyMessageHeaders should we set process variables
-     *
+     * @param updateProcessVariablesFromReplyMessageHeaders
+     *                      should we set process variables
      * @param message       the message containing the payload
-     * @throws org.springframework.integration.MessageHandlingException throws an exception
-     *
+     * @throws org.springframework.integration.MessageHandlingException
+     *          throws an exception
      */
-     public void signalProcessExecution(ProcessEngine processEngine, boolean updateProcessVariablesFromReplyMessageHeaders, Message<?> message) throws Exception {
+    static public void signalProcessExecution(ProcessEngine processEngine, boolean updateProcessVariablesFromReplyMessageHeaders, Message<?> message) throws Exception {
 
         RuntimeService runtimeService = processEngine.getRuntimeService();
 
-        MessageHeaders messageHeaders = message.getHeaders();
+//        MessageHeaders messageHeaders = message.getHeaders();
         String executionId = (String) message.getHeaders().get(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY);
 
         Assert.notNull(executionId, "the messages coming into this channel must have a header equal " +
@@ -85,18 +105,18 @@ public   class ProcessSupport {
         if (updateProcessVariablesFromReplyMessageHeaders) {
 
             Assert.isInstanceOf(ActivityExecution.class, execution, "the execution must be an instance of " + ActivityExecution.class.getName());
+            ActivityExecution activityExecution = (ActivityExecution) execution;
 
-//            ActivityExecution activityExecution = (ActivityExecution) execution;
+//            Map<String, Object> vars = runtimeService.getVariables(executionId);
 
-            Map<String, Object> vars = runtimeService.getVariables(executionId);
+//            Set<String> existingVars = vars.keySet();
 
-            Set<String> existingVars = vars.keySet();
+            // todo use headermapper
+//            Map<String, Object> procVars = processVariablesFromMessageHeaders(existingVars, messageHeaders);
 
-            Map<String, Object> procVars = processVariablesFromMessageHeaders(existingVars, messageHeaders);
-
-            for (String key : procVars.keySet())
-                //activityExecution.setVariable(key, procVars.get(key));
-                runtimeService.setVariable(executionId, key, procVars.get(key));
+//            for (String key : procVars.keySet())
+            //activityExecution.setVariable(key, procVars.get(key));
+//                runtimeService.setVariable(executionId, key, procVars.get(key));
         }
         runtimeService.signal(executionId);
     }
