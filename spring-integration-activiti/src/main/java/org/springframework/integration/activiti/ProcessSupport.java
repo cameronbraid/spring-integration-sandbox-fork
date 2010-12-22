@@ -45,7 +45,7 @@ public abstract class ProcessSupport {
         return processVariablesFromMessageHeaders(new HashSet<String>(), msg);
     }*/
 
-    static public void encodeCommonProcessVariableDataIntoMessage(ActivityExecution execution, Map<String,Object> vars) {
+    static public void encodeCommonProcessDataIntoMessage(ActivityExecution execution, Map<String, Object> vars) {
         PvmActivity pvmActivity = execution.getActivity();
 
         ExecutionEntity executionEntity = (ExecutionEntity) execution;

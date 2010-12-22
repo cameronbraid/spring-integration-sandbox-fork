@@ -185,7 +185,7 @@ public class DefaultProcessVariableHeaderMapper implements ProcessVariableHeader
 
         synchronized (this.activityExecutionMonitor) {
             if (this.currentActivityExecution != null) {
-                ProcessSupport.encodeCommonProcessVariableDataIntoMessage(this.currentActivityExecution, headers);
+                ProcessSupport.encodeCommonProcessDataIntoMessage(this.currentActivityExecution, headers);
             }
         }
 
@@ -207,10 +207,7 @@ public class DefaultProcessVariableHeaderMapper implements ProcessVariableHeader
     }
 
     private boolean shouldMapProcessVariableToHeader(String procVarName) {
-
         Assert.notNull(StringUtils.hasText(procVarName), "the process variable must not be null");
-
-
         return matchesAny(this.processVariableToHeaderNames, procVarName);
     }
 
@@ -256,12 +253,12 @@ public class DefaultProcessVariableHeaderMapper implements ProcessVariableHeader
         this.requiresActivityExecution = requiresActivityExecution;
     }
 
-    public void setHeaderToProcessVariableNames(String[] headerToProcessVariableNames) {
-        this.headerToProcessVariableNames = null == headerToProcessVariableNames ? new String[0] : headerToProcessVariableNames;
+    public void setHeaderToProcessVariableNames(String ... h) {
+        this.headerToProcessVariableNames = null == h ? new String[0] : h;
     }
 
-    public void setProcessVariableToHeaderNames(String[] processVariableToHeaderNames) {
-        this.processVariableToHeaderNames = null == processVariableToHeaderNames ? new String[0] : processVariableToHeaderNames;
+    public void setProcessVariableToHeaderNames( String ... ar){
+        this.processVariableToHeaderNames = null == ar   ? new String[0] : ar;
     }
 
     public void setProcessEngine(ProcessEngine processEngine) {
@@ -271,6 +268,6 @@ public class DefaultProcessVariableHeaderMapper implements ProcessVariableHeader
 
     public void setPrefix(String prefix) {
         this.prefix = prefix;
-        this.wellKnownHeaderPrefixLength = this.prefix.length();
+        this.wellKnownHeaderPrefixLength = StringUtils.hasText(this.prefix )? this.prefix.length(): 0;
     }
 }
