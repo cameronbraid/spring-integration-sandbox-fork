@@ -1,7 +1,20 @@
-package org.springframework.integration.gemfire.store;
+/*
+ * Copyright 2002-2010 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-import org.springframework.integration.Message;
-import org.springframework.integration.store.MessageGroup;
+package org.springframework.integration.gemfire.store;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -10,6 +23,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 
+import org.springframework.integration.Message;
+import org.springframework.integration.store.MessageGroup;
 
 /**
  * A {@link org.springframework.integration.store.MessageGroup} that manipulates keys and values to provide persistence.
@@ -21,6 +36,7 @@ import java.util.concurrent.ConcurrentMap;
  * @author Josh Long
  */
 public class KeyValueMessageGroup implements MessageGroup, Serializable {
+
 	/**
 	 * this should not be persisted. it's passed in through {@link KeyValueMessageGroupStore}, which has the reference to the {@link java.util.concurrent.ConcurrentMap} instance that should be set here
 	 */
@@ -44,7 +60,6 @@ public class KeyValueMessageGroup implements MessageGroup, Serializable {
 	/**
 	 * default javabean ctor (so that this object plays well as a {@link java.io.Serializable} object)
 	 */
-	@SuppressWarnings("unused")
 	public KeyValueMessageGroup() {
 	}
 
@@ -61,7 +76,6 @@ public class KeyValueMessageGroup implements MessageGroup, Serializable {
 		this.unmarked = unmarked;
 	}
 
-	@SuppressWarnings("unused")
 	public KeyValueMessageGroup(Object groupId,
 								ConcurrentMap<String, Message<?>> marked,
 								ConcurrentMap<String, Message<?>> unmarked) {
