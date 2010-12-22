@@ -48,6 +48,8 @@ public class DefaultProcessVariableHeaderMapperTest {
     processVariableHeaderMapper.setRequiresActivityExecution(true);
     processVariableHeaderMapper.setCurrentActivityExecution(null);
     processVariableHeaderMapper.afterPropertiesSet();
+    processVariableHeaderMapper.validate() ;
+
   }
 
   private String[] testKeys = new String[]{"crm*", "customerId"};

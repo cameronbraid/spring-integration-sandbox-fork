@@ -59,6 +59,24 @@ public class DefaultProcessVariableHeaderMapper implements ProcessVariableHeader
 
   private int wellKnownHeaderPrefixLength;
 
+  public DefaultProcessVariableHeaderMapper(DefaultProcessVariableHeaderMapper m, ActivityExecution ex) {
+    setPrefix(m.prefix);
+    setCurrentActivityExecution(ex);
+    setHeaderToProcessVariableNames(m.headerToProcessVariableNames);
+    setProcessVariableToHeaderNames(m.processVariableToHeaderNames);
+    setProcessEngine(m.processEngine);
+
+    setShouldPrefixProcessVariables(m.shouldPrefixProcessVariables);
+    setRequiresActivityExecution(m.requiresActivityExecution);
+    setIncludeHeadersWithWellKnownPrefix(m.includeHeadersWithWellKnownPrefix);
+
+    try {
+      afterPropertiesSet();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   /**
    * whether or not we should include fields that begin with the {@link #prefix}
    */
@@ -125,19 +143,13 @@ public class DefaultProcessVariableHeaderMapper implements ProcessVariableHeader
     }
   }
 
-/*
-    public DefaultProcessVariableHeaderMapper(DefaultProcessVariableHeaderMapper mapper, ActivityExecution ex) {
-        setCurrentActivityExecution(ex);
-        setProcessEngine( mapper.processEngine);
-        this.runtimeService = this.processEngine.getRuntimeService() ;
-        this.headerToProcessVariableNames = mapper.headerToProcessVariableNames;
-        this.processVariableToHeaderNames = mapper.processVariableToHeaderNames;
-        this.wellKnownActivitiHeaders = mapper.wellKnownActivitiHeaders ;
-    }*/
-
   public DefaultProcessVariableHeaderMapper(ProcessEngine processEngine, ActivityExecution e) {
     setProcessEngine(processEngine);
     setCurrentActivityExecution(e);
+  }
+
+  public DefaultProcessVariableHeaderMapper(ProcessEngine processEngine) {
+    this.processEngine = processEngine;
   }
 
   public void fromHeaders(MessageHeaders headers, Map<String, Object> target) {
@@ -218,7 +230,7 @@ public class DefaultProcessVariableHeaderMapper implements ProcessVariableHeader
     setPrefix(this.prefix);
 
     runtimeService = this.processEngine.getRuntimeService();
-    validate();
+    Assert.notNull(this.runtimeService, "'runtimeService' can't be null");
   }
 
   private boolean matchesAny(String[] patterns, String candidate) {
@@ -230,7 +242,7 @@ public class DefaultProcessVariableHeaderMapper implements ProcessVariableHeader
     return false;
   }
 
-  private void validate() {
+  void validate() {
 
     if (this.requiresActivityExecution) {
       Assert.notNull(this.currentActivityExecution, "the currentActivityExecution should be reset on this instance before all uses");
@@ -239,7 +251,6 @@ public class DefaultProcessVariableHeaderMapper implements ProcessVariableHeader
         log.warn(currentActivityExecutionCantBeNullErrorMessage);
       }
     }
-    Assert.notNull(this.runtimeService, "'runtimeService' can't be null");
   }
 
   public void setRequiresActivityExecution(boolean requiresActivityExecution) {

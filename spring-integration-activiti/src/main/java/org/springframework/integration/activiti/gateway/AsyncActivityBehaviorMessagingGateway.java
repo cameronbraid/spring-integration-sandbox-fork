@@ -15,10 +15,8 @@ package org.springframework.integration.activiti.gateway;
 import org.activiti.engine.ProcessEngine;
 import org.activiti.engine.RuntimeService;
 import org.activiti.engine.impl.bpmn.ReceiveTaskActivity;
-import org.activiti.engine.impl.pvm.PvmActivity;
 import org.activiti.engine.impl.pvm.delegate.ActivityBehavior;
 import org.activiti.engine.impl.pvm.delegate.ActivityExecution;
-import org.activiti.engine.impl.runtime.ExecutionEntity;
 import org.activiti.engine.runtime.Execution;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -29,8 +27,8 @@ import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.integration.Message;
 import org.springframework.integration.MessageChannel;
-import org.springframework.integration.activiti.ActivitiConstants;
 import org.springframework.integration.activiti.adapter.ExecutionSignallingMessageHandler;
+import org.springframework.integration.activiti.mapping.DefaultProcessVariableHeaderMapper;
 import org.springframework.integration.config.ConsumerEndpointFactoryBean;
 import org.springframework.integration.core.MessagingTemplate;
 import org.springframework.integration.core.PollableChannel;
@@ -67,6 +65,8 @@ import java.util.Map;
  * @see org.activiti.spring.ProcessEngineFactoryBean - use this class to create the aforementioned ProcessEngine instance!
  */
 public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity implements BeanFactoryAware, BeanNameAware, ActivityBehavior, InitializingBean {
+
+  private DefaultProcessVariableHeaderMapper defaultProcessVariableHeaderMapper;
 
   private Log log = LogFactory.getLog(getClass());
 
@@ -161,6 +161,10 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
     return new HashMap<String, Object>();
   }
 
+  private DefaultProcessVariableHeaderMapper returnInitializedInstance(ActivityExecution ex) {
+    return new DefaultProcessVariableHeaderMapper(this.defaultProcessVariableHeaderMapper, ex);
+  }
+
   /**
    * This is the main interface method from {@link ActivityBehavior}. It will be called when the BPMN process executes the node referencing this logic.
    *
@@ -168,33 +172,17 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
    * @throws Exception
    */
   public void execute(ActivityExecution execution) throws Exception {
-    PvmActivity pvmActivity = execution.getActivity();
 
-    ExecutionEntity executionEntity = (ExecutionEntity) execution;
-    String procDefId = executionEntity.getProcessDefinitionId();
-    String procInstanceId = executionEntity.getProcessInstanceId();
+    DefaultProcessVariableHeaderMapper headerMapper = this.returnInitializedInstance(execution);
 
-    String executionId = execution.getId();
-    String pvmActivityId = pvmActivity.getId();
+    Map<String, ?> headers = headerMapper.toHeaders(execution.getVariables());
 
     MessageBuilder<?> messageBuilder = MessageBuilder.withPayload(execution)
-        .setHeader(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY, executionId)
-        .setHeader(ActivitiConstants.WELL_KNOWN_ACTIVITY_ID_HEADER_KEY, pvmActivityId)
-        .setHeader(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_ID_HEADER_KEY, procDefId)
-        .setHeader(ActivitiConstants.WELL_KNOWN_PROCESS_INSTANCE_ID_HEADER_KEY, procInstanceId).setCorrelationId(executionId)
-        .copyHeadersIfAbsent(this.contributeHeadersForOutboundMessage(execution));
+        .copyHeadersIfAbsent(this.contributeHeadersForOutboundMessage(execution))
+        .setReplyChannel(replyChannel)
+        .copyHeaders(headers );
 
-    if (this.forwardProcessVariablesAsMessageHeaders) {
-      Map<String, Object> variables = execution.getVariables();
-
-      if ((variables != null) && (variables.size() > 0)) {
-        messageBuilder = messageBuilder.copyHeadersIfAbsent(variables);
-      }
-    }
-
-    Message<?> msg = messageBuilder.setReplyChannel(replyChannel).build();
-
-    this.messagingTemplate.send(this.requestChannel, msg);
+    this.messagingTemplate.send(this.requestChannel, messageBuilder.build() );
 
     super.execute(execution);
   }
@@ -211,11 +199,16 @@ public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity i
     Assert.state(this.processEngine != null, "'processEngine' can't be null!");
 
     processService = this.processEngine.getRuntimeService();
+
+    defaultProcessVariableHeaderMapper = new DefaultProcessVariableHeaderMapper(this.processEngine);
+    // todo configure 90% of this (save for the currentActivityExecution) we need setters on this gateway to then forward to this mapper
+
     Assert.notNull(this.processService, "'processService' can't be null");
 
     ExecutionSignallingMessageHandler eai = new ExecutionSignallingMessageHandler();
     eai.setProcessEngine(this.processEngine);
-    eai.setUpdateProcessVariablesFromReplyMessageHeaders(this.updateProcessVariablesFromReplyMessageHeaders);
+    eai.setProcessVariableHeaderMapper( this.defaultProcessVariableHeaderMapper);
+    eai.afterPropertiesSet();
 
     ConsumerEndpointFactoryBean consumerEndpointFactoryBean = new ConsumerEndpointFactoryBean();
     consumerEndpointFactoryBean.setHandler(eai);

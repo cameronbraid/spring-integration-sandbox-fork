@@ -16,8 +16,8 @@
            Context Globals
          ==========================================================
         -->
-
-    <context:annotation-config/>
+    <context:component-scan base-package="org.springframework.integration.activiti.adapter"/>
+    <context:property-placeholder location="db.properties"/>
 
     <int:poller default="true">
         <int:interval-trigger interval="1000"/>
@@ -28,10 +28,12 @@
         <int:queue capacity="100"/>
     </int:channel>
 
+    <int:outbound-channel-adapter ref="processStartingOutboundChannelAdapter" channel="triggerChannel"/>
+
     <!--<activiti:outbound-channel-adapter
-             channel="triggerChannel"
-             process-engine="processEngine"
-             process-definition-name="helloWorldProcess"
-             />-->
+    channel="triggerChannel"
+    process-engine="processEngine"
+    process-definition-name="helloWorldProcess"
+    />-->
 
 </beans>

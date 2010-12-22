@@ -12,15 +12,13 @@
  */
 package org.springframework.integration.activiti.gateway;
 
-import org.activiti.engine.ProcessEngine;
+import org.activiti.engine.test.Deployment;
 import org.apache.commons.lang.time.StopWatch;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.junit.After;
+import org.springframework.integration.activiti.test.AbstractSpringIntegrationActivitiTestCase;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,16 +29,14 @@ import java.util.Map;
  *
  * @author Josh Long
  */
-@ContextConfiguration(locations = "GatewayTest-context.xml")
-@RunWith(SpringJUnit4ClassRunner.class)
-public class GatewayTest {
+@ContextConfiguration(  "GatewayTest-context.xml")
+//@RunWith(SpringJUnit4ClassRunner.class)
+public class GatewayTest extends AbstractSpringIntegrationActivitiTestCase {
 
     private Log log = LogFactory.getLog(getClass());
 
-    @Autowired
-    private ProcessEngine processEngine;
 
-    @Test(timeout = 30 * 1000)
+    @Deployment(resources = "processes/si_gateway_example.bpmn20.xml")
     public void testGateway() throws Throwable {
         // setup
         processEngine.getRepositoryService().createDeployment().addClasspathResource("processes/si_gateway_example.bpmn20.xml").deploy();
@@ -57,6 +53,11 @@ public class GatewayTest {
         sw.stop();
         log.debug("total time to run the process:" + sw.getTime());
 
-        //    Thread.sleep(1000 * 10);
+          Thread.sleep(1000 * 5);
     }
+
+  @After
+  public void after() throws Exception {
+    Thread.sleep( 1000 * 5);
+  }
 }

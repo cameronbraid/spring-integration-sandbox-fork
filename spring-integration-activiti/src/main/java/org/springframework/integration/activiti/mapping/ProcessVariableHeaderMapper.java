@@ -12,6 +12,7 @@
  */
 package org.springframework.integration.activiti.mapping;
 
+import org.activiti.engine.impl.pvm.delegate.ActivityExecution;
 import org.springframework.integration.mapping.HeaderMapper;
 
 import java.util.Map;

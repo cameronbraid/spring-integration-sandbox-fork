@@ -13,32 +13,45 @@
 
 package org.springframework.integration.activiti.adapter;
 
+import org.activiti.engine.test.Deployment;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.integration.Message;
 import org.springframework.integration.MessageChannel;
 import org.springframework.integration.activiti.ActivitiConstants;
+import org.springframework.integration.activiti.test.AbstractSpringIntegrationActivitiTestCase;
 import org.springframework.integration.core.MessagingTemplate;
 import org.springframework.integration.support.MessageBuilder;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@ContextConfiguration(locations = "ProcessStartingOutboundChannelAdapterTest-context.xml")
-@RunWith(SpringJUnit4ClassRunner.class)
-public class ProcessStartingOutboundAdapterTest {
+@ContextConfiguration(  "ProcessStartingOutboundChannelAdapterTest-context.xml")
 
-    @Value("#{triggerChannel}")
-    private MessageChannel messageChannel;
+//@RunWith(SpringJUnit4ClassRunner.class)
+public class ProcessStartingOutboundAdapterTest extends AbstractSpringIntegrationActivitiTestCase {
 
-    private MessagingTemplate messagingTemplate = new MessagingTemplate();
+  @Value("#{triggerChannel}")
+  private MessageChannel messageChannel;
 
-    @Test
-    public void testOutboundAdapter() throws Throwable {
-        Message<?> msg = MessageBuilder.withPayload("hello, from " + System.currentTimeMillis())
-                .setHeader(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY + "customerId", 2324)
-                .build();
-        messagingTemplate.send(this.messageChannel, msg);
-        //Thread.sleep(1000 * 10);
-    }
+  private MessagingTemplate messagingTemplate = new MessagingTemplate();
+
+
+/*
+  @Before
+  public void setup() throws Throwable {
+
+    processEngine.getRepositoryService().createDeployment().addClasspathResource("").deploy();
+  }*/
+
+  @Test
+  // @Deployment(  resources = "processes/hello.bpmn20.xml")
+  public void testOutboundAdapter() throws Throwable {
+
+    processEngine.getRepositoryService().createDeployment().addClasspathResource("processes/hello.bpmn20.xml").deploy() ;
+
+    Message<?> msg = MessageBuilder.withPayload("hello, from " + System.currentTimeMillis())
+        .setHeader(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY, "hello")
+        .build();
+    messagingTemplate.send(this.messageChannel, msg);
+  }
+
 }

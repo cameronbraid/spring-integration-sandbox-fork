@@ -13,8 +13,10 @@
 package org.springframework.integration.activiti.adapter;
 
 import org.activiti.engine.ProcessEngine;
+import org.activiti.engine.runtime.ProcessInstance;
 import org.springframework.integration.Message;
 import org.springframework.integration.activiti.ActivitiConstants;
+import org.springframework.integration.activiti.mapping.DefaultProcessVariableHeaderMapper;
 import org.springframework.integration.context.IntegrationObjectSupport;
 import org.springframework.integration.core.MessageHandler;
 import org.springframework.util.Assert;
@@ -45,6 +47,12 @@ public class ProcessStartingOutboundChannelAdapter extends IntegrationObjectSupp
    */
   private ProcessEngine processEngine;
 
+  private DefaultProcessVariableHeaderMapper defaultProcessVariableHeaderMapper ;
+
+  public void setDefaultProcessVariableHeaderMapper(DefaultProcessVariableHeaderMapper defaultProcessVariableHeaderMapper) {
+    this.defaultProcessVariableHeaderMapper = defaultProcessVariableHeaderMapper;
+  }
+
   /**
    * Do you want all flows that come into this component to launch the same business process? Hard code the process name here.
    * If this is null, the component will expect a well known header value and use that to spawn the process definition name.
@@ -66,8 +74,8 @@ public class ProcessStartingOutboundChannelAdapter extends IntegrationObjectSupp
     this.processDefinitionName = processDefinitionName;
   }
 
+
   public void handleMessage(Message<?> message) {
-    // todo this needs to be handled by headermapper    Map<String, Object> processVariablesFromHeaders = processSupport.processVariablesFromMessageHeaders(message.getHeaders());
     Map<String, Object> processVariablesFromHeaders = new HashMap<String, Object>();
 
     String processName = (String) message.getHeaders().get(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY);
@@ -76,9 +84,21 @@ public class ProcessStartingOutboundChannelAdapter extends IntegrationObjectSupp
       processName = this.processDefinitionName;
     }
 
+    DefaultProcessVariableHeaderMapper processVariableHeaderMapper = new DefaultProcessVariableHeaderMapper( this.defaultProcessVariableHeaderMapper,null);
+    processVariableHeaderMapper.setRequiresActivityExecution(false);
+    try {
+      processVariableHeaderMapper.afterPropertiesSet();
+    } catch (Exception e) {
+      logger.error(e);
+    }
+
+
+    processVariableHeaderMapper.fromHeaders(message.getHeaders(), processVariablesFromHeaders);
+
     Assert.notNull(processName, processHeaderMustNotBeNullMessage);
 
-    processEngine.getRuntimeService().startProcessInstanceByKey(this.processDefinitionName, processVariablesFromHeaders);
+    ProcessInstance pi=processEngine.getRuntimeService().startProcessInstanceByKey(processName, processVariablesFromHeaders);
+    logger.debug( "started process instance " + pi.getProcessDefinitionId() + "having business Id of "+pi.getBusinessKey());
   }
 }
 

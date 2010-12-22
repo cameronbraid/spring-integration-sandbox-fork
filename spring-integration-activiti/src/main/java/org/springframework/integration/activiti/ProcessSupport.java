@@ -20,8 +20,10 @@ import org.activiti.engine.impl.pvm.delegate.ActivityExecution;
 import org.activiti.engine.impl.runtime.ExecutionEntity;
 import org.activiti.engine.runtime.Execution;
 import org.springframework.integration.Message;
+import org.springframework.integration.activiti.mapping.DefaultProcessVariableHeaderMapper;
 import org.springframework.util.Assert;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -32,22 +34,13 @@ import java.util.Map;
  */
 public abstract class ProcessSupport {
 
-  // static private final int headerPrefixLength = ActivitiConstants.WELL_KNOWN_SPRING_INTEGRATION_HEADER_PREFIX.length();
-
-  //static private Collection<String> blackList = new ConcurrentSkipListSet<String>(Arrays.asList(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY, ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY));
-/*
-
-    static public Map<String, Object> processVariablesFromMessageHeaders(MessageHeaders msg) {
-        return processVariablesFromMessageHeaders(new HashSet<String>(), msg);
-    }*/
-
-  static public void encodeCommonProcessDataIntoMessage(ActivityExecution execution, Map<String, Object> vars) {
+  public static void encodeCommonProcessDataIntoMessage(ActivityExecution execution, Map<String, Object> vars) {
     PvmActivity pvmActivity = execution.getActivity();
 
     ExecutionEntity executionEntity = (ExecutionEntity) execution;
+
     String procDefId = executionEntity.getProcessDefinitionId();
     String procInstanceId = executionEntity.getProcessInstanceId();
-
     String executionId = execution.getId();
     String pvmActivityId = pvmActivity.getId();
 
@@ -57,63 +50,26 @@ public abstract class ProcessSupport {
     vars.put(ActivitiConstants.WELL_KNOWN_PROCESS_INSTANCE_ID_HEADER_KEY, procInstanceId);
   }
 
-  /*   static
-      public Map<String, Object> processVariablesFromMessageHeaders(Set<String> whiteListOfMustCopyMessageHeaderKeyNames, MessageHeaders msgHeaders) {
-          Map<String, Object> procVars = new HashMap<String, Object>();
-
-          Set<String> headers = msgHeaders.keySet();
-          Set<String> wl = (whiteListOfMustCopyMessageHeaderKeyNames == null) ? new HashSet<String>() : whiteListOfMustCopyMessageHeaderKeyNames;
-
-          for (String messageHeaderKey : headers) {
-              if ((!blackList.contains(messageHeaderKey) && messageHeaderKey.startsWith(ActivitiConstants.WELL_KNOWN_SPRING_INTEGRATION_HEADER_PREFIX)) || wl.contains(messageHeaderKey)) {
-                  String pvName = messageHeaderKey.startsWith(ActivitiConstants.WELL_KNOWN_SPRING_INTEGRATION_HEADER_PREFIX) ? messageHeaderKey.substring(headerPrefixLength) : messageHeaderKey;
-                  procVars.put(pvName, msgHeaders.get(messageHeaderKey));
-              }
-          }
-
-          return procVars;
-      }
-  */
-
-  /**
-   * Utility method that signals the execution of a process based on a {@link org.springframework.integration.Message}
-   *
-   * @param processEngine the process engine
-   * @param updateProcessVariablesFromReplyMessageHeaders
-   *                      should we set process variables
-   * @param message       the message containing the payload
-   * @throws org.springframework.integration.MessageHandlingException
-   *          throws an exception
-   */
-  static public void signalProcessExecution(ProcessEngine processEngine, boolean updateProcessVariablesFromReplyMessageHeaders, Message<?> message) throws Exception {
+  public static void signalProcessExecution(ProcessEngine processEngine, DefaultProcessVariableHeaderMapper processVariableHeaderMapper, Message<?> message) throws Exception {
 
     RuntimeService runtimeService = processEngine.getRuntimeService();
 
-//        MessageHeaders messageHeaders = message.getHeaders();
     String executionId = (String) message.getHeaders().get(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY);
+    Execution execution = processEngine.getRuntimeService().createExecutionQuery().executionId(executionId).singleResult();
+    ActivityExecution activityExecution = (ActivityExecution) execution;
+
+    DefaultProcessVariableHeaderMapper defaultProcessVariableHeaderMapper = new DefaultProcessVariableHeaderMapper(processVariableHeaderMapper, activityExecution);
 
     Assert.notNull(executionId, "the messages coming into this channel must have a header equal " +
         "to the value of ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY (" +
         ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY + ")");
 
-    Execution execution = runtimeService.createExecutionQuery().executionId(executionId).singleResult();
+    Map<String, Object> vars = new HashMap<String, Object>();
+    defaultProcessVariableHeaderMapper.fromHeaders(message.getHeaders(), vars);
 
-    if (updateProcessVariablesFromReplyMessageHeaders) {
+    for (String key : vars.keySet())
+      runtimeService.setVariable(executionId, key, vars.get(key));
 
-      Assert.isInstanceOf(ActivityExecution.class, execution, "the execution must be an instance of " + ActivityExecution.class.getName());
-      ActivityExecution activityExecution = (ActivityExecution) execution;
-
-//            Map<String, Object> vars = runtimeService.getVariables(executionId);
-
-//            Set<String> existingVars = vars.keySet();
-
-      // todo use headermapper
-//            Map<String, Object> procVars = processVariablesFromMessageHeaders(existingVars, messageHeaders);
-
-//            for (String key : procVars.keySet())
-      //activityExecution.setVariable(key, procVars.get(key));
-//                runtimeService.setVariable(executionId, key, procVars.get(key));
-    }
     runtimeService.signal(executionId);
   }
 }
