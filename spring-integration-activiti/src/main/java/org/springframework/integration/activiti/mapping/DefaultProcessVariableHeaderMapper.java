@@ -21,10 +21,11 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.integration.MessageHeaders;
 import org.springframework.integration.activiti.ActivitiConstants;
 import org.springframework.integration.activiti.ProcessSupport;
-import org.springframework.util.*;
+import org.springframework.util.Assert;
+import org.springframework.util.PatternMatchUtils;
+import org.springframework.util.StringUtils;
 
 import java.util.*;
-
 
 /**
  * A {@link org.springframework.integration.mapping.HeaderMapper} implementation for mapping
@@ -45,85 +46,84 @@ import java.util.*;
  */
 public class DefaultProcessVariableHeaderMapper implements ProcessVariableHeaderMapper, InitializingBean {
 
-    /**
-     * make sure that nobody sets the {@link #currentActivityExecution} while we're using it in service to {@link #toHeaders(java.util.Map)}
-     */
-    private final Object activityExecutionMonitor = new Object();
+  /**
+   * make sure that nobody sets the {@link #currentActivityExecution} while we're using it in service to {@link #toHeaders(java.util.Map)}
+   */
+  private final Object activityExecutionMonitor = new Object();
 
-    private boolean shouldPrefixProcessVariables = false;
+  private boolean shouldPrefixProcessVariables = false;
 
-    private Log log = LogFactory.getLog(getClass());
+  private Log log = LogFactory.getLog(getClass());
 
-    private String prefix = ActivitiConstants.WELL_KNOWN_SPRING_INTEGRATION_HEADER_PREFIX;
+  private String prefix = ActivitiConstants.WELL_KNOWN_SPRING_INTEGRATION_HEADER_PREFIX;
 
-    private int wellKnownHeaderPrefixLength;
+  private int wellKnownHeaderPrefixLength;
 
-    /**
-     * whether or not we should include fields that begin with the {@link #prefix}
-     */
-    public void setIncludeHeadersWithWellKnownPrefix(boolean includeHeadersWithWellKnownPrefix) {
-        this.includeHeadersWithWellKnownPrefix = includeHeadersWithWellKnownPrefix;
+  /**
+   * whether or not we should include fields that begin with the {@link #prefix}
+   */
+  public void setIncludeHeadersWithWellKnownPrefix(boolean includeHeadersWithWellKnownPrefix) {
+    this.includeHeadersWithWellKnownPrefix = includeHeadersWithWellKnownPrefix;
+  }
+
+  /**
+   * by default, we'll also correctly forward keys starting with {@link ActivitiConstants#WELL_KNOWN_SPRING_INTEGRATION_HEADER_PREFIX}
+   */
+
+  private boolean includeHeadersWithWellKnownPrefix = true;
+
+  /**
+   * all headers that we want to forward as process variables. None, by default, as headers may be rich objects where as process variables <em>should</em> be lightweight (primitives, for example)
+   */
+  private String[] headerToProcessVariableNames = new String[0];
+
+  /**
+   * all process variables that should be exposed as headers
+   */
+  private String[] processVariableToHeaderNames = new String[]{"*"};
+
+  private String currentActivityExecutionCantBeNullErrorMessage =
+      String.format("'currentActivityExecution' should be rebound on this instance before all " +
+          "uses of any methods on the HeaderMapper<T> interface. If the instance is null, " +
+          "certain well known headers (like '%s') that are critical to the successful use of much of " +
+          "the support provided by this module will not be available.", ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY);
+
+  /**
+   * @see ProcessEngine
+   */
+  private ProcessEngine processEngine;
+
+  /**
+   * the current {@link ActivityExecution} - should be rebound before each use.
+   */
+  private ActivityExecution currentActivityExecution;
+
+  /**
+   * the {@link RuntimeService} as obtained from a {@link org.activiti.engine.ProcessEngine#getRuntimeService()}
+   */
+  private RuntimeService runtimeService;
+
+  /**
+   * Most of the support provided by this module won't work if this
+   * is set to false as it would mean the {@link ActivitiConstants#WELL_KNOWN_EXECUTION_ID_HEADER_KEY}
+   * header (and any other headers derived by interrogating the {@link ActivityExecution} instance) would be null
+   */
+  private volatile boolean requiresActivityExecution = true;
+
+  private Set<String> wellKnownActivitiHeaders = new HashSet<String>(
+      Arrays.asList(
+          ActivitiConstants.WELL_KNOWN_ACTIVITY_ID_HEADER_KEY,
+          ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY,
+          ActivitiConstants.WELL_KNOWN_PROCESS_INSTANCE_ID_HEADER_KEY,
+          ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_ID_HEADER_KEY,
+          ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY
+      ));
+
+  public void setCurrentActivityExecution(ActivityExecution currentActivityExecution) {
+    synchronized (this.activityExecutionMonitor) {
+      this.currentActivityExecution = currentActivityExecution;
     }
-
-    /**
-     * by default, we'll also correctly forward keys starting with {@link ActivitiConstants#WELL_KNOWN_SPRING_INTEGRATION_HEADER_PREFIX}
-     */
-
-    private boolean includeHeadersWithWellKnownPrefix = true;
-
-    /**
-     * all headers that we want to forward as process variables. None, by default, as headers may be rich objects where as process variables <em>should</em> be lightweight (primitives, for example)
-     */
-    private String[] headerToProcessVariableNames = new String[0];
-
-    /**
-     * all process variables that should be exposed as headers
-     */
-    private String[] processVariableToHeaderNames = new String[]{"*"};
-
-    private String currentActivityExecutionCantBeNullErrorMessage =
-            String.format("'currentActivityExecution' should be rebound on this instance before all " +
-                    "uses of any methods on the HeaderMapper<T> interface. If the instance is null, " +
-                    "certain well known headers (like '%s') that are critical to the successful use of much of " +
-                    "the support provided by this module will not be available.", ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY);
-
-    /**
-     * @see ProcessEngine
-     */
-    private ProcessEngine processEngine;
-
-    /**
-     * the current {@link ActivityExecution} - should be rebound before each use.
-     */
-    private ActivityExecution currentActivityExecution;
-
-
-    /**
-     * the {@link RuntimeService} as obtained from a {@link org.activiti.engine.ProcessEngine#getRuntimeService()}
-     */
-    private RuntimeService runtimeService;
-
-    /**
-     * Most of the support provided by this module won't work if this
-     * is set to false as it would mean the {@link ActivitiConstants#WELL_KNOWN_EXECUTION_ID_HEADER_KEY}
-     * header (and any other headers derived by interrogating the {@link ActivityExecution} instance) would be null
-     */
-    private volatile boolean requiresActivityExecution = true;
-
-    private Set<String> wellKnownActivitiHeaders = new HashSet<String>(
-            Arrays.asList(
-                    ActivitiConstants.WELL_KNOWN_ACTIVITY_ID_HEADER_KEY,
-                    ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY,
-                    ActivitiConstants.WELL_KNOWN_PROCESS_INSTANCE_ID_HEADER_KEY,
-                    ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_ID_HEADER_KEY,
-                    ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY
-            ));
-
-    public void setCurrentActivityExecution(ActivityExecution currentActivityExecution) {
-        synchronized (this.activityExecutionMonitor) {
-            this.currentActivityExecution = currentActivityExecution;
-        }
-    }
+  }
 
 /*
     public DefaultProcessVariableHeaderMapper(DefaultProcessVariableHeaderMapper mapper, ActivityExecution ex) {
@@ -135,139 +135,131 @@ public class DefaultProcessVariableHeaderMapper implements ProcessVariableHeader
         this.wellKnownActivitiHeaders = mapper.wellKnownActivitiHeaders ;
     }*/
 
-    public DefaultProcessVariableHeaderMapper(ProcessEngine processEngine, ActivityExecution e) {
-        setProcessEngine(processEngine);
-        setCurrentActivityExecution(e);
+  public DefaultProcessVariableHeaderMapper(ProcessEngine processEngine, ActivityExecution e) {
+    setProcessEngine(processEngine);
+    setCurrentActivityExecution(e);
+  }
+
+  public void fromHeaders(MessageHeaders headers, Map<String, Object> target) {
+
+    validate();
+
+    Assert.notNull(target, "the target can't be null");
+
+    Map<String, Object> procVars = new HashMap<String, Object>();
+
+    for (String messageHeaderKey : headers.keySet()) {
+      if (shouldMapHeaderToProcessVariable(messageHeaderKey)) {
+        String pvName = messageHeaderKey.startsWith(prefix) ? messageHeaderKey.substring(wellKnownHeaderPrefixLength) : messageHeaderKey;
+        procVars.put(pvName, headers.get(messageHeaderKey));
+      }
     }
 
-    public void fromHeaders(MessageHeaders headers, Map<String, Object> target) {
+    Map<String, ?> vars = procVars;
 
-        validate();
+    for (String k : vars.keySet())
+      target.put(k, vars.get(k));
+  }
 
-        Assert.notNull(target, "the target can't be null");
+  /**
+   * the variables coming in from a given {@link ActivityExecution} will be mapped out as Spring Integration message headers.
+   *
+   * @param processVariables the processVariables
+   * @return a map of headers to send with the Spring Integration message
+   */
+  public Map<String, ?> toHeaders(Map<String, Object> processVariables) {
 
-        Map<String, Object> procVars = new HashMap<String, Object>();
+    validate();
 
-        for (String messageHeaderKey : headers.keySet()) {
-            if (shouldMapHeaderToProcessVariable(messageHeaderKey)) {
-                String pvName = messageHeaderKey.startsWith(prefix) ? messageHeaderKey.substring(wellKnownHeaderPrefixLength) : messageHeaderKey;
-                procVars.put(pvName, headers.get(messageHeaderKey));
-            }
-        }
+    Map<String, Object> headers = new HashMap<String, Object>();
 
-        Map<String, ?> vars = procVars;
-
-
-        for (String k : vars.keySet())
-            target.put(k, vars.get(k));
-
+    for (String mhk : processVariables.keySet()) {
+      if (shouldMapProcessVariableToHeader(mhk)) {
+        String hKey = this.shouldPrefixProcessVariables && StringUtils.hasText(this.prefix) ? this.prefix + mhk : mhk;
+        headers.put(hKey, processVariables.get(mhk));
+      }
     }
 
-
-    /**
-     * the variables coming in from a given {@link ActivityExecution} will be mapped out as Spring Integration message headers.
-     *
-     * @param processVariables the processVariables
-     * @return a map of headers to send with the Spring Integration message
-     */
-    public Map<String, ?> toHeaders(Map<String, Object> processVariables) {
-
-        validate();
-
-        Map<String, Object> headers = new HashMap<String, Object>();
-
-        for (String mhk : processVariables.keySet()){
-            if (shouldMapProcessVariableToHeader(mhk)) {
-                String hKey = this.shouldPrefixProcessVariables && StringUtils.hasText(this.prefix) ? this.prefix + mhk : mhk;
-                headers.put(hKey, processVariables.get(mhk));
-            }
-        }
-
-        synchronized (this.activityExecutionMonitor) {
-            if (this.currentActivityExecution != null) {
-                ProcessSupport.encodeCommonProcessDataIntoMessage(this.currentActivityExecution, headers);
-            }
-        }
-
-        return headers;
+    synchronized (this.activityExecutionMonitor) {
+      if (this.currentActivityExecution != null) {
+        ProcessSupport.encodeCommonProcessDataIntoMessage(this.currentActivityExecution, headers);
+      }
     }
 
-    private boolean shouldMapHeaderToProcessVariable(String headerName) {
-        Assert.isTrue(StringUtils.hasText(headerName), "the header must not be empty");
+    return headers;
+  }
 
-        // first test. it might just be a direct match with something that has the prefix
-        if (this.includeHeadersWithWellKnownPrefix && headerName.startsWith(prefix))
-            return true;
+  private boolean shouldMapHeaderToProcessVariable(String headerName) {
+    Assert.isTrue(StringUtils.hasText(headerName), "the header must not be empty");
 
-        if (this.wellKnownActivitiHeaders.contains(headerName))
-            return true;
+    // first test. it might just be a direct match with something that has the prefix
+    if (this.includeHeadersWithWellKnownPrefix && headerName.startsWith(prefix))
+      return true;
 
-        // if this didnt work, then we scan to see if the headers match a fuzzy algorithm
-        return matchesAny(this.headerToProcessVariableNames, headerName);
+    if (this.wellKnownActivitiHeaders.contains(headerName))
+      return true;
+
+    // if this didnt work, then we scan to see if the headers match a fuzzy algorithm
+    return matchesAny(this.headerToProcessVariableNames, headerName);
+  }
+
+  private boolean shouldMapProcessVariableToHeader(String procVarName) {
+    Assert.notNull(StringUtils.hasText(procVarName), "the process variable must not be null");
+    return matchesAny(this.processVariableToHeaderNames, procVarName);
+  }
+
+  public void setShouldPrefixProcessVariables(boolean shouldPrefixProcessVariables) {
+    this.shouldPrefixProcessVariables = shouldPrefixProcessVariables;
+  }
+
+  public void afterPropertiesSet() throws Exception {
+
+    // redundant but also ensures any side effects are up to date
+    setPrefix(this.prefix);
+
+    runtimeService = this.processEngine.getRuntimeService();
+    validate();
+  }
+
+  private boolean matchesAny(String[] patterns, String candidate) {
+    for (String pattern : patterns) {
+      if (PatternMatchUtils.simpleMatch(pattern, candidate)) {
+        return true;
+      }
     }
+    return false;
+  }
 
-    private boolean shouldMapProcessVariableToHeader(String procVarName) {
-        Assert.notNull(StringUtils.hasText(procVarName), "the process variable must not be null");
-        return matchesAny(this.processVariableToHeaderNames, procVarName);
+  private void validate() {
+
+    if (this.requiresActivityExecution) {
+      Assert.notNull(this.currentActivityExecution, "the currentActivityExecution should be reset on this instance before all uses");
+    } else {
+      if (this.currentActivityExecution == null) {
+        log.warn(currentActivityExecutionCantBeNullErrorMessage);
+      }
     }
+    Assert.notNull(this.runtimeService, "'runtimeService' can't be null");
+  }
 
-    public void setShouldPrefixProcessVariables(boolean shouldPrefixProcessVariables) {
-        this.shouldPrefixProcessVariables = shouldPrefixProcessVariables;
-    }
+  public void setRequiresActivityExecution(boolean requiresActivityExecution) {
+    this.requiresActivityExecution = requiresActivityExecution;
+  }
 
-    public void afterPropertiesSet() throws Exception {
+  public void setHeaderToProcessVariableNames(String... h) {
+    this.headerToProcessVariableNames = null == h ? new String[0] : h;
+  }
 
-        // redundant but also ensures any side effects are up to date
-        setPrefix(this.prefix);
+  public void setProcessVariableToHeaderNames(String... ar) {
+    this.processVariableToHeaderNames = null == ar ? new String[0] : ar;
+  }
 
-        runtimeService = this.processEngine.getRuntimeService();
-        validate();
-    }
+  public void setProcessEngine(ProcessEngine processEngine) {
+    this.processEngine = processEngine;
+  }
 
-    private boolean matchesAny(String[] patterns, String candidate) {
-        for (String pattern : patterns) {
-            if (PatternMatchUtils.simpleMatch(pattern, candidate)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-
-    private void validate() {
-
-
-        if (this.requiresActivityExecution) {
-            Assert.notNull(this.currentActivityExecution, "the currentActivityExecution should be reset on this instance before all uses");
-        } else {
-            if (this.currentActivityExecution == null) {
-                log.warn(currentActivityExecutionCantBeNullErrorMessage);
-            }
-        }
-        Assert.notNull(this.runtimeService, "'runtimeService' can't be null");
-
-
-    }
-
-    public void setRequiresActivityExecution(boolean requiresActivityExecution) {
-        this.requiresActivityExecution = requiresActivityExecution;
-    }
-
-    public void setHeaderToProcessVariableNames(String ... h) {
-        this.headerToProcessVariableNames = null == h ? new String[0] : h;
-    }
-
-    public void setProcessVariableToHeaderNames( String ... ar){
-        this.processVariableToHeaderNames = null == ar   ? new String[0] : ar;
-    }
-
-    public void setProcessEngine(ProcessEngine processEngine) {
-        this.processEngine = processEngine;
-    }
-
-
-    public void setPrefix(String prefix) {
-        this.prefix = prefix;
-        this.wellKnownHeaderPrefixLength = StringUtils.hasText(this.prefix )? this.prefix.length(): 0;
-    }
+  public void setPrefix(String prefix) {
+    this.prefix = prefix;
+    this.wellKnownHeaderPrefixLength = StringUtils.hasText(this.prefix) ? this.prefix.length() : 0;
+  }
 }

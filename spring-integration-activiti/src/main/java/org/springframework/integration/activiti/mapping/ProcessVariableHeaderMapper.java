@@ -22,5 +22,5 @@ import java.util.Map;
  * @author Josh Long
  * @since 5.1
  */
-public interface ProcessVariableHeaderMapper extends HeaderMapper<Map<String,Object>> {
+public interface ProcessVariableHeaderMapper extends HeaderMapper<Map<String, Object>> {
 }

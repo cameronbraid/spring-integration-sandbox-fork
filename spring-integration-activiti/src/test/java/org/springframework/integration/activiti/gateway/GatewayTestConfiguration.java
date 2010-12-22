@@ -13,15 +13,13 @@ import org.springframework.integration.activiti.utils.PrintingServiceActivator;
  * @author Josh Long
  */
 @Configuration
-public class GatewayTestConfiguration extends CommonConfiguration{
-
+public class GatewayTestConfiguration extends CommonConfiguration {
 
     @Value("#{response}")
     private MessageChannel replies;
 
     @Value("#{request}")
     private MessageChannel requests;
-
 
     @Bean
     public PrintingServiceActivator serviceActivator() {
@@ -38,5 +36,4 @@ public class GatewayTestConfiguration extends CommonConfiguration{
         asyncActivityBehaviorMessagingGateway.setReplyChannel(this.replies);
         return asyncActivityBehaviorMessagingGateway;
     }
-
 }

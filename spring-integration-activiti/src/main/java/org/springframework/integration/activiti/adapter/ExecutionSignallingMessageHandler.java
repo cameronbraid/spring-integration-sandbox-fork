@@ -16,33 +16,26 @@ import org.springframework.integration.core.MessageHandler;
  */
 public class ExecutionSignallingMessageHandler implements MessageHandler {
 
+  private ProcessEngine processEngine;
 
-    private ProcessEngine processEngine;
+  private boolean updateProcessVariablesFromReplyMessageHeaders;
 
-    private boolean updateProcessVariablesFromReplyMessageHeaders;
+  public void setProcessEngine(ProcessEngine processEngine) {
+    this.processEngine = processEngine;
+  }
 
-    /**
-     * @see org.activiti.spring.gitProcessEngineFactoryBean
-     */
-    public void setProcessEngine(ProcessEngine processEngine) {
-        this.processEngine = processEngine;
+  /**
+   * @param updateProcessVariablesFromReplyMessageHeaders whether or not we should update the business process with headers from the received {@link org.springframework.integration.Message}s. gets passed to {@link ProcessSupport#signalProcessExecution(org.activiti.engine.ProcessEngine, boolean, org.springframework.integration.Message)}
+   */
+  public void setUpdateProcessVariablesFromReplyMessageHeaders(boolean updateProcessVariablesFromReplyMessageHeaders) {
+    this.updateProcessVariablesFromReplyMessageHeaders = updateProcessVariablesFromReplyMessageHeaders;
+  }
+
+  public void handleMessage(Message<?> message) throws MessagingException {
+    try {
+      ProcessSupport.signalProcessExecution(this.processEngine, this.updateProcessVariablesFromReplyMessageHeaders, message);
+    } catch (Exception ex) {
+      throw new MessagingException(message, ex);
     }
-
-
-    /**
-     * @param updateProcessVariablesFromReplyMessageHeaders
-     *         whether or not we should update the business process with headers from the received {@link org.springframework.integration.Message}s. gets passed to {@link ProcessSupport#signalProcessExecution(org.activiti.engine.ProcessEngine, boolean, org.springframework.integration.Message)}
-     */
-    public void setUpdateProcessVariablesFromReplyMessageHeaders(boolean updateProcessVariablesFromReplyMessageHeaders) {
-        this.updateProcessVariablesFromReplyMessageHeaders = updateProcessVariablesFromReplyMessageHeaders;
-    }
-
-
-    public void handleMessage(Message<?> message) throws MessagingException {
-        try {
-            ProcessSupport.signalProcessExecution(this.processEngine, this.updateProcessVariablesFromReplyMessageHeaders, message);
-        } catch (Exception ex) {
-            throw new MessagingException(message, ex);
-        }
-    }
+  }
 }

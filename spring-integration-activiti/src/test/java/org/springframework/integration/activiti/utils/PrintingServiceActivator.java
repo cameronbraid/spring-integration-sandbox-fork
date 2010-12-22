@@ -22,7 +22,6 @@ import org.springframework.util.StringUtils;
 
 import java.util.Map;
 
-
 /**
  * This is a trivial component that demonstrates that the flow of control lives outside of the BPMN process (ie, that we have truly implemented a wait-state)
  * and that gateway does the right thing if you send back message headers whose key corresponds with process variables, or new message headers that you want as process variables.
@@ -34,36 +33,32 @@ import java.util.Map;
  */
 public class PrintingServiceActivator {
 
-
-
-    private Log log  = LogFactory.getLog( getClass() ) ;
+    private Log log = LogFactory.getLog(getClass());
 
     public void setWhatToPrint(String whatToPrint) {
         this.whatToPrint = whatToPrint;
     }
 
-    private String whatToPrint = "Arrived in "+ getClass().getName();
+    private String whatToPrint = "Arrived in " + getClass().getName();
 
-	@ServiceActivator
-	public Message<?> sayHello(Message<?> requestComingFromActiviti) throws Throwable {
+    @ServiceActivator
+    public Message<?> sayHello(Message<?> requestComingFromActiviti) throws Throwable {
 
+        log.debug("entering ServiceActivator:sayHello");
 
-		log.debug("entering ServiceActivator:sayHello");
+        if (StringUtils.hasText(this.whatToPrint))
+            log.debug(whatToPrint);
 
-        if(StringUtils.hasText(this.whatToPrint))
-            log.debug( whatToPrint);
+        Map<String, Object> headers = requestComingFromActiviti.getHeaders();
 
-		Map<String, Object> headers = requestComingFromActiviti.getHeaders();
+        for (String k : headers.keySet())
+            log.debug(String.format("%s = %s", k, headers.get(k)));
 
-		for (String k : headers.keySet())
-			log.debug( String.format("%s = %s", k, headers.get(k)));
+        log.debug("exiting ServiceActivator:sayHello");
 
-		log.debug("exiting ServiceActivator:sayHello");
-
-
-		return MessageBuilder.withPayload(requestComingFromActiviti.getPayload()).
-				copyHeadersIfAbsent(requestComingFromActiviti.getHeaders())
-				.setHeader(ActivitiConstants.WELL_KNOWN_SPRING_INTEGRATION_HEADER_PREFIX + "test", "1 + 1").
-						build();
-	}
+        return MessageBuilder.withPayload(requestComingFromActiviti.getPayload()).
+                copyHeadersIfAbsent(requestComingFromActiviti.getHeaders())
+                .setHeader(ActivitiConstants.WELL_KNOWN_SPRING_INTEGRATION_HEADER_PREFIX + "test", "1 + 1").
+                        build();
+    }
 }

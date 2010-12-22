@@ -26,7 +26,6 @@ import org.springframework.integration.config.xml.AbstractOutboundChannelAdapter
 import org.springframework.integration.config.xml.IntegrationNamespaceUtils;
 import org.w3c.dom.Element;
 
-
 /**
  * Provides namespace support for all the Activiti support
  *
@@ -36,40 +35,40 @@ import org.w3c.dom.Element;
 @SuppressWarnings("unused")
 public class ActivitiNamespaceHandler extends NamespaceHandlerSupport {
 
-	public void init() {
-		this.registerBeanDefinitionParser("inbound-gateway", new ActivitiInboundGatewayParser());
-		this.registerBeanDefinitionParser("adapter-channel-adapter", new ActivitiOutboundChannelAdapterParser());
-	}
+  public void init() {
+    this.registerBeanDefinitionParser("inbound-gateway", new ActivitiInboundGatewayParser());
+    this.registerBeanDefinitionParser("adapter-channel-adapter", new ActivitiOutboundChannelAdapterParser());
+  }
 
-	private static class ActivitiOutboundChannelAdapterParser extends AbstractOutboundChannelAdapterParser {
-		@Override
-		protected AbstractBeanDefinition parseConsumer(Element element, ParserContext parserContext) {
-			BeanDefinitionBuilder builder = BeanDefinitionBuilder.genericBeanDefinition(ProcessStartingOutboundChannelAdapter.class.getName());
-			IntegrationNamespaceUtils.setReferenceIfAttributeDefined(builder, element, "process-engine");
-			IntegrationNamespaceUtils.setValueIfAttributeDefined(builder, element, "process-definition-name");
-			return builder.getBeanDefinition();
-		}
-	}
+  private static class ActivitiOutboundChannelAdapterParser extends AbstractOutboundChannelAdapterParser {
+    @Override
+    protected AbstractBeanDefinition parseConsumer(Element element, ParserContext parserContext) {
+      BeanDefinitionBuilder builder = BeanDefinitionBuilder.genericBeanDefinition(ProcessStartingOutboundChannelAdapter.class.getName());
+      IntegrationNamespaceUtils.setReferenceIfAttributeDefined(builder, element, "process-engine");
+      IntegrationNamespaceUtils.setValueIfAttributeDefined(builder, element, "process-definition-name");
+      return builder.getBeanDefinition();
+    }
+  }
 
-	private static class ActivitiInboundGatewayParser extends AbstractSingleBeanDefinitionParser {
-		@Override
-		protected String getBeanClassName(Element element) {
-			return ActivityBehaviorMessagingGatewayFactoryBean.class.getName();
-		}
+  private static class ActivitiInboundGatewayParser extends AbstractSingleBeanDefinitionParser {
+    @Override
+    protected String getBeanClassName(Element element) {
+      return ActivityBehaviorMessagingGatewayFactoryBean.class.getName();
+    }
 
-		@Override
-		protected boolean shouldGenerateIdAsFallback() {
-			return true;
-		}
+    @Override
+    protected boolean shouldGenerateIdAsFallback() {
+      return true;
+    }
 
-		@Override
-		protected void doParse(Element element, ParserContext parserContext, BeanDefinitionBuilder builder) {
-			IntegrationNamespaceUtils.setReferenceIfAttributeDefined(builder, element, "request-channel");
-			IntegrationNamespaceUtils.setReferenceIfAttributeDefined(builder, element, "reply-channel");
-			IntegrationNamespaceUtils.setReferenceIfAttributeDefined(builder, element, "process-engine");
-			IntegrationNamespaceUtils.setValueIfAttributeDefined(builder, element, "update-process-variables-from-reply-message-headers");
-			IntegrationNamespaceUtils.setValueIfAttributeDefined(builder, element, "async");
-			IntegrationNamespaceUtils.setValueIfAttributeDefined(builder, element, "forward-process-variables-as-message-headers");
-		}
-	}
+    @Override
+    protected void doParse(Element element, ParserContext parserContext, BeanDefinitionBuilder builder) {
+      IntegrationNamespaceUtils.setReferenceIfAttributeDefined(builder, element, "request-channel");
+      IntegrationNamespaceUtils.setReferenceIfAttributeDefined(builder, element, "reply-channel");
+      IntegrationNamespaceUtils.setReferenceIfAttributeDefined(builder, element, "process-engine");
+      IntegrationNamespaceUtils.setValueIfAttributeDefined(builder, element, "update-process-variables-from-reply-message-headers");
+      IntegrationNamespaceUtils.setValueIfAttributeDefined(builder, element, "async");
+      IntegrationNamespaceUtils.setValueIfAttributeDefined(builder, element, "forward-process-variables-as-message-headers");
+    }
+  }
 }

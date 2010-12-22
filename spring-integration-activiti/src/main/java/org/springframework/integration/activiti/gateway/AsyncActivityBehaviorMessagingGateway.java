@@ -20,7 +20,6 @@ import org.activiti.engine.impl.pvm.delegate.ActivityBehavior;
 import org.activiti.engine.impl.pvm.delegate.ActivityExecution;
 import org.activiti.engine.impl.runtime.ExecutionEntity;
 import org.activiti.engine.runtime.Execution;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.BeansException;
@@ -28,24 +27,20 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.beans.factory.InitializingBean;
-
-import org.springframework.integration.*;
+import org.springframework.integration.Message;
+import org.springframework.integration.MessageChannel;
 import org.springframework.integration.activiti.ActivitiConstants;
-import org.springframework.integration.activiti.ProcessSupport;
 import org.springframework.integration.activiti.adapter.ExecutionSignallingMessageHandler;
-import org.springframework.integration.channel.AbstractPollableChannel;
 import org.springframework.integration.config.ConsumerEndpointFactoryBean;
 import org.springframework.integration.core.MessagingTemplate;
 import org.springframework.integration.core.PollableChannel;
 import org.springframework.integration.scheduling.PollerMetadata;
 import org.springframework.integration.support.MessageBuilder;
-
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
 import java.util.HashMap;
 import java.util.Map;
-
 
 /**
  * This class is plugged into an Activiti workflow. <serviceTask /> let's us plugin a custom {@link  ActivityBehavior}.
@@ -73,179 +68,174 @@ import java.util.Map;
  */
 public class AsyncActivityBehaviorMessagingGateway extends ReceiveTaskActivity implements BeanFactoryAware, BeanNameAware, ActivityBehavior, InitializingBean {
 
+  private Log log = LogFactory.getLog(getClass());
 
-    private Log log = LogFactory.getLog(getClass());
+  /**
+   * Used to handle sending in a standard way
+   */
+  private MessagingTemplate messagingTemplate = new MessagingTemplate();
 
-    /**
-     * Used to handle sending in a standard way
-     */
-    private MessagingTemplate messagingTemplate = new MessagingTemplate();
+  /**
+   * This is the channel on which we expect requests - {@link  Execution}s from Activiti - to arrive
+   */
+  private volatile MessageChannel requestChannel;
 
-    /**
-     * This is the channel on which we expect requests - {@link  Execution}s from Activiti - to arrive
-     */
-    private volatile MessageChannel requestChannel;
+  /**
+   * This is the channel on which we expect to send replies - ie, the result of our work in
+   * Spring Integration - back to Activiti, which should be waiting for the results
+   */
+  private volatile MessageChannel replyChannel;
 
-    /**
-     * This is the channel on which we expect to send replies - ie, the result of our work in
-     * Spring Integration - back to Activiti, which should be waiting for the results
-     */
-    private volatile MessageChannel replyChannel;
+  /**
+   * Injected from Spring or some other mechanism. Recommended approach is through a {@link  org.activiti.spring.ProcessEngineFactoryBean}
+   */
+  private volatile ProcessEngine processEngine;
 
-    /**
-     * Injected from Spring or some other mechanism. Recommended approach is through a {@link  org.activiti.spring.ProcessEngineFactoryBean}
-     */
-    private volatile ProcessEngine processEngine;
+  /**
+   * Should we update the process variables based on the reply {@link org.springframework.integration.Message}'s {@link org.springframework.integration.MessageHeaders}?
+   */
+  private volatile boolean updateProcessVariablesFromReplyMessageHeaders;
 
-    /**
-     * Should we update the process variables based on the reply {@link org.springframework.integration.Message}'s {@link org.springframework.integration.MessageHeaders}?
-     */
-    private volatile boolean updateProcessVariablesFromReplyMessageHeaders;
+  /**
+   * Should we pass the workflow process variables as message headers when we send a message into the Spring Integration framework?
+   */
+  private volatile boolean forwardProcessVariablesAsMessageHeaders;
 
-    /**
-     * Should we pass the workflow process variables as message headers when we send a message into the Spring Integration framework?
-     */
-    private volatile boolean forwardProcessVariablesAsMessageHeaders;
+  /**
+   * A reference to the {@link org.springframework.beans.factory.BeanFactory} that's hosting this component. Spring will inject this reference automatically assuming
+   * this object is hosted in a Spring context.
+   */
+  private volatile BeanFactory beanFactory;
 
+  /**
+   * The process engine instance that controls the Activiti PVM. Recommended creation is through {@link org.activiti.spring.ProcessEngineFactoryBean}
+   */
+  private RuntimeService processService;
 
-    /**
-     * A reference to the {@link org.springframework.beans.factory.BeanFactory} that's hosting this component. Spring will inject this reference automatically assuming
-     * this object is hosted in a Spring context.
-     */
-    private volatile BeanFactory beanFactory;
+  /**
+   * {@link BeanNameAware#setBeanName(String)}
+   */
+  private String beanName;
 
-    /**
-     * The process engine instance that controls the Activiti PVM. Recommended creation is through {@link org.activiti.spring.ProcessEngineFactoryBean}
-     */
-    private RuntimeService processService;
+  @SuppressWarnings("unused")
+  public void setRequestChannel(MessageChannel requestChannel) {
+    this.requestChannel = requestChannel;
+  }
 
-    /**
-     * {@link BeanNameAware#setBeanName(String)}
-     */
-    private String beanName;
+  @SuppressWarnings("unused")
+  public void setReplyChannel(MessageChannel replyChannel) {
+    this.replyChannel = replyChannel;
+  }
 
+  @SuppressWarnings("unused")
+  public void setProcessEngine(ProcessEngine processEngine) {
+    this.processEngine = processEngine;
+  }
 
-    @SuppressWarnings("unused")
-    public void setRequestChannel(MessageChannel requestChannel) {
-        this.requestChannel = requestChannel;
+  @SuppressWarnings("unused")
+  public void setForwardProcessVariablesAsMessageHeaders(boolean forwardProcessVariablesAsMessageHeaders) {
+    this.forwardProcessVariablesAsMessageHeaders = forwardProcessVariablesAsMessageHeaders;
+  }
+
+  @SuppressWarnings("unused")
+  public void setUpdateProcessVariablesFromReplyMessageHeaders(boolean updateProcessVariablesFromReplyMessageHeaders) {
+    this.updateProcessVariablesFromReplyMessageHeaders = updateProcessVariablesFromReplyMessageHeaders;
+  }
+
+  public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
+    this.beanFactory = beanFactory;
+  }
+
+  @Override
+  public void signal(ActivityExecution execution, String signalName, Object data) throws Exception {
+    leave(execution);
+  }
+
+  /**
+   * Provides an opportunity for subclasses to provide extra headers to the adapter message
+   *
+   * @param activityExecution of the current process as it was received when we entered this {@link ActivityBehavior} instance
+   */
+  @SuppressWarnings("unused")
+  protected Map<String, Object> contributeHeadersForOutboundMessage(ActivityExecution activityExecution) throws Exception {
+    return new HashMap<String, Object>();
+  }
+
+  /**
+   * This is the main interface method from {@link ActivityBehavior}. It will be called when the BPMN process executes the node referencing this logic.
+   *
+   * @param execution the {@link  ActivityExecution} as given to use by the engine
+   * @throws Exception
+   */
+  public void execute(ActivityExecution execution) throws Exception {
+    PvmActivity pvmActivity = execution.getActivity();
+
+    ExecutionEntity executionEntity = (ExecutionEntity) execution;
+    String procDefId = executionEntity.getProcessDefinitionId();
+    String procInstanceId = executionEntity.getProcessInstanceId();
+
+    String executionId = execution.getId();
+    String pvmActivityId = pvmActivity.getId();
+
+    MessageBuilder<?> messageBuilder = MessageBuilder.withPayload(execution)
+        .setHeader(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY, executionId)
+        .setHeader(ActivitiConstants.WELL_KNOWN_ACTIVITY_ID_HEADER_KEY, pvmActivityId)
+        .setHeader(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_ID_HEADER_KEY, procDefId)
+        .setHeader(ActivitiConstants.WELL_KNOWN_PROCESS_INSTANCE_ID_HEADER_KEY, procInstanceId).setCorrelationId(executionId)
+        .copyHeadersIfAbsent(this.contributeHeadersForOutboundMessage(execution));
+
+    if (this.forwardProcessVariablesAsMessageHeaders) {
+      Map<String, Object> variables = execution.getVariables();
+
+      if ((variables != null) && (variables.size() > 0)) {
+        messageBuilder = messageBuilder.copyHeadersIfAbsent(variables);
+      }
     }
 
-    @SuppressWarnings("unused")
-    public void setReplyChannel(MessageChannel replyChannel) {
-        this.replyChannel = replyChannel;
+    Message<?> msg = messageBuilder.setReplyChannel(replyChannel).build();
+
+    this.messagingTemplate.send(this.requestChannel, msg);
+
+    super.execute(execution);
+  }
+
+  /**
+   * Verify the presence of references to a request and reply {@link  org.springframework.integration.MessageChannel},
+   * the {@link  ProcessEngine}, and setup the {@link org.springframework.integration.core.MessageHandler} that handles the replies
+   *
+   * @throws Exception
+   */
+  public void afterPropertiesSet() throws Exception {
+    Assert.state(this.replyChannel != null, "'replyChannel' can't be null!");
+    Assert.state(this.requestChannel != null, "'requestChannel' can't be null!");
+    Assert.state(this.processEngine != null, "'processEngine' can't be null!");
+
+    processService = this.processEngine.getRuntimeService();
+    Assert.notNull(this.processService, "'processService' can't be null");
+
+    ExecutionSignallingMessageHandler eai = new ExecutionSignallingMessageHandler();
+    eai.setProcessEngine(this.processEngine);
+    eai.setUpdateProcessVariablesFromReplyMessageHeaders(this.updateProcessVariablesFromReplyMessageHeaders);
+
+    ConsumerEndpointFactoryBean consumerEndpointFactoryBean = new ConsumerEndpointFactoryBean();
+    consumerEndpointFactoryBean.setHandler(eai);
+    consumerEndpointFactoryBean.setBeanClassLoader(ClassUtils.getDefaultClassLoader());
+    consumerEndpointFactoryBean.setAutoStartup(false);
+    consumerEndpointFactoryBean.setInputChannel(this.replyChannel);
+
+    if (this.replyChannel instanceof PollableChannel) {
+      PollerMetadata pollerMetadata = new PollerMetadata();
+      pollerMetadata.setReceiveTimeout(10);
+      consumerEndpointFactoryBean.setPollerMetadata(pollerMetadata);
     }
 
-    @SuppressWarnings("unused")
-    public void setProcessEngine(ProcessEngine processEngine) {
-        this.processEngine = processEngine;
-    }
+    consumerEndpointFactoryBean.setBeanFactory(this.beanFactory);
+    consumerEndpointFactoryBean.setBeanName(this.beanName + "ConsumerEndpoint");
+    consumerEndpointFactoryBean.afterPropertiesSet();
+    consumerEndpointFactoryBean.start();
+  }
 
-    @SuppressWarnings("unused")
-    public void setForwardProcessVariablesAsMessageHeaders(boolean forwardProcessVariablesAsMessageHeaders) {
-        this.forwardProcessVariablesAsMessageHeaders = forwardProcessVariablesAsMessageHeaders;
-    }
-
-    @SuppressWarnings("unused")
-    public void setUpdateProcessVariablesFromReplyMessageHeaders(boolean updateProcessVariablesFromReplyMessageHeaders) {
-        this.updateProcessVariablesFromReplyMessageHeaders = updateProcessVariablesFromReplyMessageHeaders;
-    }
-
-    public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
-        this.beanFactory = beanFactory;
-    }
-
-    @Override
-    public void signal(ActivityExecution execution, String signalName, Object data) throws Exception {
-        leave(execution);
-    }
-
-    /**
-     * Provides an opportunity for subclasses to provide extra headers to the adapter message
-     *
-     * @param activityExecution of the current process as it was received when we entered this {@link ActivityBehavior} instance
-     */
-    @SuppressWarnings("unused")
-    protected Map<String, Object> contributeHeadersForOutboundMessage(ActivityExecution activityExecution) throws Exception {
-        return new HashMap<String, Object>();
-    }
-
-    /**
-     * This is the main interface method from {@link ActivityBehavior}. It will be called when the BPMN process executes the node referencing this logic.
-     *
-     * @param execution the {@link  ActivityExecution} as given to use by the engine
-     * @throws Exception
-     */
-    public void execute(ActivityExecution execution) throws Exception {
-        PvmActivity pvmActivity = execution.getActivity();
-
-        ExecutionEntity executionEntity = (ExecutionEntity) execution;
-        String procDefId = executionEntity.getProcessDefinitionId();
-        String procInstanceId = executionEntity.getProcessInstanceId();
-
-        String executionId = execution.getId();
-        String pvmActivityId = pvmActivity.getId();
-
-        MessageBuilder<?> messageBuilder = MessageBuilder.withPayload(execution)
-                .setHeader(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY, executionId)
-                .setHeader(ActivitiConstants.WELL_KNOWN_ACTIVITY_ID_HEADER_KEY, pvmActivityId)
-                .setHeader(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_ID_HEADER_KEY, procDefId)
-                .setHeader(ActivitiConstants.WELL_KNOWN_PROCESS_INSTANCE_ID_HEADER_KEY, procInstanceId).setCorrelationId(executionId)
-                .copyHeadersIfAbsent(this.contributeHeadersForOutboundMessage(execution));
-
-        if (this.forwardProcessVariablesAsMessageHeaders) {
-            Map<String, Object> variables = execution.getVariables();
-
-            if ((variables != null) && (variables.size() > 0)) {
-                messageBuilder = messageBuilder.copyHeadersIfAbsent(variables);
-            }
-        }
-
-        Message<?> msg = messageBuilder.setReplyChannel(replyChannel).build();
-
-        this.messagingTemplate.send(this.requestChannel, msg);
-
-        super.execute(execution);
-    }
-
-    /**
-     * Verify the presence of references to a request and reply {@link  org.springframework.integration.MessageChannel},
-     * the {@link  ProcessEngine}, and setup the {@link org.springframework.integration.core.MessageHandler} that handles the replies
-     *
-     * @throws Exception
-     */
-    public void afterPropertiesSet() throws Exception {
-        Assert.state(this.replyChannel != null, "'replyChannel' can't be null!");
-        Assert.state(this.requestChannel != null, "'requestChannel' can't be null!");
-        Assert.state(this.processEngine != null, "'processEngine' can't be null!");
-
-        processService = this.processEngine.getRuntimeService();
-        Assert.notNull(this.processService, "'processService' can't be null");
-
-        ExecutionSignallingMessageHandler eai = new ExecutionSignallingMessageHandler();
-        eai.setProcessEngine(this.processEngine);
-        eai.setUpdateProcessVariablesFromReplyMessageHeaders(this.updateProcessVariablesFromReplyMessageHeaders);
-
-
-        ConsumerEndpointFactoryBean consumerEndpointFactoryBean = new ConsumerEndpointFactoryBean();
-        consumerEndpointFactoryBean.setHandler(eai);
-        consumerEndpointFactoryBean.setBeanClassLoader(ClassUtils.getDefaultClassLoader());
-        consumerEndpointFactoryBean.setAutoStartup(false);
-        consumerEndpointFactoryBean.setInputChannel(this.replyChannel);
-
-        if (this.replyChannel instanceof PollableChannel) {
-            PollerMetadata pollerMetadata = new PollerMetadata();
-            pollerMetadata.setReceiveTimeout(10);
-            consumerEndpointFactoryBean.setPollerMetadata(pollerMetadata);
-        }
-
-        consumerEndpointFactoryBean.setBeanFactory(this.beanFactory);
-        consumerEndpointFactoryBean.setBeanName(this.beanName + "ConsumerEndpoint");
-        consumerEndpointFactoryBean.afterPropertiesSet();
-        consumerEndpointFactoryBean.start();
-
-    }
-
-    public void setBeanName(String s) {
-        this.beanName = s;
-    }
+  public void setBeanName(String s) {
+    this.beanName = s;
+  }
 }

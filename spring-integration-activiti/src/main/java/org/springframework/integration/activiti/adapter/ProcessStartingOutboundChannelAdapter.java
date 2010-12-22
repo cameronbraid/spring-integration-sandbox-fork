@@ -13,11 +13,8 @@
 package org.springframework.integration.activiti.adapter;
 
 import org.activiti.engine.ProcessEngine;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.springframework.integration.Message;
 import org.springframework.integration.activiti.ActivitiConstants;
-import org.springframework.integration.activiti.ProcessSupport;
 import org.springframework.integration.context.IntegrationObjectSupport;
 import org.springframework.integration.core.MessageHandler;
 import org.springframework.util.Assert;
@@ -25,7 +22,6 @@ import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.Map;
-
 
 /**
  * Supports spawning a {@link org.activiti.engine.runtime.ProcessInstance} as a result of a trigger {@link org.springframework.integration.Message}.
@@ -37,55 +33,52 @@ import java.util.Map;
  */
 public class ProcessStartingOutboundChannelAdapter extends IntegrationObjectSupport implements MessageHandler {
 
+  private String processHeaderMustNotBeNullMessage = String.format(
+      "you must specify a processDefinitionName, either through " +
+          "an inbound header mapped to the key '%s' " +
+          "(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY), " +
+          ", or on the 'process-definition-name' property of this adapter",
+      ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY);
 
-    private String processHeaderMustNotBeNullMessage = String.format(
-                    "you must specify a processDefinitionName, either through " +
-                    "an inbound header mapped to the key '%s' " +
-                    "(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY), " +
-                    ", or on the 'process-definition-name' property of this adapter",
-                    ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY);
+  /**
+   * A reference to the {@link ProcessEngine} (see {@link  org.activiti.spring.ProcessEngineFactoryBean}
+   */
+  private ProcessEngine processEngine;
 
-    /**
-     * A reference to the {@link ProcessEngine} (see {@link  org.activiti.spring.ProcessEngineFactoryBean}
-     */
-    private ProcessEngine processEngine;
+  /**
+   * Do you want all flows that come into this component to launch the same business process? Hard code the process name here.
+   * If this is null, the component will expect a well known header value and use that to spawn the process definition name.
+   */
+  private String processDefinitionName;
 
-    /**
-     * Do you want all flows that come into this component to launch the same business process? Hard code the process name here.
-     * If this is null, the component will expect a well known header value and use that to spawn the process definition name.
-     */
-    private String processDefinitionName;
+  @Override
+  protected void onInit() throws Exception {
+    Assert.notNull(this.processEngine, "'processEngine' must not be null!");
+  }
 
+  @SuppressWarnings("unused")
+  public void setProcessEngine(ProcessEngine processEngine) {
+    this.processEngine = processEngine;
+  }
 
-    @Override
-    protected void onInit() throws Exception {
-        Assert.notNull(this.processEngine, "'processEngine' must not be null!");
+  @SuppressWarnings("unused")
+  public void setProcessDefinitionName(String processDefinitionName) {
+    this.processDefinitionName = processDefinitionName;
+  }
+
+  public void handleMessage(Message<?> message) {
+    // todo this needs to be handled by headermapper    Map<String, Object> processVariablesFromHeaders = processSupport.processVariablesFromMessageHeaders(message.getHeaders());
+    Map<String, Object> processVariablesFromHeaders = new HashMap<String, Object>();
+
+    String processName = (String) message.getHeaders().get(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY);
+
+    if ((processName == null) || !StringUtils.hasText(processName)) {
+      processName = this.processDefinitionName;
     }
 
-    @SuppressWarnings("unused")
-    public void setProcessEngine(ProcessEngine processEngine) {
-        this.processEngine = processEngine;
-    }
+    Assert.notNull(processName, processHeaderMustNotBeNullMessage);
 
-    @SuppressWarnings("unused")
-    public void setProcessDefinitionName(String processDefinitionName) {
-        this.processDefinitionName = processDefinitionName;
-    }
-
-    public void handleMessage(Message<?> message) {
-        // todo this needs to be handled by headermapper    Map<String, Object> processVariablesFromHeaders = processSupport.processVariablesFromMessageHeaders(message.getHeaders());
-        Map<String, Object> processVariablesFromHeaders = new HashMap<String,Object>();
-
-        String processName = (String) message.getHeaders().get(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY);
-
-        if ((processName == null) ||  !StringUtils.hasText(processName)) {
-            processName = this.processDefinitionName;
-        }
-
-        Assert.notNull(processName, processHeaderMustNotBeNullMessage);
-
-        processEngine.getRuntimeService().startProcessInstanceByKey(this.processDefinitionName, processVariablesFromHeaders);
-    }
-
+    processEngine.getRuntimeService().startProcessInstanceByKey(this.processDefinitionName, processVariablesFromHeaders);
+  }
 }
 

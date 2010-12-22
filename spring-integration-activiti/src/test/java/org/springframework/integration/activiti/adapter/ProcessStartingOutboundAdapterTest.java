@@ -24,23 +24,21 @@ import org.springframework.integration.support.MessageBuilder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-
-@ContextConfiguration (locations = "ProcessStartingOutboundChannelAdapterTest-context.xml")
+@ContextConfiguration(locations = "ProcessStartingOutboundChannelAdapterTest-context.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
 public class ProcessStartingOutboundAdapterTest {
 
-	@Value("#{triggerChannel}")
-	private MessageChannel messageChannel;
+    @Value("#{triggerChannel}")
+    private MessageChannel messageChannel;
 
-	private MessagingTemplate messagingTemplate = new MessagingTemplate();
+    private MessagingTemplate messagingTemplate = new MessagingTemplate();
 
-	@Test
-	public void testOutboundAdapter() throws Throwable {
-		Message<?> msg = MessageBuilder.withPayload("hello, from " + System.currentTimeMillis())
-				.setHeader(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY + "customerId", 2324)
-				.build();
-		messagingTemplate.send(this.messageChannel, msg);
-		//Thread.sleep(1000 * 10);
-	}
-
+    @Test
+    public void testOutboundAdapter() throws Throwable {
+        Message<?> msg = MessageBuilder.withPayload("hello, from " + System.currentTimeMillis())
+                .setHeader(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY + "customerId", 2324)
+                .build();
+        messagingTemplate.send(this.messageChannel, msg);
+        //Thread.sleep(1000 * 10);
+    }
 }

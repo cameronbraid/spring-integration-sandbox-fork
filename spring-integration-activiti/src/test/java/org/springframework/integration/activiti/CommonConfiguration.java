@@ -21,7 +21,6 @@ import javax.sql.DataSource;
 public class CommonConfiguration {
     protected Log log = LogFactory.getLog(getClass());
 
-
     @Value("${db.url}")
     protected String url;
 
@@ -39,17 +38,18 @@ public class CommonConfiguration {
     /**
      * clients can override this
      */
-    protected String getDatabaseSchemaUpdate(){
+    protected String getDatabaseSchemaUpdate() {
         return SpringProcessEngineConfiguration.DB_SCHEMA_UPDATE_CREATE_DROP;
     }
+
     @Bean
     public ProcessEngineFactoryBean processEngine() {
         ProcessEngineFactoryBean processEngineFactoryBean = new ProcessEngineFactoryBean();
 
         SpringProcessEngineConfiguration configuration = new SpringProcessEngineConfiguration();
-        configuration.setTransactionManager( dataSourceTransactionManager() );
-        configuration.setDataSource( targetDataSource() );
-        configuration.setDatabaseSchemaUpdate( getDatabaseSchemaUpdate() );
+        configuration.setTransactionManager(dataSourceTransactionManager());
+        configuration.setDataSource(targetDataSource());
+        configuration.setDatabaseSchemaUpdate(getDatabaseSchemaUpdate());
         processEngineFactoryBean.setProcessEngineConfiguration(configuration);
         return processEngineFactoryBean;
     }
@@ -64,7 +64,6 @@ public class CommonConfiguration {
         simpleDriverDataSource.setDriverClass(org.h2.Driver.class);
         transactionAwareDataSourceProxy.setTargetDataSource(simpleDriverDataSource);
         return transactionAwareDataSourceProxy;
-
     }
 
     @Bean
@@ -73,6 +72,4 @@ public class CommonConfiguration {
         dataSourceTransactionManager.setDataSource(this.targetDataSource());
         return dataSourceTransactionManager;
     }
-
-
 }
