@@ -4,11 +4,13 @@ import org.activiti.engine.test.Deployment;
 import org.apache.commons.lang.time.StopWatch;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.junit.Ignore;
 import org.springframework.integration.activiti.test.AbstractSpringIntegrationActivitiTestCase;
 
 import java.util.HashMap;
 import java.util.Map;
 
+@Ignore
 public class AbstractGatewayTest extends AbstractSpringIntegrationActivitiTestCase{
   private Log log = LogFactory.getLog(getClass());
 
