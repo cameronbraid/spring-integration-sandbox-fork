@@ -39,17 +39,18 @@ import org.springframework.util.ClassUtils;
  */
 public class AsyncActivityBehaviorMessagingGateway extends AbstractActivityBehaviorMessagingGateway {
 
-  @Override
-  protected void onExecute(ActivityExecution execution) throws Exception {
-
-    MessageBuilder<?> messageBuilder = this.doBasicOutboundMessageConstruction(execution);
-
-    messageBuilder.setReplyChannel(this.replyChannel);
-
-    this.messagingTemplate.send(this.requestChannel, messageBuilder.build());
-  }
-
   protected MessageHandler replyMessageHandler = new MessageHandler() {
+
+    private ProcessSupport.ProcessExecutionSignallerCallback processExecutionSignallerCallback =
+        new ProcessSupport.ProcessExecutionSignallerCallback() {
+          public void setProcessVariable(ProcessEngine en, ActivityExecution ex, String k, Object o) {
+            en.getRuntimeService().setVariable(ex.getId(), k, o);
+          }
+
+          public void signal(ProcessEngine en, ActivityExecution ex) {
+            en.getRuntimeService().signal(ex.getId());
+          }
+        };
 
     public void handleMessage(Message<?> message) throws MessagingException {
 
@@ -63,14 +64,23 @@ public class AsyncActivityBehaviorMessagingGateway extends AbstractActivityBehav
       ActivityExecution activityExecution = (ActivityExecution) execution;
 
       try {
-        ProcessSupport.signalProcessExecution(processEngine, activityExecution,
-            new TransactionExternalProcessExecutionSignallerCallback(), defaultProcessVariableHeaderMapper, message);
+        ProcessSupport.signalProcessExecution(processEngine, activityExecution, processExecutionSignallerCallback, defaultProcessVariableHeaderMapper, message);
       } catch (Exception e) {
         log.error(e);
         throw new RuntimeException(e);
       }
     }
   };
+
+  @Override
+  protected void onExecute(ActivityExecution execution) throws Exception {
+
+    MessageBuilder<?> messageBuilder = this.doBasicOutboundMessageConstruction(execution);
+
+    messageBuilder.setReplyChannel(this.replyChannel);
+
+    this.messagingTemplate.send(this.requestChannel, messageBuilder.build());
+  }
 
   @Override
   protected void onInit() throws Exception {
@@ -90,15 +100,5 @@ public class AsyncActivityBehaviorMessagingGateway extends AbstractActivityBehav
     consumerEndpointFactoryBean.setBeanName(this.beanName + "ConsumerEndpoint");
     consumerEndpointFactoryBean.afterPropertiesSet();
     consumerEndpointFactoryBean.start();
-  }
-
-  static class TransactionExternalProcessExecutionSignallerCallback implements ProcessSupport.ProcessExecutionSignallerCallback {
-    public void setProcessVariable(ProcessEngine en, ActivityExecution ex, String k, Object o) {
-      en.getRuntimeService().setVariable(ex.getId(), k, o);
-    }
-
-    public void signal(ProcessEngine en, ActivityExecution ex) {
-      en.getRuntimeService().signal(ex.getId());
-    }
   }
 }
