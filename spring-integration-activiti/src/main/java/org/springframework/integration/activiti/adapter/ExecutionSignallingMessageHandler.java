@@ -19,7 +19,7 @@ import org.springframework.util.Assert;
  *
  * @author Josh Long
  * @since 2.1
- */
+ */             @Deprecated
 public class ExecutionSignallingMessageHandler implements MessageHandler, InitializingBean {
 
   private ProcessEngine processEngine;
@@ -36,7 +36,7 @@ public class ExecutionSignallingMessageHandler implements MessageHandler, Initia
   public void handleMessage(Message<?> message) throws MessagingException {
     try {
 
-      ProcessSupport.signalProcessExecution(this.processEngine, processVariableHeaderMapper, message);
+  //    ProcessSupport.signalProcessExecution(this.processEngine, processVariableHeaderMapper, message);
     } catch (Exception ex) {
       throw new MessagingException(message, ex);
     }

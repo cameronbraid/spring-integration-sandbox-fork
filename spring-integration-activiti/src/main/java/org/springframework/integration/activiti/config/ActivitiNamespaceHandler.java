@@ -36,7 +36,7 @@ import org.w3c.dom.Element;
 public class ActivitiNamespaceHandler extends NamespaceHandlerSupport {
 
   public void init() {
-    this.registerBeanDefinitionParser("inbound-gateway", new ActivitiInboundGatewayParser());
+    this.registerBeanDefinitionParser("inbound-asyncGateway", new ActivitiInboundGatewayParser());
     this.registerBeanDefinitionParser("adapter-channel-adapter", new ActivitiOutboundChannelAdapterParser());
   }
 

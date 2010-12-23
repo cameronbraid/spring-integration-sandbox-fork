@@ -47,7 +47,7 @@ public class ProcessStartingOutboundChannelAdapter extends IntegrationObjectSupp
    */
   private ProcessEngine processEngine;
 
-  private DefaultProcessVariableHeaderMapper defaultProcessVariableHeaderMapper ;
+  private DefaultProcessVariableHeaderMapper defaultProcessVariableHeaderMapper;
 
   public void setDefaultProcessVariableHeaderMapper(DefaultProcessVariableHeaderMapper defaultProcessVariableHeaderMapper) {
     this.defaultProcessVariableHeaderMapper = defaultProcessVariableHeaderMapper;
@@ -74,7 +74,6 @@ public class ProcessStartingOutboundChannelAdapter extends IntegrationObjectSupp
     this.processDefinitionName = processDefinitionName;
   }
 
-
   public void handleMessage(Message<?> message) {
     Map<String, Object> processVariablesFromHeaders = new HashMap<String, Object>();
 
@@ -84,7 +83,7 @@ public class ProcessStartingOutboundChannelAdapter extends IntegrationObjectSupp
       processName = this.processDefinitionName;
     }
 
-    DefaultProcessVariableHeaderMapper processVariableHeaderMapper = new DefaultProcessVariableHeaderMapper( this.defaultProcessVariableHeaderMapper,null);
+    DefaultProcessVariableHeaderMapper processVariableHeaderMapper = new DefaultProcessVariableHeaderMapper(this.defaultProcessVariableHeaderMapper, null);
     processVariableHeaderMapper.setRequiresActivityExecution(false);
     try {
       processVariableHeaderMapper.afterPropertiesSet();
@@ -92,13 +91,12 @@ public class ProcessStartingOutboundChannelAdapter extends IntegrationObjectSupp
       logger.error(e);
     }
 
-
     processVariableHeaderMapper.fromHeaders(message.getHeaders(), processVariablesFromHeaders);
 
     Assert.notNull(processName, processHeaderMustNotBeNullMessage);
 
-    ProcessInstance pi=processEngine.getRuntimeService().startProcessInstanceByKey(processName, processVariablesFromHeaders);
-    logger.debug( "started process instance " + pi.getProcessDefinitionId() + "having business Id of "+pi.getBusinessKey());
+    ProcessInstance pi = processEngine.getRuntimeService().startProcessInstanceByKey(processName, processVariablesFromHeaders);
+    logger.debug("started process instance " + pi.getProcessDefinitionId() + "having business Id of " + pi.getBusinessKey());
   }
 }
 

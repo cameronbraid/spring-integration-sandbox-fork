@@ -9,19 +9,22 @@
             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
             ">
 
-    <context:component-scan base-package="org.springframework.integration.activiti.gateway"/>
 
-    <context:property-placeholder location="db.properties"/>
+     <context:property-placeholder location="db.properties"/>
+        <context:annotation-config/>
+
+    <bean class="org.springframework.integration.activiti.gateway.SynchronousGatewayConfiguration"/>
 
     <int:channel id="request">
         <int:queue capacity="10"/>
     </int:channel>
 
-    <int:service-activator input-channel="request" ref="serviceActivator" output-channel="response">
+    <int:service-activator input-channel="request" ref="serviceActivator" >
         <int:poller fixed-rate="1000"/>
     </int:service-activator>
 
-    <int:channel id="response"/>
+
+    <int:channel id="response" /><!--unneeded-->
 
 
 </beans>

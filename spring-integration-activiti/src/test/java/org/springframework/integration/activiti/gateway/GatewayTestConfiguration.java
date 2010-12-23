@@ -8,32 +8,40 @@ import org.springframework.integration.activiti.CommonConfiguration;
 import org.springframework.integration.activiti.utils.PrintingServiceActivator;
 
 /**
- * Simple configuration for the gateway test
+ * Simple configuration for the asyncGateway test
  *
  * @author Josh Long
  */
 @Configuration
 public class GatewayTestConfiguration extends CommonConfiguration {
 
-    @Value("#{response}")
-    private MessageChannel replies;
+  @Value("#{response}")
+  private MessageChannel replies;
 
-    @Value("#{request}")
-    private MessageChannel requests;
+  @Value("#{request}")
+  private MessageChannel requests;
 
-    @Bean
-    public PrintingServiceActivator serviceActivator() {
-        return new PrintingServiceActivator();
-    }
+  @Bean
+  public PrintingServiceActivator serviceActivator() {
+    return new PrintingServiceActivator();
+  }
+  protected
+  <T extends AbstractActivityBehaviorMessagingGateway> T configureAbstractActivityBehaviorMessagingGateway(T gateway) throws Exception {
+    gateway.setForwardProcessVariablesAsMessageHeaders(true);
+    gateway.setProcessEngine(this.processEngine().getObject());
+    gateway.setUpdateProcessVariablesFromReplyMessageHeaders(true);
+    gateway.setRequestChannel(this.requests);
+    gateway.setReplyChannel(this.replies);
+    return gateway;
+  }
+/*
+  @Bean
+  public SyncActivityBehaviorMessagingGateway syncGateway() throws Exception {
+    return configureAbstractActivityBehaviorMessagingGateway(new SyncActivityBehaviorMessagingGateway());
+  }
 
-    @Bean
-    public AsyncActivityBehaviorMessagingGateway gateway() throws Exception {
-        AsyncActivityBehaviorMessagingGateway asyncActivityBehaviorMessagingGateway = new AsyncActivityBehaviorMessagingGateway();
-        asyncActivityBehaviorMessagingGateway.setForwardProcessVariablesAsMessageHeaders(true);
-        asyncActivityBehaviorMessagingGateway.setProcessEngine(this.processEngine().getObject());
-        asyncActivityBehaviorMessagingGateway.setUpdateProcessVariablesFromReplyMessageHeaders(true);
-        asyncActivityBehaviorMessagingGateway.setRequestChannel(this.requests);
-        asyncActivityBehaviorMessagingGateway.setReplyChannel(this.replies);
-        return asyncActivityBehaviorMessagingGateway;
-    }
+  @Bean
+  public AsyncActivityBehaviorMessagingGateway asyncGateway() throws Exception {
+    return configureAbstractActivityBehaviorMessagingGateway(new AsyncActivityBehaviorMessagingGateway());
+  }*/
 }

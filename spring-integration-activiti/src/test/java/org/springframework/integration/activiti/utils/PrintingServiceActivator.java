@@ -24,7 +24,7 @@ import java.util.Map;
 
 /**
  * This is a trivial component that demonstrates that the flow of control lives outside of the BPMN process (ie, that we have truly implemented a wait-state)
- * and that gateway does the right thing if you send back message headers whose key corresponds with process variables, or new message headers that you want as process variables.
+ * and that asyncGateway does the right thing if you send back message headers whose key corresponds with process variables, or new message headers that you want as process variables.
  * <p/>
  * The only requirement for any component wishing to reply to an Activiti business process is that there be a header named using the static variable
  * {@link org.springframework.integration.activiti.ActivitiConstants#WELL_KNOWN_EXECUTION_ID_HEADER_KEY}.
