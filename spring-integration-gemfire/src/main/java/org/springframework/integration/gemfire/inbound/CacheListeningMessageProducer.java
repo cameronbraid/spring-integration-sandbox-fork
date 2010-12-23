@@ -36,6 +36,7 @@ import com.gemstone.gemfire.cache.util.CacheListenerAdapter;
 
 /**
  * @author Mark Fisher
+ * @since 2.1
  */
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class CacheListeningMessageProducer extends MessageProducerSupport {

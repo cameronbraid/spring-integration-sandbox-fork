@@ -49,4 +49,8 @@ public class GemfireMessageStore implements MessageStore {
 		return this.region.remove(id);
 	}
 
+	public int getMessageCount() {
+		return this.region.size();
+	}
+
 }
