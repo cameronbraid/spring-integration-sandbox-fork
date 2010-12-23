@@ -64,7 +64,7 @@ public class AsyncActivityBehaviorMessagingGateway extends AbstractActivityBehav
 
       try {
         ProcessSupport.signalProcessExecution(processEngine, activityExecution,
-            new ProcessSupport.TransactionExternalProcessExecutionSignallerCallback(), defaultProcessVariableHeaderMapper, message);
+            new TransactionExternalProcessExecutionSignallerCallback(), defaultProcessVariableHeaderMapper, message);
       } catch (Exception e) {
         log.error(e);
         throw new RuntimeException(e);
@@ -90,5 +90,15 @@ public class AsyncActivityBehaviorMessagingGateway extends AbstractActivityBehav
     consumerEndpointFactoryBean.setBeanName(this.beanName + "ConsumerEndpoint");
     consumerEndpointFactoryBean.afterPropertiesSet();
     consumerEndpointFactoryBean.start();
+  }
+
+  static class TransactionExternalProcessExecutionSignallerCallback implements ProcessSupport.ProcessExecutionSignallerCallback {
+    public void setProcessVariable(ProcessEngine en, ActivityExecution ex, String k, Object o) {
+      en.getRuntimeService().setVariable(ex.getId(), k, o);
+    }
+
+    public void signal(ProcessEngine en, ActivityExecution ex) {
+      en.getRuntimeService().signal(ex.getId());
+    }
   }
 }

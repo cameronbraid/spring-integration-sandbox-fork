@@ -155,8 +155,7 @@ public abstract class AbstractActivityBehaviorMessagingGateway extends ReceiveTa
    *
    * @param ex ActivityExecution instance as passed in from {@link ReceiveTaskActivity#execute(org.activiti.engine.impl.pvm.delegate.ActivityExecution)}
    */
-  protected
-  abstract void onExecute(ActivityExecution ex) throws Exception;
+  protected abstract void onExecute(ActivityExecution ex) throws Exception;
 
   /**
    * hook for setup {@link #afterPropertiesSet()} logic after we've setup state
@@ -173,12 +172,8 @@ public abstract class AbstractActivityBehaviorMessagingGateway extends ReceiveTa
    * @throws Exception
    */
   public void execute(ActivityExecution execution) throws Exception {
-
     onExecute(execution);
-//    super.execute(execution);
   }
-
-//  protected MessageHandler executionSignallingMessageHandler;
 
   /**
    * Verify the presence of references to a request and reply {@link  org.springframework.integration.MessageChannel},
@@ -194,40 +189,13 @@ public abstract class AbstractActivityBehaviorMessagingGateway extends ReceiveTa
     processService = this.processEngine.getRuntimeService();
 
     defaultProcessVariableHeaderMapper = new DefaultProcessVariableHeaderMapper(this.processEngine);
-    // todo configure 90% of this (save for the currentActivityExecution) we need setters on this asyncGateway to then forward to this mapper
-
     Assert.notNull(this.processService, "'processService' can't be null");
-
-   /* ExecutionSignallingMessageHandler eai = new ExecutionSignallingMessageHandler();
-    eai.setProcessEngine(this.processEngine);
-    eai.setProcessVariableHeaderMapper(this.defaultProcessVariableHeaderMapper);
-    eai.afterPropertiesSet();*/
-  //  this.executionSignallingMessageHandler = eai;
-    /*
-    ConsumerEndpointFactoryBean consumerEndpointFactoryBean = new ConsumerEndpointFactoryBean();
-    consumerEndpointFactoryBean.setHandler(eai);
-    consumerEndpointFactoryBean.setBeanClassLoader(ClassUtils.getDefaultClassLoader());
-    consumerEndpointFactoryBean.setAutoStartup(false);
-    consumerEndpointFactoryBean.setInputChannel(this.replyChannel);
-
-    if (this.replyChannel instanceof PollableChannel) {
-      PollerMetadata pollerMetadata = new PollerMetadata();
-      pollerMetadata.setReceiveTimeout(10);
-      consumerEndpointFactoryBean.setPollerMetadata(pollerMetadata);
-    }
-
-    consumerEndpointFactoryBean.setBeanFactory(this.beanFactory);
-    consumerEndpointFactoryBean.setBeanName(this.beanName + "ConsumerEndpoint");
-    consumerEndpointFactoryBean.afterPropertiesSet();
-    consumerEndpointFactoryBean.start();*/
     onInit();
   }
 
   public void setBeanName(String s) {
     this.beanName = s;
   }
-
-//  abstract  protected void doBasicInboundMessagePreparation(Message<?> message) ;
 
   protected MessageBuilder<?> doBasicOutboundMessageConstruction(ActivityExecution execution) throws Exception {
     DefaultProcessVariableHeaderMapper headerMapper = this.returnInitializedInstance(execution);

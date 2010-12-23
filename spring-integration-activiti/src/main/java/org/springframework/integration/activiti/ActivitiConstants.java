@@ -17,7 +17,7 @@ package org.springframework.integration.activiti;
  *
  * @author Josh Long
  */
-public class ActivitiConstants {
+public abstract class ActivitiConstants {
 
   /**
    * In order for the asyncGateway to correctly signalProcessExecution execution to Activiti, it needs to the executionId so that it can look up the {@link  org.activiti.engine.runtime.Execution} instance.

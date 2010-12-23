@@ -12,6 +12,7 @@
  */
 package org.springframework.integration.activiti.gateway;
 
+import org.activiti.engine.ProcessEngine;
 import org.activiti.engine.impl.pvm.delegate.ActivityExecution;
 import org.springframework.integration.Message;
 import org.springframework.integration.activiti.ProcessSupport;
@@ -26,12 +27,21 @@ public class SyncActivityBehaviorMessagingGateway extends AbstractActivityBehavi
     Message<?> reply = this.messagingTemplate.sendAndReceive(this.requestChannel, msg);
 
     ProcessSupport.signalProcessExecution(this.processEngine ,ex,
-        new ProcessSupport.TransactionAwareProcessExecutionSignallerCallback(),defaultProcessVariableHeaderMapper, reply);
+        new TransactionAwareProcessExecutionSignallerCallback(),defaultProcessVariableHeaderMapper, reply);
 
     leave(ex); // undo the wait state nature of this class
 
   }
 
+  static class TransactionAwareProcessExecutionSignallerCallback implements ProcessSupport.ProcessExecutionSignallerCallback {
+    public void signal(ProcessEngine en, ActivityExecution ex) {
+      // noop since effectively we're dismantling the wait-stateiness of the clients of this class
+    }
+
+    public void setProcessVariable(ProcessEngine en, ActivityExecution ex, String k, Object o) {
+      ex.setVariable(k, o);
+    }
+  }
 
   @Override
   protected void onInit() throws Exception {
