@@ -5,13 +5,18 @@
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>org.springframework.integration</groupId>
-		<artifactId>spring-integration-parent</artifactId>
-		<version>2.0.0.BUILD-SNAPSHOT</version>
+	 	<artifactId>spring-integration</artifactId>
+  		<version>2.0.1.RELEASE</version>
 	</parent>
-	<groupId>org.springframework.integration</groupId>
+
 	<artifactId>spring-integration-amqp</artifactId>
 	<packaging>jar</packaging>
 	<name>Spring Integration AMQP Support</name>
+
+	<properties>
+		<junit.version>4.8.2</junit.version>
+		<org.springframework.version>3.0.5.RELEASE</org.springframework.version>
+	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.amqp</groupId>
@@ -51,11 +56,27 @@
 	<build>
 		<plugins>
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				 <version>2.3.2</version>
+				<configuration>
+                                        <verbose>true</verbose>
+					<fork>true</fork>
+                                        <!-- <executable>${JDK_7_HOME}/bin/javac</executable> -->
+					<source>1.6</source>
+					<target>1.6</target>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+	<!-- <build>
+		<plugins>
+			<plugin>
 				<groupId>com.springsource.bundlor</groupId>
 				<artifactId>com.springsource.bundlor.maven</artifactId>
 			</plugin>
 		</plugins>
-	</build>
+	</build>-->
     <repositories>
         <repository>
             <id>spring-release</id>
