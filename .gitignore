@@ -4,6 +4,7 @@ target
 .settings
 *.iml
 .idea
+jredis.log*
 spring-integration-gemfire/BACKUP_*
 spring-integration-gemfire/KEYS_*
 spring-integration-gemfire/RECOVERY_*
