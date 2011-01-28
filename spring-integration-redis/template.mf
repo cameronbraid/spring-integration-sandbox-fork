@@ -11,6 +11,6 @@ Import-Template:
  org.springframework.expression.*;version="[3.0.0, 4.0.0)",
  org.springframework.util;version="[3.0.0, 4.0.0)",
  org.springframework.expression.*;version="[3.0.0, 4.0.0)",
- org.springframework.data.redis.*;version="[1.0.0, 2.0.0)"
+ org.springframework.data.keyvalue.redis.*;version="[1.0.0, 2.0.0)",
  javax.*;version="0",
  org.w3c.dom.*;version="0"
