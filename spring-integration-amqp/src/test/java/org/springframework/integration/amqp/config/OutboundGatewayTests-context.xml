@@ -27,6 +27,12 @@
 		routing-key="si.test.binding"
 		amqp-template="amqpTemplate"/>
 
+	<amqp:inbound-gateway request-channel="amqpIn"
+		connection-factory="connectionFactory"
+		queue-name="si.test.queue"/>
+
+	<transformer input-channel="amqpIn" expression="payload.toUpperCase()"/>
+
 	<beans:bean id="amqpTemplate" class="org.springframework.amqp.rabbit.core.RabbitTemplate">
 		<beans:property name="connectionFactory" ref="connectionFactory"/>
 	</beans:bean>
@@ -34,19 +40,6 @@
 	<beans:bean id="connectionFactory" class="org.springframework.amqp.rabbit.connection.SingleConnectionFactory">
 		<beans:property name="username" value="guest"/>
 		<beans:property name="password" value="guest"/>
-	</beans:bean>
-
-	<beans:bean id="listenerContainer" class="org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer">
-		<beans:property name="connectionFactory" ref="connectionFactory"/>
-		<beans:property name="queueName" value="si.test.queue"/>
-		<beans:property name="messageListener">
-			<beans:bean class="org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter">
-				<beans:property name="delegate">
-					<beans:bean class="org.springframework.integration.amqp.config.OutboundGatewayTests$EchoBean"/>
-				</beans:property>
-				<beans:property name="defaultListenerMethod" value="echo"/>
-			</beans:bean>
-		</beans:property>
 	</beans:bean>
 
 </beans:beans>

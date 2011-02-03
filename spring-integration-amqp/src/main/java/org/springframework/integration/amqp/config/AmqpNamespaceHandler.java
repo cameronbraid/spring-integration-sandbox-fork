@@ -29,6 +29,7 @@ public class AmqpNamespaceHandler extends AbstractIntegrationNamespaceHandler {
 	@Override
 	public void init() {
 		this.registerBeanDefinitionParser("inbound-channel-adapter", new AmqpInboundChannelAdapterParser());
+		this.registerBeanDefinitionParser("inbound-gateway", new AmqpInboundGatewayParser());
 		this.registerBeanDefinitionParser("outbound-channel-adapter", new AmqpOutboundChannelAdapterParser());
 		this.registerBeanDefinitionParser("outbound-gateway", new AmqpOutboundGatewayParser());
 	}

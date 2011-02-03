@@ -176,4 +176,62 @@
 		</xsd:complexType>
 	</xsd:element>
 
+	<xsd:element name="inbound-gateway">
+		<xsd:annotation>
+			<xsd:documentation>
+	Configures a gateway that will receive AMQP Messages sent to a given queue and then forward those messages to a Message Channel.
+	If a reply Message is returned, it will also send that to the 'replyTo' provide by the AMQP request Message.
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexType>
+			<xsd:attribute name="id" type="xsd:string">
+				<xsd:annotation>
+					<xsd:documentation>
+	Unique ID for this adapter.
+					</xsd:documentation>
+				</xsd:annotation>
+			</xsd:attribute>
+			<xsd:attribute name="request-channel" use="required" type="xsd:string">
+				<xsd:annotation>
+					<xsd:documentation>
+	Message Channel to which converted Messages should be sent.
+					</xsd:documentation>
+					<xsd:appinfo>
+						<tool:annotation kind="ref">
+							<tool:expected-type type="org.springframework.integration.core.MessageChannel" />
+						</tool:annotation>
+					</xsd:appinfo>
+				</xsd:annotation>
+			</xsd:attribute>
+			<xsd:attribute name="reply-channel" use="optional" type="xsd:string">
+				<xsd:annotation>
+					<xsd:documentation>
+	Message Channel where reply Messages will be expected.
+					</xsd:documentation>
+					<xsd:appinfo>
+						<tool:annotation kind="ref">
+							<tool:expected-type type="org.springframework.integration.core.MessageChannel" />
+						</tool:annotation>
+					</xsd:appinfo>
+				</xsd:annotation>
+			</xsd:attribute>
+			<xsd:attribute name="queue-name" type="xsd:string" use="required">
+				<xsd:annotation>
+					<xsd:documentation>
+	Name of the AMQP Queue from which Messages should be consumed.
+					</xsd:documentation>
+				</xsd:annotation>
+			</xsd:attribute>
+			<xsd:attribute name="connection-factory" type="xsd:string" use="required">
+				<xsd:annotation>
+					<xsd:appinfo>
+						<tool:annotation kind="ref">
+							<tool:expected-type type="org.springframework.amqp.rabbit.connection.ConnectionFactory" />
+						</tool:annotation>
+					</xsd:appinfo>
+				</xsd:annotation>
+			</xsd:attribute>
+		</xsd:complexType>
+	</xsd:element>
+
 </xsd:schema>
