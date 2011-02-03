@@ -16,11 +16,13 @@
 
 package org.springframework.integration.amqp.config;
 
+import org.w3c.dom.Element;
+
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.xml.ParserContext;
 import org.springframework.integration.config.xml.AbstractConsumerEndpointParser;
 import org.springframework.integration.config.xml.IntegrationNamespaceUtils;
-import org.w3c.dom.Element;
+import org.springframework.util.StringUtils;
 
 /**
  * Parser for the AMQP 'outbound-channel-adapter' element.
@@ -39,7 +41,11 @@ public class AmqpOutboundGatewayParser extends AbstractConsumerEndpointParser {
 	protected BeanDefinitionBuilder parseHandler(Element element, ParserContext parserContext) {
 		BeanDefinitionBuilder builder = BeanDefinitionBuilder.genericBeanDefinition(
 				"org.springframework.integration.amqp.AmqpOutboundEndpoint");
-		builder.addConstructorArgReference(element.getAttribute("amqp-template"));
+		String amqpTemplateRef = element.getAttribute("amqp-template");
+		if (!StringUtils.hasText(amqpTemplateRef)) {
+			amqpTemplateRef = "amqpTemplate";
+		}
+		builder.addConstructorArgReference(amqpTemplateRef);
 		builder.addPropertyValue("expectReply", true);
 		IntegrationNamespaceUtils.setValueIfAttributeDefined(builder, element, "exchange-name");
 		IntegrationNamespaceUtils.setValueIfAttributeDefined(builder, element, "routing-key");

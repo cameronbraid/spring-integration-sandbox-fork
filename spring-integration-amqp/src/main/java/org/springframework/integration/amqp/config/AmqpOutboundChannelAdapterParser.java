@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2010 the original author or authors.
+ * Copyright 2002-2011 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,12 +23,13 @@ import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.xml.ParserContext;
 import org.springframework.integration.config.xml.AbstractOutboundChannelAdapterParser;
 import org.springframework.integration.config.xml.IntegrationNamespaceUtils;
+import org.springframework.util.StringUtils;
 
 /**
  * Parser for the AMQP 'outbound-channel-adapter' element.
  * 
  * @author Mark Fisher
- * @since 2.0
+ * @since 2.1
  */
 public class AmqpOutboundChannelAdapterParser extends AbstractOutboundChannelAdapterParser {
 
@@ -36,7 +37,11 @@ public class AmqpOutboundChannelAdapterParser extends AbstractOutboundChannelAda
 	protected AbstractBeanDefinition parseConsumer(Element element, ParserContext parserContext) {
 		BeanDefinitionBuilder builder = BeanDefinitionBuilder.genericBeanDefinition(
 				"org.springframework.integration.amqp.AmqpOutboundEndpoint");
-		builder.addConstructorArgReference(element.getAttribute("amqp-template"));
+		String amqpTemplateRef = element.getAttribute("amqp-template");
+		if (!StringUtils.hasText(amqpTemplateRef)) {
+			amqpTemplateRef = "amqpTemplate";
+		}
+		builder.addConstructorArgReference(amqpTemplateRef);
 		IntegrationNamespaceUtils.setValueIfAttributeDefined(builder, element, "exchange-name");
 		IntegrationNamespaceUtils.setValueIfAttributeDefined(builder, element, "routing-key");
 		return builder.getBeanDefinition();

@@ -22,6 +22,7 @@ import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.xml.AbstractSingleBeanDefinitionParser;
 import org.springframework.beans.factory.xml.ParserContext;
 import org.springframework.integration.config.xml.IntegrationNamespaceUtils;
+import org.springframework.util.StringUtils;
 
 /**
  * Parser for the AMQP 'inbound-channel-adapter' element.
@@ -48,7 +49,11 @@ public class AmqpInboundChannelAdapterParser extends AbstractSingleBeanDefinitio
 
 	@Override
 	protected void doParse(Element element, ParserContext parserContext, BeanDefinitionBuilder builder) {
-		builder.addConstructorArgReference(element.getAttribute("connection-factory"));
+		String connectionFactoryRef = element.getAttribute("connection-factory");
+		if (!StringUtils.hasText(connectionFactoryRef)) {
+			connectionFactoryRef = "connectionFactory";
+		}
+		builder.addConstructorArgReference(connectionFactoryRef);
 		IntegrationNamespaceUtils.setValueIfAttributeDefined(builder, element, "queue-name");
 		IntegrationNamespaceUtils.setReferenceIfAttributeDefined(builder, element, "channel", "outputChannel");
 	}
