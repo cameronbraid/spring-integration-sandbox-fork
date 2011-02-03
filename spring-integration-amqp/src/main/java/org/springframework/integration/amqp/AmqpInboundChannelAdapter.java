@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2010 the original author or authors.
+ * Copyright 2002-2011 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,16 +30,16 @@ import org.springframework.util.Assert;
  * Spring Integration Messages, and sends the results to a Message Channel.
  * 
  * @author Mark Fisher
- * @since 2.0
+ * @since 2.1
  */
-public class AmqpInboundEndpoint extends MessageProducerSupport {
+public class AmqpInboundChannelAdapter extends MessageProducerSupport {
 
 	private final SimpleMessageListenerContainer messageListenerContainer;
 
 	private final SimpleMessageConverter messageConverter = new SimpleMessageConverter();
 
 
-	public AmqpInboundEndpoint(ConnectionFactory connectionFactory) {
+	public AmqpInboundChannelAdapter(ConnectionFactory connectionFactory) {
 		Assert.notNull(connectionFactory, "ConnectionFactory must not be null");
 		this.messageListenerContainer = new SimpleMessageListenerContainer(connectionFactory);
 		this.messageListenerContainer.setAutoStartup(false);
@@ -53,7 +53,6 @@ public class AmqpInboundEndpoint extends MessageProducerSupport {
 	@Override
 	protected void onInit() {
 		this.messageListenerContainer.setMessageListener(new MessageListener() {
-			@Override
 			public void onMessage(Message message) {
 				Object payload = messageConverter.fromMessage(message);
 				sendMessage(MessageBuilder.withPayload(payload)

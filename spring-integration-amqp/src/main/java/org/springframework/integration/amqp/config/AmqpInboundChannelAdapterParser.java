@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2010 the original author or authors.
+ * Copyright 2002-2011 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,13 +27,13 @@ import org.springframework.integration.config.xml.IntegrationNamespaceUtils;
  * Parser for the AMQP 'inbound-channel-adapter' element.
  * 
  * @author Mark Fisher
- * @since 2.0
+ * @since 2.1
  */
 public class AmqpInboundChannelAdapterParser extends AbstractSingleBeanDefinitionParser {
 
 	@Override
 	protected String getBeanClassName(Element element) {
-		return "org.springframework.integration.amqp.AmqpInboundEndpoint";
+		return "org.springframework.integration.amqp.AmqpInboundChannelAdapter";
 	}
 
 	@Override
