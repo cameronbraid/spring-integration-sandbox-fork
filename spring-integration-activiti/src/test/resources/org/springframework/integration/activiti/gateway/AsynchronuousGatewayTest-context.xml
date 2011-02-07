@@ -10,8 +10,8 @@
             ">
 
 
-     <context:property-placeholder location="db.properties"/>
-        <context:annotation-config/>
+    <context:property-placeholder location="db.properties"/>
+    <context:annotation-config/>
 
     <bean class="org.springframework.integration.activiti.gateway.AsynchronousGatewayConfiguration"/>
 
@@ -24,6 +24,5 @@
     </int:service-activator>
 
     <int:channel id="response"/>
-
 
 </beans>

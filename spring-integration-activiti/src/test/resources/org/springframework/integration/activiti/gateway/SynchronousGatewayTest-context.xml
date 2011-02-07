@@ -23,7 +23,6 @@
         <int:poller fixed-rate="1000"/>
     </int:service-activator>
 
-
     <int:channel id="response" /><!--unneeded-->
 
 
