@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2010 the original author or authors.
+ * Copyright 2002-2011 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package org.springframework.integration.amqp;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.amqp.core.MessagePostProcessor;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.integration.Message;
 import org.springframework.integration.handler.AbstractReplyProducingMessageHandler;
 import org.springframework.util.Assert;
@@ -27,7 +28,7 @@ import org.springframework.util.Assert;
  * Adapter that converts and sends Messages to an AMQP Exchange.
  * 
  * @author Mark Fisher
- * @since 2.0
+ * @since 2.1
  */
 public class AmqpOutboundEndpoint extends AbstractReplyProducingMessageHandler {
 
@@ -36,6 +37,8 @@ public class AmqpOutboundEndpoint extends AbstractReplyProducingMessageHandler {
 	private volatile String exchangeName = "";
 
 	private volatile String routingKey = "";
+
+	private volatile boolean expectReply;
 
 
 	public AmqpOutboundEndpoint(AmqpTemplate amqpTemplate) {
@@ -52,9 +55,22 @@ public class AmqpOutboundEndpoint extends AbstractReplyProducingMessageHandler {
 		this.routingKey = routingKey;
 	}
 
+	public void setExpectReply(boolean expectReply) {
+		this.expectReply = expectReply;
+	}
+
 	@Override
 	protected Object handleRequestMessage(Message<?> requestMessage) {
-		// TODO: add conditional logic for expectReply
+		if (this.expectReply) {
+			return this.sendAndReceive(requestMessage);
+		}
+		else {
+			this.send(requestMessage);
+			return null;
+		}
+	}
+
+	private void send(Message<?> requestMessage) {
 		this.amqpTemplate.convertAndSend(this.exchangeName, this.routingKey, requestMessage.getPayload(), new MessagePostProcessor() {
 			@Override
 			public org.springframework.amqp.core.Message postProcessMessage(org.springframework.amqp.core.Message message) throws AmqpException {
@@ -62,7 +78,11 @@ public class AmqpOutboundEndpoint extends AbstractReplyProducingMessageHandler {
 				return message;
 			}
 		});
-		return null;
+	}
+
+	private Object sendAndReceive(Message<?> requestMessage) {
+		// TODO: remove cast once the interface methods are added
+		return ((RabbitTemplate) this.amqpTemplate).convertSendAndReceive(this.exchangeName, this.routingKey, requestMessage.getPayload());
 	}
 
 }

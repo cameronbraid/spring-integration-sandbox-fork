@@ -25,16 +25,16 @@ import org.springframework.integration.config.xml.IntegrationNamespaceUtils;
 import org.springframework.util.StringUtils;
 
 /**
- * Parser for the AMQP 'inbound-channel-adapter' element.
+ * Parser for the AMQP 'inbound-gateway' element.
  * 
  * @author Mark Fisher
  * @since 2.1
  */
-public class AmqpInboundChannelAdapterParser extends AbstractSingleBeanDefinitionParser {
+public class AmqpInboundGatewayParser extends AbstractSingleBeanDefinitionParser {
 
 	@Override
 	protected String getBeanClassName(Element element) {
-		return "org.springframework.integration.amqp.AmqpInboundChannelAdapter";
+		return "org.springframework.integration.amqp.AmqpInboundGateway";
 	}
 
 	@Override
@@ -55,7 +55,8 @@ public class AmqpInboundChannelAdapterParser extends AbstractSingleBeanDefinitio
 		}
 		builder.addConstructorArgReference(connectionFactoryRef);
 		IntegrationNamespaceUtils.setValueIfAttributeDefined(builder, element, "queue-name");
-		IntegrationNamespaceUtils.setReferenceIfAttributeDefined(builder, element, "channel", "outputChannel");
+		IntegrationNamespaceUtils.setReferenceIfAttributeDefined(builder, element, "request-channel");
+		IntegrationNamespaceUtils.setReferenceIfAttributeDefined(builder, element, "reply-channel");
 	}
 
 }

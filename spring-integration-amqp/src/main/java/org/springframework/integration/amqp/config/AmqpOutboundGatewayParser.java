@@ -18,10 +18,9 @@ package org.springframework.integration.amqp.config;
 
 import org.w3c.dom.Element;
 
-import org.springframework.beans.factory.support.AbstractBeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.xml.ParserContext;
-import org.springframework.integration.config.xml.AbstractOutboundChannelAdapterParser;
+import org.springframework.integration.config.xml.AbstractConsumerEndpointParser;
 import org.springframework.integration.config.xml.IntegrationNamespaceUtils;
 import org.springframework.util.StringUtils;
 
@@ -31,10 +30,15 @@ import org.springframework.util.StringUtils;
  * @author Mark Fisher
  * @since 2.1
  */
-public class AmqpOutboundChannelAdapterParser extends AbstractOutboundChannelAdapterParser {
+public class AmqpOutboundGatewayParser extends AbstractConsumerEndpointParser {
 
 	@Override
-	protected AbstractBeanDefinition parseConsumer(Element element, ParserContext parserContext) {
+	protected String getInputChannelAttributeName() {
+		return "request-channel";
+	}
+
+	@Override
+	protected BeanDefinitionBuilder parseHandler(Element element, ParserContext parserContext) {
 		BeanDefinitionBuilder builder = BeanDefinitionBuilder.genericBeanDefinition(
 				"org.springframework.integration.amqp.AmqpOutboundEndpoint");
 		String amqpTemplateRef = element.getAttribute("amqp-template");
@@ -42,9 +46,11 @@ public class AmqpOutboundChannelAdapterParser extends AbstractOutboundChannelAda
 			amqpTemplateRef = "amqpTemplate";
 		}
 		builder.addConstructorArgReference(amqpTemplateRef);
+		builder.addPropertyValue("expectReply", true);
 		IntegrationNamespaceUtils.setValueIfAttributeDefined(builder, element, "exchange-name");
 		IntegrationNamespaceUtils.setValueIfAttributeDefined(builder, element, "routing-key");
-		return builder.getBeanDefinition();
+		IntegrationNamespaceUtils.setReferenceIfAttributeDefined(builder, element, "reply-channel", "outputChannel");
+		return builder;
 	}
 
 }
