@@ -9,21 +9,19 @@
 
     <process id="hello">
 
-        <startEvent id="theStart"/>
+        <startEvent id="s"/>
 
-        <sequenceFlow id="flow1" sourceRef="theStart" targetRef="helloScriptTask"/>
-
-
+        <sequenceFlow id="sf1" sourceRef="s" targetRef="helloScriptTask"/>
 
         <scriptTask id="helloScriptTask" name="Execute script" scriptFormat="groovy">
             <script>
-                println 'hello!.'
+                println 'hello world!'
             </script>
         </scriptTask>
 
-        <sequenceFlow id="hello22" sourceRef="helloScriptTask" targetRef="theEnd"/>
+        <sequenceFlow id="sf2" sourceRef="helloScriptTask" targetRef="e"/>
 
-        <endEvent id="theEnd"/>
+        <endEvent id="e"/>
 
     </process>
 
