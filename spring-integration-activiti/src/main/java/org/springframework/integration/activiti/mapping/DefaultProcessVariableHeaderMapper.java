@@ -225,11 +225,11 @@ public class DefaultProcessVariableHeaderMapper implements ProcessVariableHeader
   }
 
   public void afterPropertiesSet() throws Exception {
-
     // redundant but also ensures any side effects are up to date
     setPrefix(this.prefix);
 
     runtimeService = this.processEngine.getRuntimeService();
+
     Assert.notNull(this.runtimeService, "'runtimeService' can't be null");
   }
 
@@ -243,7 +243,6 @@ public class DefaultProcessVariableHeaderMapper implements ProcessVariableHeader
   }
 
   void validate() {
-
     if (this.requiresActivityExecution) {
       Assert.notNull(this.currentActivityExecution, "the currentActivityExecution should be reset on this instance before all uses");
     } else {

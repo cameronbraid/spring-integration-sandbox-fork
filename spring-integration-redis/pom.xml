@@ -4,20 +4,20 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.springframework.integration</groupId>
-    <artifactId>spring-integration-gemfire</artifactId>
+    <artifactId>spring-integration-redis</artifactId>
     <version>2.1.0.BUILD-SNAPSHOT</version>
     <packaging>jar</packaging>
-    <name>Spring Integration GemFire Support</name>
+    <name>Spring Integration Redis Support</name>
     <properties>
         <org.springframework.version>3.0.5.RELEASE</org.springframework.version>
-        <org.springframework.data.gemfire.version>1.0.0.RELEASE</org.springframework.data.gemfire.version>
+        <org.springframework.data.redis.version>1.0.0.M2-SNAPSHOT</org.springframework.data.redis.version>
         <org.springframework.integration.version>2.0.1.RELEASE</org.springframework.integration.version>
     </properties>
     <dependencies>
         <dependency>
-            <groupId>org.springframework.data.gemfire</groupId>
-            <artifactId>spring-gemfire</artifactId>
-          <version>${org.springframework.data.gemfire.version}</version>
+            <groupId>org.springframework.data</groupId>
+            <artifactId>spring-data-redis</artifactId>
+          <version>${org.springframework.data.redis.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.integration</groupId>
@@ -62,12 +62,6 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.7</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.integration</groupId>
-            <artifactId>spring-integration-stream</artifactId>
-            <version>${org.springframework.integration.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
