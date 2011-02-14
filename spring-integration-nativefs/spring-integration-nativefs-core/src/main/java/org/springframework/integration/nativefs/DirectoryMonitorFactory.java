@@ -2,8 +2,8 @@ package org.springframework.integration.nativefs;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springframework.beans.factory.FactoryBean;
-import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.*;
 import org.springframework.integration.nativefs.fsmon.AbstractDirectoryMonitor;
 import org.springframework.integration.nativefs.fsmon.DirectoryMonitor;
 import org.springframework.util.Assert;
@@ -15,9 +15,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
 
-//import org.springframework.integration.nativefs.fsmon.LinuxInotifyDirectoryMonitor;
-//import org.springframework.integration.nativefs.fsmon.Nio2WatchServiceDirectoryMonitor;
-//import org.springframework.integration.nativefs.fsmon.OsXDirectoryMonitor;
 
 /**
  * We can spare the user pain by dynamically loading the smartest implementation available for their host operating system and JDK.
@@ -34,7 +31,11 @@ import java.util.concurrent.Executor;
  * @author Josh Long
  * @since 2.1
  */
-public class DirectoryMonitorFactory implements FactoryBean<DirectoryMonitor>, InitializingBean {
+public class DirectoryMonitorFactory implements FactoryBean<DirectoryMonitor>, InitializingBean, BeanFactoryAware {
+
+	private DirectoryMonitor directoryMonitor;
+
+	private BeanFactory beanFactory;
 
 	private Log log = LogFactory.getLog(getClass());
 
@@ -111,6 +112,7 @@ public class DirectoryMonitorFactory implements FactoryBean<DirectoryMonitor>, I
 
 	}
 
+
 	/**
 	 * @return whether or not the host operating system (OS X) supports FSevents (10.5 or better will)
 	 */
@@ -126,7 +128,6 @@ public class DirectoryMonitorFactory implements FactoryBean<DirectoryMonitor>, I
 
 		return false;
 	}
-
 
 	/**
 	 * todo add support for Windows
@@ -189,36 +190,6 @@ public class DirectoryMonitorFactory implements FactoryBean<DirectoryMonitor>, I
 
 	@Override
 	public DirectoryMonitor getObject() throws Exception {
-
-		Set<DirectoryMonitor> directoryMonitors = this.resolveSupportedDirectoryMonitorImplementation();
-
-		Assert.isTrue(directoryMonitors.size() == 1, "you must have " +
-				"exactly one compatible " + DirectoryMonitor.class.getName() +
-				"implementation should be on the classpath, but instead there are " + directoryMonitors.size() +
-				" implementations. A compatible implementation is " +
-				"one that works on both this platform and JDK revision. " +
-				"If, for example, you are running on both JDK 7 and " +
-				"Linux, you might have 2 implementations available, so exclude one. " +
-				((directoryMonitors.size() == 0) ?
-						"Since it appears you have no compatible implementations, check that you " +
-								"are running on a supported platform (OSX with FsEvents, Linux 2.6 with inotify, " +
-								"Windows 2000 or later, or a JDK 7 implementation with java.nio.file.WatchService. " +
-								"For operating systems where we have no support for event-based file monitor dispatch (like z/OS), " +
-								"please consider a polling solution instead" : ""));
-
-		DirectoryMonitor directoryMonitor = directoryMonitors.iterator().next();
-
-		if (directoryMonitor instanceof AbstractDirectoryMonitor) {
-			AbstractDirectoryMonitor abstractDirectoryMonitor = ((AbstractDirectoryMonitor) directoryMonitor);
-			abstractDirectoryMonitor.setExecutor(this.executor);
-			if (abstractDirectoryMonitor.isNativeDependencyRequired())
-				notifyNativeDependencyRequired();
-		}
-
-		if (directoryMonitor instanceof InitializingBean) {
-			((InitializingBean) directoryMonitor).afterPropertiesSet();
-		}
-
 		return directoryMonitor;
 	}
 
@@ -235,6 +206,58 @@ public class DirectoryMonitorFactory implements FactoryBean<DirectoryMonitor>, I
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		Assert.notNull(this.executor, "the executor can't be null");
+
+		Set<DirectoryMonitor> directoryMonitors = this.resolveSupportedDirectoryMonitorImplementation(); // defaults
+
+		// any configured types
+		if(this.beanFactory instanceof ListableBeanFactory){
+			ListableBeanFactory listableBeanFactory  = (ListableBeanFactory) this.beanFactory ;
+			Map<String,DirectoryMonitor> monitorsInContext = listableBeanFactory.getBeansOfType(DirectoryMonitor.class);
+			directoryMonitors.addAll( monitorsInContext.values());
+		}
+		// make sure we dont accidentally get two instances of the same class
+		Map<Class,DirectoryMonitor> dedupedInstances = new HashMap <Class,DirectoryMonitor>() ;
+		for(DirectoryMonitor directoryMonitor  : directoryMonitors){
+			dedupedInstances.put( directoryMonitor.getClass(),directoryMonitor);
+		}
+
+		// at this point its possible we have several, and indeed several of the same type with differing configuration
+		directoryMonitors = new HashSet<DirectoryMonitor>(dedupedInstances.values());
+
+		Assert.isTrue(directoryMonitors.size() == 1, "you must have " +
+				"exactly one compatible " + DirectoryMonitor.class.getName() +
+				"implementation should be on the classpath, but instead there are " + directoryMonitors.size() +
+				" implementations. A compatible implementation is " +
+				"one that works on both this platform and JDK revision. " +
+				"If, for example, you are running on both JDK 7 and " +
+				"Linux, you might have 2 implementations available, so exclude one. " +
+				((directoryMonitors.size() == 0) ?
+						"Since it appears you have no compatible implementations, check that you " +
+								"are running on a supported platform (OSX with FsEvents, Linux 2.6 with inotify, " +
+								"Windows 2000 or later, or a JDK 7 implementation with java.nio.file.WatchService. " +
+								"For operating systems where we have no support for event-based file monitor dispatch (like z/OS), " +
+								"please consider a polling solution instead" : ""));
+
+		DirectoryMonitor monitor = directoryMonitors.iterator().next();
+
+		if (monitor instanceof AbstractDirectoryMonitor) {
+			AbstractDirectoryMonitor abstractDirectoryMonitor = ((AbstractDirectoryMonitor) monitor);
+			abstractDirectoryMonitor.setExecutor(this.executor);
+			if (abstractDirectoryMonitor.isNativeDependencyRequired())
+				notifyNativeDependencyRequired();
+		}
+
+		if (monitor instanceof InitializingBean) {
+			((InitializingBean) monitor).afterPropertiesSet();
+		}
+
+		this.directoryMonitor = monitor;
+
+	}
+
+	@Override
+	public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
+		this.beanFactory = beanFactory;
 	}
 
 
@@ -291,8 +314,5 @@ public class DirectoryMonitorFactory implements FactoryBean<DirectoryMonitor>, I
 
 			}
 		}
-
 	}
-
-
 }
