@@ -9,9 +9,6 @@ import java.io.File;
  *
  * @author Josh Long
  * @see AbstractDirectoryMonitor
- * @see LinuxInotifyDirectoryMonitor
- * @see OsXDirectoryMonitor
- * @see WindowsDirectoryMonitor
  */
 public interface DirectoryMonitor {
 
@@ -20,10 +17,8 @@ public interface DirectoryMonitor {
 	 * the {@link org.springframework.integration.nativefs.fsmon.DirectoryMonitor.FileAddedListener}
 	 * implementation whenever a file is observed in the directory.
 	 *
-     * @param file the directory to monitor. The parameter must be a {@link java.io.File} reference, and {@link java.io.File#isDirectory()} must return true
-     *
-     * @param fal the {@link org.springframework.integration.nativefs.fsmon.DirectoryMonitor.FileAddedListener} is the hook for clients to call when a directory perceives a new file.
-     *
+	 * @param file the directory to monitor. The parameter must be a {@link java.io.File} reference, and {@link java.io.File#isDirectory()} must return true
+	 * @param fal	the {@link org.springframework.integration.nativefs.fsmon.DirectoryMonitor.FileAddedListener} is the hook for clients to call when a directory perceives a new file.
 	 */
 	void monitor(File file, FileAddedListener fal);
 

@@ -21,23 +21,24 @@
 
     </dependencies>
 
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-			  <version>2.3.2</version>	<artifactId>maven-compiler-plugin</artifactId>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <version>2.3.2</version>
+                <artifactId>maven-compiler-plugin</artifactId>
 
                 <!--
                 http://www.shinephp.com/install-jdk-7-on-ubuntu/ to get the JDK 7 as the default on ubuntu /debian
                 -->
-			 
-				<configuration>
+
+                <configuration>
                     <verbose>true</verbose>
-<!-- 					<fork>true</fork>-->
-					<source>1.7</source>
-					<target>1.7</target>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
+                    <!-- 					<fork>true</fork>-->
+                    <source>1.7</source>
+                    <target>1.7</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

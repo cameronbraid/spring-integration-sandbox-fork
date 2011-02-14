@@ -1,15 +1,8 @@
 package org.springframework.integration.nativefs.fsmon;
 
-import org.apache.commons.lang.SystemUtils;
-
-import java.io.File;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-
-
 /**
  * Simple client that exercises the {@link org.springframework.integration.nativefs.fsmon.DirectoryMonitor} implementations.
- *
+ * <p/>
  * All implementations should behave correctly and consistently
  *
  * @author Josh Long

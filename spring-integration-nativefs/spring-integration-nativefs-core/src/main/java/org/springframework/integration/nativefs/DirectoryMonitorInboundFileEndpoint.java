@@ -1,16 +1,13 @@
 package org.springframework.integration.nativefs;
 
-import org.apache.log4j.Logger;
 import org.springframework.integration.Message;
 import org.springframework.integration.endpoint.MessageProducerSupport;
 import org.springframework.integration.file.FileHeaders;
 import org.springframework.integration.nativefs.fsmon.DirectoryMonitor;
 import org.springframework.integration.support.MessageBuilder;
 import org.springframework.util.Assert;
-import org.springframework.util.ClassUtils;
 
 import java.io.File;
-import java.util.concurrent.Executor;
 
 
 /**
@@ -28,29 +25,27 @@ public class DirectoryMonitorInboundFileEndpoint extends MessageProducerSupport 
 	private DirectoryMonitor monitor;
 
 
-    /**
-     * the monitor
-     *
-     * @param dm the {@link DirectoryMonitor} implementation.
-     *
-     * @see  {@link DirectoryMonitorFactory} for a clean way of factorying the correct implementation appropriate to your operating system and JDK
-     *
-     */
-    public void setMonitor(DirectoryMonitor dm){
-        this.monitor = dm;
-    }
+	/**
+	 * the monitor
+	 *
+	 * @param dm the {@link DirectoryMonitor} implementation.
+	 * @see {@link DirectoryMonitorFactory} for a clean way of factorying the correct implementation appropriate to your operating system and JDK
+	 */
+	public void setMonitor(DirectoryMonitor dm) {
+		this.monitor = dm;
+	}
 
 	@Override
 	protected void onInit() {
-        Assert.notNull(this.directoryToMonitor, "the directoryToMonitor can't be null");
-        Assert.notNull( this.monitor , "the monitor implementation to use can't be null. See DirectoryMonitorFactory");
+		Assert.notNull(this.directoryToMonitor, "the directoryToMonitor can't be null");
+		Assert.notNull(this.monitor, "the monitor implementation to use can't be null. See DirectoryMonitorFactory");
 
 	}
 
 	@Override
 	protected void doStart() {
 
-        MessageProducingFileAddedListener messageProducingFileAddedListener = new MessageProducingFileAddedListener();
+		MessageProducingFileAddedListener messageProducingFileAddedListener = new MessageProducingFileAddedListener();
 		monitor.monitor(directoryToMonitor, messageProducingFileAddedListener);
 
 	}

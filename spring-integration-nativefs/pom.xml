@@ -14,7 +14,7 @@
         </license>
     </licenses>
     <modules>
- 
+
         <module>spring-integration-nativefs-linux</module>
         <module>spring-integration-nativefs-windows</module>
         <module>spring-integration-nativefs-nio2</module>

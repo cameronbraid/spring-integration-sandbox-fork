@@ -1,20 +1,23 @@
 package org.springframework.integration.nativefs;
 
-import org.apache.log4j.Logger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.integration.nativefs.fsmon.AbstractDirectoryMonitor;
 import org.springframework.integration.nativefs.fsmon.DirectoryMonitor;
-//import org.springframework.integration.nativefs.fsmon.LinuxInotifyDirectoryMonitor;
-//import org.springframework.integration.nativefs.fsmon.Nio2WatchServiceDirectoryMonitor;
-import org.springframework.integration.nativefs.fsmon.OsXDirectoryMonitor;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
+
+//import org.springframework.integration.nativefs.fsmon.LinuxInotifyDirectoryMonitor;
+//import org.springframework.integration.nativefs.fsmon.Nio2WatchServiceDirectoryMonitor;
+//import org.springframework.integration.nativefs.fsmon.OsXDirectoryMonitor;
 
 /**
  * We can spare the user pain by dynamically loading the smartest implementation available for their host operating system and JDK.
@@ -33,266 +36,263 @@ import java.util.concurrent.Executors;
  */
 public class DirectoryMonitorFactory implements FactoryBean<DirectoryMonitor>, InitializingBean {
 
-    private Logger logger = Logger.getLogger(DirectoryMonitorFactory.class);
+	private Log log = LogFactory.getLog(getClass());
 
-    /**
-     * not necessarily used by all implementations, but most of them do use it, so we require it.
-     */
-    private Executor executor;
+	/**
+	 * not necessarily used by all implementations, but most of them do use it, so we require it.
+	 */
+	private Executor executor;
 
-    /**
-     * the executor to be given to all {@link org.springframework.integration.nativefs.fsmon.DirectoryMonitor} references
-     *
-     * @param ex the executor
-     */
-    public void setExecutor(Executor ex) {
-        this.executor = ex;
-    }
-
-    /**
-     * is JDK 7 NIO.2 support for WatchServices available?
-     *
-     * @return whether or not the JDK java.nio.file.WatchService hierarchy is available.
-     */
-    protected boolean supportsJdk7WatchService() {
-        String watchServiceAvailable = "java.nio.file.WatchService";
-
-        boolean hasWatchServiceClazz = true;
-
-        try {
-            ClassUtils.forName(watchServiceAvailable, ClassUtils.getDefaultClassLoader());
-        } catch (Exception e) {
-            hasWatchServiceClazz = false;
-        }
-
-        return hasWatchServiceClazz;
-    }
-
-    /**
-     * tells whether or not the host operating system is Linux and supports dispatching using the inotify
-     * kernel facility. inotify has been available in Linux kernel since 2.6.13
-     *
-     * @return whether or the OS is Linux and whether the kernel supports inotify. basically, is this an appropriate pplace to run the {@link org.springframework.integration.nativefs.fsmon.LinuxInotifyDirectoryMonitor}
-     */
-    protected boolean supportsLinuxInotify() {
-
-        boolean inotifySupported = false;
-        String os = System.getProperty("os.name");
-        SystemVersion v = SystemVersion.getSystemVersion();
-
-        if (os.toLowerCase().indexOf("linux") != -1) {
-            if (v.getMicroVersion() != 0) {
-                int majorVersion = v.getMajorVersion();
-                int minorVersion = v.getMinorVersion();
-                int microVersion = v.hasMicroVersion() ? v.getMicroVersion() : -1;
-
-
-                inotifySupported = ((majorVersion > 2) ||
-                        ((majorVersion == 2) && (minorVersion > 6)) ||
-                        ((majorVersion == 2) && (minorVersion == 6) &&
-                                (microVersion >= 13)));
-            }
-        }
-
-        return inotifySupported;
-    }
-
-    /**
-     * most of these implementations require a native dependency. this message should remind people of the correct use for these native dependencies.
-     */
-    protected void notifyNativeDependencyRequired() {
-
-        if (logger.isInfoEnabled())
-            logger.debug("The DirectoryMonitor implementation you are running requires a native dependency on your library path. Typically, this involves" +
-                    "selecting the correct dependency (libsifsmon.so on Linux, libsifsmon.dylib on OSX, libsifsmon.dll on Windows) and ensuring it can be" +
-                    "found on one of your target system's library paths (well known paths like /user/lib, or a specific path " +
-                    "specified by using -Djava.library.path=... on the command line for your JDK invocation).");
-
-    }
-
-    /**
-     * detect whether we can use the {@link org.springframework.integration.nativefs.fsmon.OsXDirectoryMonitor} implemetnation on this system
-     *
-     * @return whether or not the host operating system (OS X) supports FSevents (10.5 or better will)
-     */
-
-    protected boolean supportsOsXFsEvents() {
-        String os = System.getProperty("os.name");
-        //Mac OS X and 10.6.5
-
-        if (os.toLowerCase().indexOf("os x") != -1) {
-            SystemVersion sv = SystemVersion.getSystemVersion();
-            if (sv.getMajorVersion() >= 10 && sv.getMinorVersion() >= 5)
-                return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * todo add support for Windows
-     *
-     * @return whether or not the target OS is windows and supports the correct APIs to make this work.
-     */
-
-    protected boolean supportsWindows() {
-        return false;
-    }
-
-
-	 private
-	Map<String,Boolean> supportedInstances(){
-
-		Map<String,Boolean> mapOfSupportedMonitors = new HashMap<String,Boolean>();
-
-		 String pkg = AbstractDirectoryMonitor.class.getName(); // all the other known impls live in the same package
-		 pkg =pkg.substring( pkg .lastIndexOf(".")) ;
-
-		mapOfSupportedMonitors.put("LinuxInotifyDirectoryMonitor", supportsLinuxInotify()) ;
-		mapOfSupportedMonitors.put("OsXDirectoryMonitor", supportsOsXFsEvents());
-		mapOfSupportedMonitors.put( pkg +"Nio2WatchServiceDirectoryMonitor",supportsJdk7WatchService());
-
-
-		return mapOfSupportedMonitors ;
+	/**
+	 * the executor to be given to all {@link org.springframework.integration.nativefs.fsmon.DirectoryMonitor} references
+	 *
+	 * @param ex the executor
+	 */
+	public void setExecutor(Executor ex) {
+		this.executor = ex;
 	}
 
-    @Override
-    public DirectoryMonitor getObject() throws Exception {
+	/**
+	 * is JDK 7 NIO.2 support for WatchServices available?
+	 *
+	 * @return whether or not the JDK java.nio.file.WatchService hierarchy is available.
+	 */
+	protected boolean supportsJdk7WatchService() {
+		String watchServiceAvailable = "java.nio.file.WatchService";
+
+		boolean hasWatchServiceClazz = true;
+
+		try {
+			ClassUtils.forName(watchServiceAvailable, ClassUtils.getDefaultClassLoader());
+		} catch (Exception e) {
+			hasWatchServiceClazz = false;
+		}
+
+		return hasWatchServiceClazz;
+	}
+
+	/**
+	 * tells whether or not the host operating system is Linux and supports dispatching using the inotify
+	 * kernel facility. inotify has been available in Linux kernel since 2.6.13
+	 */
+	protected boolean supportsLinuxInotify() {
+
+		boolean inotifySupported = false;
+		String os = System.getProperty("os.name");
+		SystemVersion v = SystemVersion.getSystemVersion();
+
+		if (os.toLowerCase().indexOf("linux") != -1) {
+			if (v.getMicroVersion() != 0) {
+				int majorVersion = v.getMajorVersion();
+				int minorVersion = v.getMinorVersion();
+				int microVersion = v.hasMicroVersion() ? v.getMicroVersion() : -1;
 
 
-			DirectoryMonitor directoryMonitor = null;
+				inotifySupported = ((majorVersion > 2) ||
+						((majorVersion == 2) && (minorVersion > 6)) ||
+						((majorVersion == 2) && (minorVersion == 6) &&
+								(microVersion >= 13)));
+			}
+		}
+
+		return inotifySupported;
+	}
+
+	/**
+	 * most of these implementations require a native dependency. this message should remind people of the correct use for these native dependencies.
+	 */
+	protected void notifyNativeDependencyRequired() {
+
+		if (log.isInfoEnabled())
+			log.debug("The DirectoryMonitor implementation you are running requires a native dependency on your library path. Typically, this involves" +
+					"selecting the correct dependency (libsifsmon.so on Linux, libsifsmon.dylib on OSX, libsifsmon.dll on Windows) and ensuring it can be" +
+					"found on one of your target system's library paths (well known paths like /user/lib, or a specific path " +
+					"specified by using -Djava.library.path=... on the command line for your JDK invocation).");
+
+	}
+
+	/**
+	 * @return whether or not the host operating system (OS X) supports FSevents (10.5 or better will)
+	 */
+	protected boolean supportsOsXFsEvents() {
+		String os = System.getProperty("os.name");
+		//Mac OS X and 10.6.5
+
+		if (os.toLowerCase().indexOf("os x") != -1) {
+			SystemVersion sv = SystemVersion.getSystemVersion();
+			if (sv.getMajorVersion() >= 10 && sv.getMinorVersion() >= 5)
+				return true;
+		}
+
+		return false;
+	}
 
 
+	/**
+	 * todo add support for Windows
+	 *
+	 * @return whether or not the target OS is windows and supports the correct APIs to make this work.
+	 */
 
-			Map<String,Boolean> supportedMonitors = this.supportedInstances();
-			for(String clazzName : supportedMonitors.keySet())
-			{
+	protected boolean supportsWindows() {
+		return false;
+	}
 
+	/**
+	 * builds a map of well-known {@link DirectoryMonitor} implementations and whether or not that implementation, if it was available, could work on this system..
+	 * <p/>
+	 * This method does not test whether or not that implementation actually exists, though.
+	 *
+	 * @return map of known implementations => whether or not that implementation could work on ths system
+	 */
+	private Map<String, Boolean> supportedInstances() {
+		Map<String, Boolean> mapOfSupportedMonitors = new HashMap<String, Boolean>();
+		String pkg = AbstractDirectoryMonitor.class.getName();
+		pkg = pkg.substring(0, pkg.lastIndexOf(".")) + ".";
+		mapOfSupportedMonitors.put(pkg + "LinuxInotifyDirectoryMonitor", supportsLinuxInotify());
+		mapOfSupportedMonitors.put(pkg + "OsXDirectoryMonitor", supportsOsXFsEvents());
+		mapOfSupportedMonitors.put(pkg + "Nio2WatchServiceDirectoryMonitor", supportsJdk7WatchService());
+		mapOfSupportedMonitors.put(pkg + "WindowsDirectoryMonitor", supportsWindows());
+		return mapOfSupportedMonitors;
+	}
+
+	private Set<DirectoryMonitor> resolveSupportedDirectoryMonitorImplementation() {
+
+		Set<DirectoryMonitor> monitors = new HashSet<DirectoryMonitor>();
+		Map<String, Boolean> supportedMonitors = this.supportedInstances();
+		for (String clazzName : supportedMonitors.keySet()) {
+			Object o;
+			boolean supported = supportedMonitors.get(clazzName);
+			if (supported) {
+				try {
+					o = Class.forName(clazzName);
+					if (o instanceof DirectoryMonitor) {
+						DirectoryMonitor directoryMonitor = (DirectoryMonitor) o;
+						monitors.add(directoryMonitor);
+						if (log.isDebugEnabled())
+							log.debug(clazzName + " is supported, and exists on the classpath");
+					}
+				} catch (Throwable t) {
+					log.warn("could not load " + clazzName +
+							", and encountered an exception when " +
+							"trying to create an instance of it. " +
+							"Please ensure that " + clazzName +
+							" is on your CLASSPATH.", t);
+
+				}
 			}
 
-        /*DirectoryMonitor dm = null;
+		}
+		return monitors;
 
-        if (this.supportsLinuxInotify()) {
-					*//*
-            LinuxInotifyDirectoryMonitor linuxInotifyDirectoryMonitor = new LinuxInotifyDirectoryMonitor();
-            linuxInotifyDirectoryMonitor.setExecutor(this.executor);
-            linuxInotifyDirectoryMonitor.afterPropertiesSet();*//*
-         *//*   dm = linuxInotifyDirectoryMonitor;*//*
-            notifyNativeDependencyRequired();
+	}
 
-        } else if (this.supportsOsXFsEvents()) {
-            OsXDirectoryMonitor osxd = new OsXDirectoryMonitor();
-            osxd.setExecutor(this.executor);
-            osxd.afterPropertiesSet();
-            dm = osxd;
+	@Override
+	public DirectoryMonitor getObject() throws Exception {
 
-            notifyNativeDependencyRequired();
+		Set<DirectoryMonitor> directoryMonitors = this.resolveSupportedDirectoryMonitorImplementation();
 
-        } else if (this.supportsWindows()) {
+		Assert.isTrue(directoryMonitors.size() == 1, "you must have " +
+				"exactly one compatible " + DirectoryMonitor.class.getName() +
+				"implementation should be on the classpath, but instead there are " + directoryMonitors.size() +
+				" implementations. A compatible implementation is " +
+				"one that works on both this platform and JDK revision. " +
+				"If, for example, you are running on both JDK 7 and " +
+				"Linux, you might have 2 implementations available, so exclude one. " +
+				((directoryMonitors.size() == 0) ?
+						"Since it appears you have no compatible implementations, check that you " +
+								"are running on a supported platform (OSX with FsEvents, Linux 2.6 with inotify, " +
+								"Windows 2000 or later, or a JDK 7 implementation with java.nio.file.WatchService. " +
+								"For operating systems where we have no support for event-based file monitor dispatch (like z/OS), " +
+								"please consider a polling solution instead" : ""));
 
-            notifyNativeDependencyRequired();
+		DirectoryMonitor directoryMonitor = directoryMonitors.iterator().next();
 
-        } else if (this.supportsJdk7WatchService()) {
-            *//**
-             * this code will compile, but not run on operating systems without a JDK7 install. Particularly, we need JDK7's watchservice which,
-             * as of this writing, was only available from OpenJDK7 on Linux (presumably for the same reason that our native support was first available
-             * on Linux: it's <em>much</em> easier to get that working than the equivalent OSX or Windows code.
-             *//*
-           *//* Nio2WatchServiceDirectoryMonitor nio2WatchServiceDirectoryMonitor = new Nio2WatchServiceDirectoryMonitor();
-            nio2WatchServiceDirectoryMonitor.setExecutor(this.executor);
-            nio2WatchServiceDirectoryMonitor.afterPropertiesSet();
-            dm = nio2WatchServiceDirectoryMonitor;
-  *//* dm =null;
-        }*/
-return null ;
-        // z/OS?
-       /* Assert.notNull(dm, "the DirectoryMonitor instance hasn't been intialized. This indicates you " +
-                "aren't running on a supported platform (OSX with FsEvents, Linux 2.6 with inotify, " +
-                "Windows 2000 or later, or a JDK 7 implementation with java.nio.file.WatchService. " +
-                "For operating systems where we have no support for event-based file monitor dispatch (like z/OS), " +
-                "please consider a polling solution instead");
+		if (directoryMonitor instanceof AbstractDirectoryMonitor) {
+			AbstractDirectoryMonitor abstractDirectoryMonitor = ((AbstractDirectoryMonitor) directoryMonitor);
+			abstractDirectoryMonitor.setExecutor(this.executor);
+			if (abstractDirectoryMonitor.isNativeDependencyRequired())
+				notifyNativeDependencyRequired();
+		}
 
-        return dm;*/
-    }
+		if (directoryMonitor instanceof InitializingBean) {
+			((InitializingBean) directoryMonitor).afterPropertiesSet();
+		}
 
-    @Override
-    public Class<?> getObjectType() {
-        return DirectoryMonitor.class;
-    }
+		return directoryMonitor;
+	}
 
-    @Override
-    public boolean isSingleton() {
-        return true;
-    }
+	@Override
+	public Class<?> getObjectType() {
+		return DirectoryMonitor.class;
+	}
 
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        Assert.notNull(this.executor, "the executor can't be null");
-    }
+	@Override
+	public boolean isSingleton() {
+		return true;
+	}
 
-    public static void main(String[] args) throws Throwable {
-        DirectoryMonitorFactory factory = new DirectoryMonitorFactory();
-        factory.setExecutor(Executors.newScheduledThreadPool(10));
-        factory.afterPropertiesSet();
-        DirectoryMonitor dm = factory.getObject();
-    }
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		Assert.notNull(this.executor, "the executor can't be null");
+	}
 
 
-    /**
-     * utility class to facilitate parsing the system version property, which can be tedious.
-     *
-     * @author Josh Long
-     * @since 2.1
-     */
-    private static class SystemVersion {
+	/**
+	 * utility class to facilitate parsing the system version property, which can be tedious.
+	 *
+	 * @author Josh Long
+	 * @since 2.1
+	 */
+	private static class SystemVersion {
 
-        private boolean hasMicro;
-        private int major, minor, micro;
+		private boolean hasMicro;
+		private int major, minor, micro;
 
-        public static SystemVersion getSystemVersion() {
-            return new SystemVersion(System.getProperty("os.version"));
-        }
+		public static SystemVersion getSystemVersion() {
+			return new SystemVersion(System.getProperty("os.version"));
+		}
 
-        public boolean hasMicroVersion() {
-            return this.hasMicro;
-        }
+		public boolean hasMicroVersion() {
+			return this.hasMicro;
+		}
 
-        public int getMajorVersion() {
-            return this.major;
-        }
+		public int getMajorVersion() {
+			return this.major;
+		}
 
-        public int getMinorVersion() {
-            return this.minor;
-        }
+		public int getMinorVersion() {
+			return this.minor;
+		}
 
-        public int getMicroVersion() {
-            return this.micro;
-        }
+		public int getMicroVersion() {
+			return this.micro;
+		}
 
-        public SystemVersion(String version) {
-            String[] versionPieces = version.split("\\.");
-            if (versionPieces.length >= 2) {
-                int majorVersion = Integer.parseInt(versionPieces[0]);
-                int minorVersion = Integer.parseInt(versionPieces[1]);
-                int microVersion = 0;
+		public SystemVersion(String version) {
+			String[] versionPieces = version.split("\\.");
+			if (versionPieces.length >= 2) {
+				int majorVersion = Integer.parseInt(versionPieces[0]);
+				int minorVersion = Integer.parseInt(versionPieces[1]);
+				int microVersion = 0;
 
-                if (versionPieces.length > 2) {
-                    String[] microVersionPieces = versionPieces[2].split("-");
+				if (versionPieces.length > 2) {
+					String[] microVersionPieces = versionPieces[2].split("-");
 
-                    if (microVersionPieces.length > 0) {
-                        microVersion = Integer.parseInt(microVersionPieces[0]);
-                        hasMicro = true;
-                    }
-                }
+					if (microVersionPieces.length > 0) {
+						microVersion = Integer.parseInt(microVersionPieces[0]);
+						hasMicro = true;
+					}
+				}
 
-                this.major = majorVersion;
-                this.micro = microVersion;
-                this.minor = minorVersion;
+				this.major = majorVersion;
+				this.micro = microVersion;
+				this.minor = minorVersion;
 
-            }
-        }
+			}
+		}
 
-    }
+	}
 
 
 }
