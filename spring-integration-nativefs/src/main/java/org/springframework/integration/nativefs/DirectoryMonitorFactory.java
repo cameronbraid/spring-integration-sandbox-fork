@@ -5,7 +5,7 @@ import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.integration.nativefs.fsmon.DirectoryMonitor;
 import org.springframework.integration.nativefs.fsmon.LinuxInotifyDirectoryMonitor;
-import org.springframework.integration.nativefs.fsmon.Nio2WatchServiceDirectoryMonitor;
+//import org.springframework.integration.nativefs.fsmon.Nio2WatchServiceDirectoryMonitor;
 import org.springframework.integration.nativefs.fsmon.OsXDirectoryMonitor;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
@@ -163,10 +163,11 @@ public class DirectoryMonitorFactory implements FactoryBean<DirectoryMonitor>, I
              * as of this writing, was only available from OpenJDK7 on Linux (presumably for the same reason that our native support was first available
              * on Linux: it's <em>much</em> easier to get that working than the equivalent OSX or Windows code.
              */
-            Nio2WatchServiceDirectoryMonitor nio2WatchServiceDirectoryMonitor = new Nio2WatchServiceDirectoryMonitor();
+           /* Nio2WatchServiceDirectoryMonitor nio2WatchServiceDirectoryMonitor = new Nio2WatchServiceDirectoryMonitor();
             nio2WatchServiceDirectoryMonitor.setExecutor(this.executor);
             nio2WatchServiceDirectoryMonitor.afterPropertiesSet();
             dm = nio2WatchServiceDirectoryMonitor;
+  */ dm =null; 
         }
 
         // z/OS?
