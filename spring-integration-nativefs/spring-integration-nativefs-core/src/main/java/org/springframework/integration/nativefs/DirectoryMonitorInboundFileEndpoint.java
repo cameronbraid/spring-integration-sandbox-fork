@@ -5,7 +5,6 @@ import org.springframework.integration.Message;
 import org.springframework.integration.endpoint.MessageProducerSupport;
 import org.springframework.integration.file.FileHeaders;
 import org.springframework.integration.nativefs.fsmon.DirectoryMonitor;
-import org.springframework.integration.nativefs.fsmon.LinuxInotifyDirectoryMonitor;
 import org.springframework.integration.support.MessageBuilder;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;

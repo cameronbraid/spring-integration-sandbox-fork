@@ -3,13 +3,16 @@ package org.springframework.integration.nativefs;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.integration.nativefs.fsmon.AbstractDirectoryMonitor;
 import org.springframework.integration.nativefs.fsmon.DirectoryMonitor;
-import org.springframework.integration.nativefs.fsmon.LinuxInotifyDirectoryMonitor;
+//import org.springframework.integration.nativefs.fsmon.LinuxInotifyDirectoryMonitor;
 //import org.springframework.integration.nativefs.fsmon.Nio2WatchServiceDirectoryMonitor;
 import org.springframework.integration.nativefs.fsmon.OsXDirectoryMonitor;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -136,21 +139,53 @@ public class DirectoryMonitorFactory implements FactoryBean<DirectoryMonitor>, I
         return false;
     }
 
+
+	 private
+	Map<String,Boolean> supportedInstances(){
+
+		Map<String,Boolean> mapOfSupportedMonitors = new HashMap<String,Boolean>();
+
+		 String pkg = AbstractDirectoryMonitor.class.getName(); // all the other known impls live in the same package
+		 pkg =pkg.substring( pkg .lastIndexOf(".")) ;
+
+		mapOfSupportedMonitors.put("LinuxInotifyDirectoryMonitor", supportsLinuxInotify()) ;
+		mapOfSupportedMonitors.put("OsXDirectoryMonitor", supportsOsXFsEvents());
+		mapOfSupportedMonitors.put( pkg +"Nio2WatchServiceDirectoryMonitor",supportsJdk7WatchService());
+
+
+		return mapOfSupportedMonitors ;
+	}
+
     @Override
     public DirectoryMonitor getObject() throws Exception {
-        DirectoryMonitor dm = null;
+
+
+			DirectoryMonitor directoryMonitor = null;
+
+
+
+			Map<String,Boolean> supportedMonitors = this.supportedInstances();
+			for(String clazzName : supportedMonitors.keySet())
+			{
+
+			}
+
+        /*DirectoryMonitor dm = null;
 
         if (this.supportsLinuxInotify()) {
+					*//*
             LinuxInotifyDirectoryMonitor linuxInotifyDirectoryMonitor = new LinuxInotifyDirectoryMonitor();
             linuxInotifyDirectoryMonitor.setExecutor(this.executor);
-            linuxInotifyDirectoryMonitor.afterPropertiesSet();
-            dm = linuxInotifyDirectoryMonitor;
+            linuxInotifyDirectoryMonitor.afterPropertiesSet();*//*
+         *//*   dm = linuxInotifyDirectoryMonitor;*//*
             notifyNativeDependencyRequired();
+
         } else if (this.supportsOsXFsEvents()) {
             OsXDirectoryMonitor osxd = new OsXDirectoryMonitor();
             osxd.setExecutor(this.executor);
             osxd.afterPropertiesSet();
             dm = osxd;
+
             notifyNativeDependencyRequired();
 
         } else if (this.supportsWindows()) {
@@ -158,26 +193,26 @@ public class DirectoryMonitorFactory implements FactoryBean<DirectoryMonitor>, I
             notifyNativeDependencyRequired();
 
         } else if (this.supportsJdk7WatchService()) {
-            /**
+            *//**
              * this code will compile, but not run on operating systems without a JDK7 install. Particularly, we need JDK7's watchservice which,
              * as of this writing, was only available from OpenJDK7 on Linux (presumably for the same reason that our native support was first available
              * on Linux: it's <em>much</em> easier to get that working than the equivalent OSX or Windows code.
-             */
-           /* Nio2WatchServiceDirectoryMonitor nio2WatchServiceDirectoryMonitor = new Nio2WatchServiceDirectoryMonitor();
+             *//*
+           *//* Nio2WatchServiceDirectoryMonitor nio2WatchServiceDirectoryMonitor = new Nio2WatchServiceDirectoryMonitor();
             nio2WatchServiceDirectoryMonitor.setExecutor(this.executor);
             nio2WatchServiceDirectoryMonitor.afterPropertiesSet();
             dm = nio2WatchServiceDirectoryMonitor;
-  */ dm =null; 
-        }
-
+  *//* dm =null;
+        }*/
+return null ;
         // z/OS?
-        Assert.notNull(dm, "the DirectoryMonitor instance hasn't been intialized. This indicates you " +
+       /* Assert.notNull(dm, "the DirectoryMonitor instance hasn't been intialized. This indicates you " +
                 "aren't running on a supported platform (OSX with FsEvents, Linux 2.6 with inotify, " +
                 "Windows 2000 or later, or a JDK 7 implementation with java.nio.file.WatchService. " +
                 "For operating systems where we have no support for event-based file monitor dispatch (like z/OS), " +
                 "please consider a polling solution instead");
 
-        return dm;
+        return dm;*/
     }
 
     @Override

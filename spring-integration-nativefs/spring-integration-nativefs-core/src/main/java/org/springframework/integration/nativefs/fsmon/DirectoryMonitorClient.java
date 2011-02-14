@@ -16,7 +16,7 @@ import java.util.concurrent.Executors;
  * @since 1.0
  */
 public class DirectoryMonitorClient {
-	public static void main(String[] args) throws Throwable {
+	/*public static void main(String[] args) throws Throwable {
 
 		//String usrHome = System.getPropert
 
@@ -44,5 +44,5 @@ public class DirectoryMonitorClient {
 		for (File f : files) {
 			monitor.monitor(f, fileAddedListener);
 		}
-	}
+	}*/
 }
