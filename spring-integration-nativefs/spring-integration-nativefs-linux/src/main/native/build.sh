@@ -1,5 +1,5 @@
-#javac com/joshlong/esb/springintegration/modules/nativefs/NativeFileSystemMonitor.java
-#javah -classpath . com.joshlong.esb.springintegration.modules.nativefs.NativeFileSystemMonitor
+
+#javah -classpath . a.b.c.nativefs.NativeFileSystemMonitor
 # http://www.gentoo.org/proj/en/base/amd64/howtos/index.xml?part=1&chap=3
 # https://wiki.ubuntu.com/PackagingGuide/SharedLibraries
 
@@ -12,4 +12,4 @@ touch libsifsmon.so; rm libsifsmon.so;
 gcc  -o libsifsmon.so -shared  -fPIC -I$JDK_INCLUDE_DIR -I$JDK_INCLUDE_DIR/linux fsmon.c -lc ;
 
 
-#java -Djava.library.path=`pwd` -cp . com.joshlong.esb.springintegration.modules.nativefs.NativeFileSystemMonitor
+#java -Djava.library.path=`pwd` -cp . a.b.c.NativeFileSystemMonitor

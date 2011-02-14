@@ -15,12 +15,12 @@ Mario Gray (mario.gray@gmail.com)
 #define EVENT_SIZE  ( sizeof (struct inotify_event) )
 #define BUF_LEN     ( 1024 * ( EVENT_SIZE + 16 ) )
 
-#ifndef _Included_org_springframework_integration_nativefs_fsmon_LinuxInotifyDirectoryMonitor
-#define _Included_org_springframework_integration_nativefs_fsmon_LinuxInotifyDirectoryMonitor
+#ifndef _Included_org_springframework_integration_nativefs_fsmon_linux_LinuxInotifyDirectoryMonitor
+#define _Included_org_springframework_integration_nativefs_fsmon_linux_LinuxInotifyDirectoryMonitor
 #ifdef __cplusplus
 extern "C" {
 #endif
-JNIEXPORT void JNICALL Java_org_springframework_integration_nativefs_fsmon_LinuxInotifyDirectoryMonitor_startMonitor(JNIEnv *,jobject, jstring);
+JNIEXPORT void JNICALL Java_org_springframework_integration_nativefs_fsmon_linux_LinuxInotifyDirectoryMonitor_startMonitor(JNIEnv *,jobject, jstring);
 #ifdef __cplusplus
 }
 #endif
