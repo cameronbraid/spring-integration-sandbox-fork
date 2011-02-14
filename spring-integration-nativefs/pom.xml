@@ -175,6 +175,23 @@
                     <target>1.6</target>
                 </configuration>
             </plugin>
+
+
+
+            <plugin>
+                 <groupId>org.apache.maven.plugins</groupId>
+                 <artifactId>maven-surefire-plugin</artifactId>
+                 <configuration>
+                   <systemProperties>
+                     <property>
+                       <name>integration.nativefs.fsmon</name>
+                       <value>${project.basedir}/src/main/native/</value>
+                     </property>
+                   </systemProperties>
+                 </configuration>
+               </plugin>
+
+
         </plugins>
     </build>
     <!-- http://maven.apache.org/plugins/maven-enforcer-plugin/rules/requireOS.html -->

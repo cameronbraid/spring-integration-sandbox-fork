@@ -151,7 +151,7 @@ public class DirectoryMonitorFactory implements FactoryBean<DirectoryMonitor>, I
 		String pkg = AbstractDirectoryMonitor.class.getName();
 		pkg = pkg.substring(0, pkg.lastIndexOf(".")) + ".";
 		mapOfSupportedMonitors.put(pkg + "linux.LinuxInotifyDirectoryMonitor", supportsLinuxInotify());
-		mapOfSupportedMonitors.put(pkg + "OsXDirectoryMonitor", supportsOsXFsEvents());
+		mapOfSupportedMonitors.put(pkg + "osx.OsXDirectoryMonitor", supportsOsXFsEvents());
 		mapOfSupportedMonitors.put(pkg + "Nio2WatchServiceDirectoryMonitor", supportsJdk7WatchService());
 		mapOfSupportedMonitors.put(pkg + "WindowsDirectoryMonitor", supportsWindows());
 		return mapOfSupportedMonitors;

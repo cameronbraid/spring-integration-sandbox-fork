@@ -153,13 +153,13 @@ void start_monitor( char * path ){
  * the shared library exports this function specifically for consumption from Java
  *
 **/
-#ifndef _Included_org_springframework_integration_nativefs_fsmon_OsXDirectoryMonitor
-#define _Included_org_springframework_integration_nativefs_fsmon_OsXDirectoryMonitor
+#ifndef _Included_org_springframework_integration_nativefs_fsmon_osx_OsXDirectoryMonitor
+#define _Included_org_springframework_integration_nativefs_fsmon_osx_OsXDirectoryMonitor
 #ifdef __cplusplus
 extern "C" {
 #endif
 	/** used by Java code to start the monitoring process */
-	JNIEXPORT void JNICALL Java_org_springframework_integration_nativefs_fsmon_OsXDirectoryMonitor_monitor( JNIEnv * env,  jobject obj,  jstring javaSpecifiedPath)
+	JNIEXPORT void JNICALL Java_org_springframework_integration_nativefs_fsmon_osx_OsXDirectoryMonitor_monitor( JNIEnv * env,  jobject obj,  jstring javaSpecifiedPath)
 	{
 		char * path = (char *)(*env)->GetStringUTFChars( env, javaSpecifiedPath , NULL ) ;
 		jclass cls = (*env)->GetObjectClass( env,  obj);
