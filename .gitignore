@@ -2,7 +2,9 @@ lib
 target
 .springBeans
 .settings
-*.iml
+**/*.iml
+**/*.ipr
+**/*.iws
 .idea
 spring-integration-gemfire/BACKUP_*
 spring-integration-gemfire/KEYS_*
