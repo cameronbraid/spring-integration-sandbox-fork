@@ -9,8 +9,7 @@ import java.io.File;
  *
  * @author Josh Long
  * @see AbstractDirectoryMonitor
- * @see Nio2WatchServiceDirectoryMonitor
- * @see org.springframework.integration.nativefs.fsmon.LinuxInotifyDirectoryMonitor
+ * @see LinuxInotifyDirectoryMonitor
  * @see OsXDirectoryMonitor
  * @see WindowsDirectoryMonitor
  */

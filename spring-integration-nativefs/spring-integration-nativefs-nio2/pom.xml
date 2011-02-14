@@ -3,7 +3,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>spring-integration-nativefs-jdk7</artifactId>
+    <artifactId>spring-integration-nativefs-nio2</artifactId>
 
 
     <parent>
@@ -25,7 +25,7 @@
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
+			  <version>2.3.2</version>	<artifactId>maven-compiler-plugin</artifactId>
 
                 <!--
                 http://www.shinephp.com/install-jdk-7-on-ubuntu/ to get the JDK 7 as the default on ubuntu /debian
@@ -33,9 +33,9 @@
 			 
 				<configuration>
                     <verbose>true</verbose>
-					<fork>true</fork>
+<!-- 					<fork>true</fork>-->
 					<source>1.7</source>
-					<target>1.6</target>
+					<target>1.7</target>
 				</configuration>
 			</plugin>
 		</plugins>
