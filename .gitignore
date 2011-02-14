@@ -4,6 +4,12 @@
 target
 .springBeans
 .settings
+**/**.iml
+**.iml
+**/**.ipr
+**.ipr
+**/**.iws
+**.iws
 .idea
 spring-integration-gemfire/BACKUP_*
 spring-integration-gemfire/KEYS_*

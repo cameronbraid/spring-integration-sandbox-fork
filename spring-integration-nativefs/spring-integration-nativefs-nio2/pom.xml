@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>spring-integration-nativefs-nio2</artifactId>
+    <name>spring-integration-nativefs-nio2</name>
+
+
+    <parent>
+        <groupId>org.springframework.integration</groupId>
+        <artifactId>spring-integration-nativefs</artifactId>
+        <version>2.1.BUILD-SNAPSHOT</version>
+    </parent>
+
+    <dependencies>
+        <dependency>
+            <version>${version}</version>
+            <groupId>org.springframework.integration</groupId>
+            <artifactId>spring-integration-nativefs-core</artifactId>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <version>2.3.2</version>
+                <artifactId>maven-compiler-plugin</artifactId>
+
+                <!--
+                http://www.shinephp.com/install-jdk-7-on-ubuntu/ to get the JDK 7 as the default on ubuntu /debian
+                -->
+
+                <configuration>
+                    <verbose>true</verbose>
+                    <!-- 					<fork>true</fork>-->
+                    <source>1.7</source>
+                    <target>1.7</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
