@@ -4,6 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>spring-integration-nativefs-osx</artifactId>
+    <name>spring-integration-nativefs-osx</name>
 
 
     <parent>

@@ -4,6 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>spring-integration-nativefs-linux</artifactId>
+    <name>spring-integration-nativefs-linux</name>
 
 
     <parent>

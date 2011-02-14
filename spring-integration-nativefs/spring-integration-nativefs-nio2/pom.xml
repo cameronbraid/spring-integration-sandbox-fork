@@ -4,6 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>spring-integration-nativefs-nio2</artifactId>
+    <name>spring-integration-nativefs-nio2</name>
 
 
     <parent>

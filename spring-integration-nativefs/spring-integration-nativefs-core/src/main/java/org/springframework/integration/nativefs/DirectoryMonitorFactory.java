@@ -210,15 +210,15 @@ public class DirectoryMonitorFactory implements FactoryBean<DirectoryMonitor>, I
 		Set<DirectoryMonitor> directoryMonitors = this.resolveSupportedDirectoryMonitorImplementation(); // defaults
 
 		// any configured types
-		if(this.beanFactory instanceof ListableBeanFactory){
-			ListableBeanFactory listableBeanFactory  = (ListableBeanFactory) this.beanFactory ;
-			Map<String,DirectoryMonitor> monitorsInContext = listableBeanFactory.getBeansOfType(DirectoryMonitor.class);
-			directoryMonitors.addAll( monitorsInContext.values());
+		if (this.beanFactory instanceof ListableBeanFactory) {
+			ListableBeanFactory listableBeanFactory = (ListableBeanFactory) this.beanFactory;
+			Map<String, DirectoryMonitor> monitorsInContext = listableBeanFactory.getBeansOfType(DirectoryMonitor.class);
+			directoryMonitors.addAll(monitorsInContext.values());
 		}
 		// make sure we dont accidentally get two instances of the same class
-		Map<Class,DirectoryMonitor> dedupedInstances = new HashMap <Class,DirectoryMonitor>() ;
-		for(DirectoryMonitor directoryMonitor  : directoryMonitors){
-			dedupedInstances.put( directoryMonitor.getClass(),directoryMonitor);
+		Map<Class, DirectoryMonitor> dedupedInstances = new HashMap<Class, DirectoryMonitor>();
+		for (DirectoryMonitor directoryMonitor : directoryMonitors) {
+			dedupedInstances.put(directoryMonitor.getClass(), directoryMonitor);
 		}
 
 		// at this point its possible we have several, and indeed several of the same type with differing configuration

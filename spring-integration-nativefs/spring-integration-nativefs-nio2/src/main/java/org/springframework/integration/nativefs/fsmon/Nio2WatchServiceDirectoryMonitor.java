@@ -20,6 +20,10 @@ public class Nio2WatchServiceDirectoryMonitor extends AbstractDirectoryMonitor i
 
 	private Logger logger = Logger.getLogger(Nio2WatchServiceDirectoryMonitor.class);
 
+	public boolean isNativeDependencyRequired() {
+		return false;
+	}
+
 	/**
 	 * JDK NIO2 instance that's used to fire events as file system entries are detected
 	 */

@@ -8,6 +8,7 @@
         <version>2.1.BUILD-SNAPSHOT</version>
     </parent>
 
+    <name>spring-integration-nativefs-core</name>
     <artifactId>spring-integration-nativefs-core</artifactId>
 
     <dependencies>
