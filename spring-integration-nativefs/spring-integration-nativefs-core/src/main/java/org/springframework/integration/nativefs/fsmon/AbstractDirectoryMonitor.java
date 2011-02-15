@@ -40,196 +40,202 @@ import java.util.concurrent.Executors;
  */
 public abstract class AbstractDirectoryMonitor implements DirectoryMonitor, DisposableBean, InitializingBean {
 
-    public static final String NATIVE_LIBRARY_PROPERTY = "integration.nativefs.fsmon";
+	public static final String NATIVE_LIBRARY_PROPERTY = "integration.nativefs.fsmon";
 
-    protected Logger logger = Logger.getLogger(AbstractDirectoryMonitor.class);
+	protected Logger logger = Logger.getLogger(AbstractDirectoryMonitor.class);
 
-    /**
-     * the executor is what's used to manage threading concerns for {@link org.springframework.integration.nativefs.fsmon.DirectoryMonitor} implementations. Clients can provide their own, just know that subclasses
-     * can "see" this instance and are encouraged to rely on it for their implementation specific use cases.
-     */
-    protected volatile Executor executor;
+	/**
+	 * the executor is what's used to manage threading concerns for {@link org.springframework.integration.nativefs.fsmon.DirectoryMonitor} implementations. Clients can provide their own, just know that subclasses
+	 * can "see" this instance and are encouraged to rely on it for their implementation specific use cases.
+	 */
+	protected volatile Executor executor;
 
-    /**
-     * registry of {@link java.io.File} to {@link org.springframework.integration.nativefs.fsmon.DirectoryMonitor.FileAddedListener} listeners.
-     */
-    protected volatile ConcurrentHashMap<File, FileAddedListener> monitors = new ConcurrentHashMap<File, FileAddedListener>();
+	/**
+	 * registry of {@link java.io.File} to {@link org.springframework.integration.nativefs.fsmon.DirectoryMonitor.FileAddedListener} listeners.
+	 */
+	protected volatile ConcurrentHashMap<File, FileAddedListener> monitors = new ConcurrentHashMap<File, FileAddedListener>();
 
-    /**
-     * mapping of directory path's to fully resolved {@link java.io.File} instances. {@link java.io.File} references are expensive, so it's valuable to precache them.
-     */
-    protected Map<String, File> mapOfDirectoriesUnderMonitor = new ConcurrentHashMap<String, File>();
+	/**
+	 * mapping of directory path's to fully resolved {@link java.io.File} instances. {@link java.io.File} references are expensive, so it's valuable to precache them.
+	 */
+	protected Map<String, File> mapOfDirectoriesUnderMonitor = new ConcurrentHashMap<String, File>();
 
-    /**
-     * should the object setup the directory on behalf of the client?
-     */
-    protected boolean autoCreateDirectory = true;
-
-
-    /**
-     * Make sure there's a directory to startMonitor (one less error condition to have to check in native code)
-     *
-     * @param dir the directory we need to guarantee exists
-     * @return whether or not the directory exists
-     */
-    protected boolean ensureExists(File dir) {
-        boolean goodDirToMonitor = (dir.isDirectory() && dir.exists());
-
-        Assert.notNull(dir, "the 'dir' parameter must not be null");
-
-        if (!goodDirToMonitor) {
-            if (!dir.exists()) {
-                if (this.autoCreateDirectory) {
-                    if (!dir.mkdirs()) {
-                        logger.debug(String.format(
-                                "couldn't create directory %s",
-                                dir.getAbsolutePath()));
-                    }
-                }
-            }
-        }
-
-        Assert.state(dir.exists(), "the directory " + dir.getAbsolutePath() + " doesn't exist");
-
-        return dir.exists();
-    }
-
-    /**
-     * this is the hook we surface for native code to tell the implementation that a file has been observed in one of the watched directories.
-     *
-     * @param dir      the directory under watch
-     * @param fileName the file in the directory under watch
-     */
-    public void fileReceived(String dir, String fileName) {
-        File dirFile = mapOfDirectoriesUnderMonitor.get(dir);
-        this.monitors.get(dirFile).fileAdded(dirFile, fileName);
-    }
-
-    /**
-     * register a listener for a given directory
-     *
-     * @param dir               the directory for which the {@link org.springframework.integration.nativefs.fsmon.DirectoryMonitor.FileAddedListener} should be registered / invoked
-     * @param fileAddedListener the {@link org.springframework.integration.nativefs.fsmon.DirectoryMonitor.FileAddedListener} provides
-     */
-    @Override
-    public void monitor(final File dir, final FileAddedListener fileAddedListener) {
-        if (ensureExists(dir)) {
-            mapOfDirectoriesUnderMonitor.put(dir.getAbsolutePath(), dir);
-            monitors.putIfAbsent(dir, fileAddedListener);
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    String path = dir.getAbsolutePath();
-
-                    startMonitor(path);
-                }
-            });
-        }
-    }
+	/**
+	 * should the object setup the directory on behalf of the client?
+	 */
+	protected boolean autoCreateDirectory = true;
 
 
-    /**
-     * tear down the machinery for each monitor
-     *
-     * @throws Exception
-     */
-    @Override
-    public void destroy() throws Exception {
-        for (File file : this.monitors.keySet())
-            stopMonitor(file.getAbsolutePath());
-    }
+	/**
+	 * Make sure there's a directory to startMonitor (one less error condition to have to check in native code)
+	 *
+	 * @param dir the directory we need to guarantee exists
+	 * @return whether or not the directory exists
+	 */
+	protected boolean ensureExists(File dir) {
+		boolean goodDirToMonitor = (dir.isDirectory() && dir.exists());
 
-    /**
-     * we need an executor to run the polling thread
-     *
-     * @param executor the executor
-     */
-    public void setExecutor(Executor executor) {
-        this.executor = executor;
-    }
+		Assert.notNull(dir, "the 'dir' parameter must not be null");
 
-    /**
-     * use this as a hook to make sure certain things are correctly setup by default (eg: {@link #executor} can't be null)
-     *
-     * @throws Exception
-     */
-    @Override
-    final public void afterPropertiesSet() throws Exception {
-        if (this.executor == null) {
-            this.executor = Executors.newCachedThreadPool();
-        }
+		if (!goodDirToMonitor) {
+			if (!dir.exists()) {
+				if (this.autoCreateDirectory) {
+					if (!dir.mkdirs()) {
+						logger.debug(String.format(
+								"couldn't create directory %s",
+								dir.getAbsolutePath()));
+					}
+				}
+			}
+		}
 
-        onInit();
-    }
+		Assert.state(dir.exists(), "the directory " + dir.getAbsolutePath() + " doesn't exist");
 
-    /**
-     * setup machinery for monitoring the directory
-     *
-     * @param path the path to be monitored
-     */
-    abstract protected void startMonitor(String path);
+		return dir.exists();
+	}
 
-    /**
-     * this is the hook that implementations can use to dismantle any native machinery setup for the watch
-     *
-     * @param path the path for whom any watches should de dismantled
-     */
-    abstract protected void stopMonitor(String path);
+	/**
+	 * this is the hook we surface for native code to tell the implementation that a file has been observed in one of the watched directories.
+	 *
+	 * @param dir			the directory under watch
+	 * @param fileName the file in the directory under watch
+	 */
+	public void fileReceived(String dir, String fileName) {
+		File dirFile = mapOfDirectoriesUnderMonitor.get(dir);
+		this.monitors.get(dirFile).fileAdded(dirFile, fileName);
+	}
 
-    /**
-     * hook for subclasses to provide initialization logic
-     */
-    abstract protected void onInit();
+	/**
+	 * register a listener for a given directory
+	 *
+	 * @param dir							 the directory for which the {@link org.springframework.integration.nativefs.fsmon.DirectoryMonitor.FileAddedListener} should be registered / invoked
+	 * @param fileAddedListener the {@link org.springframework.integration.nativefs.fsmon.DirectoryMonitor.FileAddedListener} provides
+	 */
+	@Override
+	public void monitor(final File dir, final FileAddedListener fileAddedListener) {
+		if (ensureExists(dir)) {
+			mapOfDirectoriesUnderMonitor.put(dir.getAbsolutePath(), dir);
+			monitors.putIfAbsent(dir, fileAddedListener);
+			executor.execute(new Runnable() {
+				@Override
+				public void run() {
+					String path = dir.getAbsolutePath();
 
-    /**
-     * does this dependency require a native library to be loaded via JNI?
-     */
-    abstract public boolean isNativeDependencyRequired();
-
-    private static Log log = LogFactory.getLog(AbstractDirectoryMonitor.class);
-
-
-    static public void loadLibrary(String particularLibrary) {
+					startMonitor(path);
+				}
+			});
+		}
+	}
 
 
-        try {
+	/**
+	 * tear down the machinery for each monitor
+	 *
+	 * @throws Exception
+	 */
+	@Override
+	public void destroy() throws Exception {
+		for (File file : this.monitors.keySet())
+			stopMonitor(file.getAbsolutePath());
+	}
 
-            String sysProperty = System.getProperty(NATIVE_LIBRARY_PROPERTY);
+	/**
+	 * we need an executor to run the polling thread
+	 *
+	 * @param executor the executor
+	 */
+	public void setExecutor(Executor executor) {
+		this.executor = executor;
+	}
+
+	/**
+	 * use this as a hook to make sure certain things are correctly setup by default (eg: {@link #executor} can't be null)
+	 *
+	 * @throws Exception
+	 */
+	@Override
+	final public void afterPropertiesSet() throws Exception {
+		if (this.executor == null) {
+			this.executor = Executors.newCachedThreadPool();
+		}
+
+		onInit();
+	}
+
+	/**
+	 * setup machinery for monitoring the directory
+	 *
+	 * @param path the path to be monitored
+	 */
+	abstract protected void startMonitor(String path);
+
+	/**
+	 * this is the hook that implementations can use to dismantle any native machinery setup for the watch
+	 *
+	 * @param path the path for whom any watches should de dismantled
+	 */
+	abstract protected void stopMonitor(String path);
+
+	/**
+	 * hook for subclasses to provide initialization logic
+	 */
+	abstract protected void onInit();
+
+	/**
+	 * does this dependency require a native library to be loaded via JNI?
+	 */
+	abstract public boolean isNativeDependencyRequired();
+
+	private static Log log = LogFactory.getLog(AbstractDirectoryMonitor.class);
 
 
-            if (StringUtils.isEmpty(sysProperty)) {
-                log.debug("system property '" + NATIVE_LIBRARY_PROPERTY +
-                        "' was not set. Attempting to load any native " +
-                        "library on the library path" +
-                        "called 'sifsmon' using" +
-                        " System.loadLibrary(String libraryName)");
-
-                System.loadLibrary("sifsmon");
-            } else {
-                log.debug("system property '" + NATIVE_LIBRARY_PROPERTY +
-                        "' is set. Attempting to load the apecific library file.");
-
-                File nativeLib = new File( sysProperty);
-
-                if (nativeLib.isDirectory() && nativeLib.isDirectory())
-                    nativeLib = new File(nativeLib, particularLibrary);
+	static public void loadLibrary(String particularLibrary) {
 
 
-                log.debug("attempting to resolve '" + NATIVE_LIBRARY_PROPERTY + ",' which points to " +
-                        nativeLib.getAbsolutePath() + ". This library " +
-                        (nativeLib.exists() ? "exists" : "does not exist"));
+		try {
+
+			String sysProperty = System.getProperty(NATIVE_LIBRARY_PROPERTY);
 
 
-                if (nativeLib.exists())
-                    System.load( nativeLib.getAbsolutePath());
-                else
-                    throw new RuntimeException(
-                            "the native library file specified doesn't exist. Can't continue");
-            }
+			if (StringUtils.isEmpty(sysProperty)) {
+				log.debug("system property '" + NATIVE_LIBRARY_PROPERTY +
+						"' was not set. Attempting to load any native " +
+						"library on the library path" +
+						"called 'sifsmon' using" +
+						" System.loadLibrary(String libraryName)");
 
-        } catch (Throwable t) {
-            log.error("Received exception " + ExceptionUtils.getFullStackTrace(t) + " when trying to load the native library sifsmon");
+				System.loadLibrary("sifsmon");
+			} else {
+				log.debug("system property '" + NATIVE_LIBRARY_PROPERTY +
+						"' is set. Attempting to load the apecific library file.");
 
-        }
-    }
+				File nativeLib = new File(sysProperty);
+
+				if (nativeLib.isDirectory() && nativeLib.isDirectory())
+					nativeLib = new File(nativeLib, particularLibrary);
+
+
+				log.debug("attempting to resolve '" + NATIVE_LIBRARY_PROPERTY + ",' which points to " +
+						nativeLib.getAbsolutePath() + ". This library " +
+						(nativeLib.exists() ? "exists" : "does not exist"));
+
+
+				if (nativeLib.exists())
+					System.load(nativeLib.getAbsolutePath());
+				else
+					throw new RuntimeException(
+							"the native library file specified doesn't exist. Can't continue");
+			}
+
+			int seconds = 3;
+			log.debug("sleeping " + seconds + " seconds to ensure the library is loaded");
+			Thread.sleep(1000 * seconds);// waiting a few seconds to make sure the library'seconds loaded
+
+		} catch (Throwable t) {
+			log.error("Received exception " + ExceptionUtils.getFullStackTrace(t) + " when trying to load the native library sifsmon");
+
+		}
+
+
+	}
 }

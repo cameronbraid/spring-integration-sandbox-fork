@@ -43,22 +43,43 @@ void note(char * msg){
 extern "C" {
 #endif
 
+    /* good intro to inotify: http://www.linuxjournal.com/article/8478?page=0,0 */
+
 	JNIEXPORT void JNICALL Java_org_springframework_integration_nativefs_fsmon_linux_LinuxInotifyDirectoryMonitor_start (
 		JNIEnv * env, 
 		jobject obj, 
 		jstring javaSpecifiedPath) 
 	{
+
+	    note("starting monitor in C code. \n") ;
+
 	  	int fd = inotify_init();
-		if ( fd < 0 )  perror( "inotify_init" );
+
+        note("returned from inotify_init()\n");
+		if ( fd < 0 ) {
+            note( "inotify_init() returned a bad value!\n");
+            perror( "inotify_init" );
+		}
+		note( "no errors in inotify_init() \n");
 
 		char * path = (char *)(*env)->GetStringUTFChars( env, javaSpecifiedPath , NULL ) ;
+
+		note ("the path is " ) ;
+		note(path);
+		note( "\n");
+
 		int wd = inotify_add_watch( fd, path,  IN_MOVED_TO| IN_CLOSE_WRITE );
+        note( "returned from inotify_add_watch \n") ;
+        if(wd<0){
+        note( "couldn't add the watch, the return value of inotify_add_watch is -1 \n") ;
+        perror( "inotify_add_watch");
+        }
 
 		jclass cls = ( *env)->GetObjectClass(env, obj);
 		jmethodID mid = (*env)->GetMethodID(env, cls, "fileReceived", "(Ljava/lang/String;Ljava/lang/String;)V");
 
 		if( mid == 0 ) {
-			printf( "method callback is not valid!") ;
+			note( "method callback is not valid! \n") ;
 			return ;
 		}
 
@@ -91,8 +112,14 @@ extern "C" {
 				i += EVENT_SIZE + event->len;
 			}
 		}
+
+		note("removing watch \n");
 		( void ) inotify_rm_watch( fd, wd );
+
+		note( "closing watch fd \n");
 		( void ) close( fd );
+
+		note( "returning. \n");
 	}
 #ifdef __cplusplus
 }

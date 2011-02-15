@@ -46,6 +46,7 @@ public class LinuxInotifyDirectoryMonitorTest {
 	public void start() throws Throwable {
 
 		log.debug("the tmp file is at " + this.file.getAbsolutePath());
+		
 		if (this.file.exists()) {
 
 			for (File f : this.file.listFiles())
@@ -67,16 +68,6 @@ public class LinuxInotifyDirectoryMonitorTest {
 		this.directoryMonitor.monitor(this.file, this.testFileAddedListener);
 
 	}
-/*
-	public void run() throws Throwable {
-		start();
-		testMonitoringDirectoryUnderLinux();
-	}
-
-	public static void main(String[] a) throws Throwable {
-		LinuxInotifyDirectoryMonitorTest linuxDirectoryMonitorTest = new LinuxInotifyDirectoryMonitorTest();
-		linuxDirectoryMonitorTest.run();
-	}*/
 
 	@Test
 	public void testMonitoringDirectoryUnderLinux() throws Throwable {

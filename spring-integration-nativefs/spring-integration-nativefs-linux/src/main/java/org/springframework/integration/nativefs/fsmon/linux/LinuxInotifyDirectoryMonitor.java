@@ -34,7 +34,7 @@ public class LinuxInotifyDirectoryMonitor extends AbstractDirectoryMonitor {
 
 	@Override
 	protected void startMonitor(String path) {
-		log.debug("starting "  +getClass() .getName() + " monitor on '" + path + "'");
+		log.debug("starting " + getClass().getName() + " monitor on '" + path + "'");
 		start(path);
 	}
 
@@ -43,7 +43,7 @@ public class LinuxInotifyDirectoryMonitor extends AbstractDirectoryMonitor {
 	 *
 	 * @param path the path to be monitored
 	 */
-	public native void start (String path);
+	public native void start(String path);
 
 	/**
 	 * Implementation doesn't currently support dismantling watches. This would invariably be a native code invocation, to be effective.
