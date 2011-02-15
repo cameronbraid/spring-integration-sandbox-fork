@@ -3,7 +3,6 @@ package org.springframework.integration.nativefs.fsmon.linux;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.SystemUtils;
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Assert;
@@ -20,11 +19,12 @@ import java.util.concurrent.Executors;
 
 public class LinuxInotifyDirectoryMonitorTest {
 
-	private static Log log = LogFactory.getLog( LinuxInotifyDirectoryMonitorTest.class) ;
 
-	private LinuxInotifyDirectoryMonitor linuxInotifyDirectoryMonitor;
+	private static Log log = LogFactory.getLog(LinuxInotifyDirectoryMonitorTest.class);
 
-	private File file = new File(SystemUtils.getJavaIoTmpDir(), "monitor");
+	private LinuxInotifyDirectoryMonitor directoryMonitor;
+
+	private File file = new File(SystemUtils.getUserHome(), "monitor");
 
 	private TestFileAddedListener testFileAddedListener = new TestFileAddedListener();
 
@@ -45,11 +45,12 @@ public class LinuxInotifyDirectoryMonitorTest {
 	@Before
 	public void start() throws Throwable {
 
+		log.debug("the tmp file is at " + this.file.getAbsolutePath());
 		if (this.file.exists()) {
 
-			for(File f: this.file.listFiles())
-			f.delete();
-			
+			for (File f : this.file.listFiles())
+				f.delete();
+
 			file.delete();
 
 			if (file.exists())
@@ -60,26 +61,27 @@ public class LinuxInotifyDirectoryMonitorTest {
 			throw new RuntimeException("couldn't create the directory " + this.file.getAbsolutePath());
 
 
-		this.linuxInotifyDirectoryMonitor = new LinuxInotifyDirectoryMonitor();
-		this.linuxInotifyDirectoryMonitor.setExecutor(Executors.newSingleThreadExecutor());
-		this.linuxInotifyDirectoryMonitor.afterPropertiesSet();
-		this.linuxInotifyDirectoryMonitor.monitor(this.file, this.testFileAddedListener);
+		this.directoryMonitor = new LinuxInotifyDirectoryMonitor();
+		this.directoryMonitor.setExecutor(Executors.newFixedThreadPool(8));
+		this.directoryMonitor.afterPropertiesSet();
+		this.directoryMonitor.monitor(this.file, this.testFileAddedListener);
 
 	}
-
+/*
 	public void run() throws Throwable {
 		start();
 		testMonitoringDirectoryUnderLinux();
 	}
-	public static void main(String[] a ) throws Throwable {
-		LinuxInotifyDirectoryMonitorTest linuxInotifyDirectoryMonitorTest = new LinuxInotifyDirectoryMonitorTest();
-		linuxInotifyDirectoryMonitorTest.run();
-	}
+
+	public static void main(String[] a) throws Throwable {
+		LinuxInotifyDirectoryMonitorTest linuxDirectoryMonitorTest = new LinuxInotifyDirectoryMonitorTest();
+		linuxDirectoryMonitorTest.run();
+	}*/
 
 	@Test
 	public void testMonitoringDirectoryUnderLinux() throws Throwable {
 
-		String[] files = "a,b".split(",");
+		String[] files = "a,b,c,d".split(",");
 		// put a few files in the directory
 		for (String x : files) {
 			Writer writer = null;
@@ -92,17 +94,20 @@ public class LinuxInotifyDirectoryMonitorTest {
 			}
 		}
 
-		Assert.assertTrue("there are two files in the driectory now.", this.file.list().length == 2);
+		Assert.assertTrue("there are two " +
+				"files in the directory now.",
+				this.file.list().length == files.length);
 
 		long sleeping = 0;
-		while (this.testFileAddedListener.count() < files.length && sleeping < (10 * 1000)) {
+		while (this.testFileAddedListener.count() < files.length /* && sleeping < (10 * 1000)  */) {
 			int s = 1000;
 			Thread.sleep(s); //wait a second
 			sleeping += s;
 		}
-
+		log.debug( "found "+ this.testFileAddedListener.count() + " files in the test directory "+ this.file.getAbsolutePath());
 		Assert.assertEquals(files.length, this.testFileAddedListener.count());
 
 
 	}
+
 }

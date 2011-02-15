@@ -1,16 +1,12 @@
 package org.springframework.integration.nativefs.fsmon.osx;
 
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.log4j.Logger;
 import org.springframework.integration.nativefs.fsmon.AbstractDirectoryMonitor;
 import org.springframework.util.Assert;
 
 import java.io.File;
-import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -31,7 +27,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class OsXDirectoryMonitor extends AbstractDirectoryMonitor {
 
 
-    private static Log log = LogFactory.getLog(OsXDirectoryMonitor.class);
+	private static Log log = LogFactory.getLog(OsXDirectoryMonitor.class);
 
 	/**
 	 * the mapping of files that we pick up each scanForNewFiles - each file maintains a queue of files to be delivered
@@ -41,10 +37,10 @@ public class OsXDirectoryMonitor extends AbstractDirectoryMonitor {
 
 	static {
 		try {
-            loadLibrary("libsifsmon.dylib");
-        } catch (Throwable throwable){
-            log.debug( "couldn't load the library.");
-        }
+			loadLibrary("libsifsmon.dylib");
+		} catch (Throwable throwable) {
+			log.debug("couldn't load the library.");
+		}
 	}
 
 	@Override
@@ -152,7 +148,7 @@ public class OsXDirectoryMonitor extends AbstractDirectoryMonitor {
 		/**
 		 *
 		 */
-		private Log  logger = LogFactory.getLog(getClass());
+		private Log logger = LogFactory.getLog(getClass());
 
 		/**
 		 * reference to the {@link org.springframework.integration.nativefs.fsmon.AbstractDirectoryMonitor} that can actually deliver newly detected files
@@ -185,7 +181,7 @@ public class OsXDirectoryMonitor extends AbstractDirectoryMonitor {
 		 */
 		@Override
 		public void run() {
-            logger.debug( "entering the "+getClass().getName() +"#run");
+			logger.debug("entering the " + getClass().getName() + "#run");
 			File f;
 			try {
 				while ((f = this.files.take()) != null) {

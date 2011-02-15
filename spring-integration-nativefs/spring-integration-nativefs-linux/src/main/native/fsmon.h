@@ -20,7 +20,7 @@ Mario Gray (mario.gray@gmail.com)
 #ifdef __cplusplus
 extern "C" {
 #endif
-JNIEXPORT void JNICALL Java_org_springframework_integration_nativefs_fsmon_linux_LinuxInotifyDirectoryMonitor_startMonitor(JNIEnv *,jobject, jstring);
+JNIEXPORT void JNICALL Java_org_springframework_integration_nativefs_fsmon_linux_LinuxInotifyDirectoryMonitor_start (JNIEnv *,jobject, jstring);
 #ifdef __cplusplus
 }
 #endif

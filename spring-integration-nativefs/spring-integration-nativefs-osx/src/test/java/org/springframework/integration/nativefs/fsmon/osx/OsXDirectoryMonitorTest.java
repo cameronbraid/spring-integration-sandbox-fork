@@ -67,15 +67,6 @@ public class OsXDirectoryMonitorTest {
 
 	}
 
-	public void run() throws Throwable {
-		start();
-		testMonitoringDirectoryUnderLinux();
-	}
-	public static void main(String[] a ) throws Throwable {
-		OsXDirectoryMonitorTest linuxDirectoryMonitorTest = new OsXDirectoryMonitorTest();
-		linuxDirectoryMonitorTest.run();
-	}
-
 	@Test
 	public void testMonitoringDirectoryUnderLinux() throws Throwable {
 

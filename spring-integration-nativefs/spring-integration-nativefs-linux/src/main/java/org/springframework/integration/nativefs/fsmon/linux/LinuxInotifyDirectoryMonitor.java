@@ -1,6 +1,5 @@
 package org.springframework.integration.nativefs.fsmon.linux;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.integration.nativefs.fsmon.AbstractDirectoryMonitor;
@@ -27,15 +26,16 @@ public class LinuxInotifyDirectoryMonitor extends AbstractDirectoryMonitor {
 
 	static {
 		try {
-
-			if (log.isDebugEnabled())
-				log.debug("the current library path is " + System.getProperty("java.library.path"));
-
-			System.loadLibrary("sifsmon");
-
-		} catch (Throwable t) {
-			log.error("Received exception " + ExceptionUtils.getFullStackTrace(t) + " when trying to load the native library sifsmon");
+			loadLibrary("libsifsmon.so");
+		} catch (Throwable throwable) {
+			log.debug("couldn't load the library.");
 		}
+	}
+
+	@Override
+	protected void startMonitor(String path) {
+		log.debug("starting "  +getClass() .getName() + " monitor on '" + path + "'");
+		start(path);
 	}
 
 	/**
@@ -43,8 +43,7 @@ public class LinuxInotifyDirectoryMonitor extends AbstractDirectoryMonitor {
 	 *
 	 * @param path the path to be monitored
 	 */
-	@Override
-	public native void startMonitor(String path);
+	public native void start (String path);
 
 	/**
 	 * Implementation doesn't currently support dismantling watches. This would invariably be a native code invocation, to be effective.

@@ -19,7 +19,7 @@
  * Mario Gray (mario.gray@gmail.com)
  */
 
-#include "fsmon.h" 
+//#include "fsmon.h"
 #include <jni.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,13 +31,19 @@
 #define EVENT_SIZE  ( sizeof (struct inotify_event) )
 #define BUF_LEN     ( 1024 * ( EVENT_SIZE + 16 ) )
 
+void note(char * msg){
+    printf(msg, "");
+    fflush(stdout);
+}
+
+
 #ifndef _Included_org_springframework_integration_nativefs_fsmon_linux_LinuxInotifyDirectoryMonitor
 #define Java_org_springframework_integration_nativefs_fsmon_linux_LinuxInotifyDirectoryMonitor
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-	JNIEXPORT void JNICALL Java_org_springframework_integration_nativefs_fsmon_linux_LinuxInotifyDirectoryMonitor_startMonitor(
+	JNIEXPORT void JNICALL Java_org_springframework_integration_nativefs_fsmon_linux_LinuxInotifyDirectoryMonitor_start (
 		JNIEnv * env, 
 		jobject obj, 
 		jstring javaSpecifiedPath) 
