@@ -31,10 +31,16 @@
 #include "utstring.h"
 #include "uthash.h"
 
+// utility function
+void note(char * msg){
+ //printf(msg, "");
+ //fflush(stdout);
+}
+
 /** 
  * shared map of contexts so that multiple threads of execution can contain references to unique JNI constructs
  */
-static struct jnictx *contexts = NULL;  /* the dictionary *must* be intialized to null */
+static struct jnictx *contexts = NULL;  /* the dictionary *must* be initialized to null */
 
 /** 
  * the JNI context is our encapsulation of the various JNI constructs, as well as the path under monitor. We store it in the contexts* uthash and look up entries by the path experiencing an event.
@@ -59,6 +65,9 @@ void add_jnictx( char *path, JNIEnv *env, jclass clz, jobject thisPtr, jmethodID
     ctx->thisPtr = thisPtr;
     ctx->methodId = mid;
     ctx->classId = clz;
+
+    note( ctx->path);
+
     HASH_ADD_KEYPTR( hh, contexts , ctx->path, strlen(ctx->path),ctx );
 }
 
@@ -140,14 +149,21 @@ void *event_processing_thread( char * path ) {
     return NULL;
 }
 
+
+
 void start_monitor( char * path ){
+    note( path );
 	if (FSEventStreamCreate == NULL) {
-		printf("the file system event stream API isn't available (must be run on OS X 10.5 or later)\n");
-		fflush(stdout);
+		note("the file system event stream API isn't available (must be run on OS X 10.5 or later)\n");
 		return ;
+	}
+	else {
+	    note ( "the file system event stream API is available. Proceeding.\n");
 	}
 	event_processing_thread(  path );
 }
+
+
 
 /**
  * the shared library exports this function specifically for consumption from Java
@@ -163,8 +179,18 @@ extern "C" {
 	{
 		char * path = (char *)(*env)->GetStringUTFChars( env, javaSpecifiedPath , NULL ) ;
 		jclass cls = (*env)->GetObjectClass( env,  obj);
+		note("obtained cls\n");
         jmethodID mid = (*env)->GetMethodID(env, cls, "pathChanged", "(Ljava/lang/String;)V");
+
+        note( mid == NULL ? "mid is null\n": "mid is not null\n" );
+        note( env == NULL ? "env is null\n": "env is not null\n");
+        note( obj == NULL ? "obj is null\n" : "obj is not null\n");
+
+
 	 	add_jnictx(path, env, cls, obj, mid );
+
+	 	note( "after add_jnictx\n");
+	 	note ( "entering start_monitor") ;
 		start_monitor( path );
 	}
 

@@ -152,7 +152,7 @@ public class OsXDirectoryMonitor extends AbstractDirectoryMonitor {
 		/**
 		 *
 		 */
-		private Logger logger = Logger.getLogger(DeliveryRunnable.class);
+		private Log  logger = LogFactory.getLog(getClass());
 
 		/**
 		 * reference to the {@link org.springframework.integration.nativefs.fsmon.AbstractDirectoryMonitor} that can actually deliver newly detected files
@@ -185,6 +185,7 @@ public class OsXDirectoryMonitor extends AbstractDirectoryMonitor {
 		 */
 		@Override
 		public void run() {
+            logger.debug( "entering the "+getClass().getName() +"#run");
 			File f;
 			try {
 				while ((f = this.files.take()) != null) {

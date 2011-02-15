@@ -23,7 +23,7 @@ public class OsXDirectoryMonitorTest {
 
 	private OsXDirectoryMonitor directoryMonitor;
 
-	private File file = new File(SystemUtils.getJavaIoTmpDir(), "monitor");
+	private File file = new File(SystemUtils.getUserHome(), "monitor");
 
 	private TestFileAddedListener testFileAddedListener = new TestFileAddedListener();
 
@@ -44,6 +44,7 @@ public class OsXDirectoryMonitorTest {
 	@Before
 	public void start() throws Throwable {
 
+        log.debug( "the tmp file is at "+ this.file.getAbsolutePath());
 		if (this.file.exists()) {
 
 			for(File f: this.file.listFiles())
@@ -60,7 +61,7 @@ public class OsXDirectoryMonitorTest {
 
 
 		this.directoryMonitor = new OsXDirectoryMonitor  ();
-		this.directoryMonitor.setExecutor(Executors.newSingleThreadExecutor());
+		this.directoryMonitor.setExecutor(Executors.newFixedThreadPool(8));
 		this.directoryMonitor.afterPropertiesSet();
 		this.directoryMonitor.monitor(this.file, this.testFileAddedListener);
 
@@ -78,7 +79,7 @@ public class OsXDirectoryMonitorTest {
 	@Test
 	public void testMonitoringDirectoryUnderLinux() throws Throwable {
 
-		String[] files = "a,b".split(",");
+		String[] files = "a,b,c,d".split(",");
 		// put a few files in the directory
 		for (String x : files) {
 			Writer writer = null;
@@ -93,10 +94,10 @@ public class OsXDirectoryMonitorTest {
 
 		Assert.assertTrue("there are two " +
                 "files in the directory now.",
-                this.file.list().length == 2);
+                this.file.list().length == files.length);
 
 		long sleeping = 0;
-		while (this.testFileAddedListener.count() < files.length && sleeping < (10 * 1000)) {
+		while (this.testFileAddedListener.count() < files.length /* && sleeping < (10 * 1000)  */) {
 			int s = 1000;
 			Thread.sleep(s); //wait a second
 			sleeping += s;
