@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
  * tests the viability of the {@link org.springframework.integration.mapping.HeaderMapper} implementation, {@link DefaultProcessVariableHeaderMapper}.
  *
  * @author Josh Long
- * @since 5.1
+ * @since 2.1
  */
 public class DefaultProcessVariableHeaderMapperTest {
 

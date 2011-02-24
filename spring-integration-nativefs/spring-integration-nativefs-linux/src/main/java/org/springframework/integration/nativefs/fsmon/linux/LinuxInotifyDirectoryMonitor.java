@@ -24,9 +24,13 @@ public class LinuxInotifyDirectoryMonitor extends AbstractDirectoryMonitor {
 		return true;
 	}
 
+	static private boolean is64Bit(){ return System.getProperty("os.arch").indexOf("64")!= -1; }
+
 	static {
-		try {
-			loadLibrary("libsifsmon.so");
+		try { 
+			String libToLoad="libsifsmon" + (is64Bit()? "64":"32") + ".so";
+			log.debug( "attempting to load " + libToLoad) ;
+			loadLibrary( libToLoad );
 		} catch (Throwable throwable) {
 			log.debug("couldn't load the library.");
 		}
