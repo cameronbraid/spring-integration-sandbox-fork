@@ -5,7 +5,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.integration.nativefs.fsmon.AbstractDirectoryMonitor;
 import org.springframework.util.Assert;
-
+import java.util.*;
 import java.io.File;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
