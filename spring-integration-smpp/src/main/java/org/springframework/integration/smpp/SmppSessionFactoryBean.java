@@ -1,11 +1,12 @@
 package org.springframework.integration.smpp;
 
-import org.jsmpp.DefaultPDUReader;
-import org.jsmpp.DefaultPDUSender;
-import org.jsmpp.SynchronizedPDUSender;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.jsmpp.*;
 import org.jsmpp.bean.BindType;
 import org.jsmpp.bean.NumberingPlanIndicator;
 import org.jsmpp.bean.TypeOfNumber;
+import org.jsmpp.session.BindParameter;
 import org.jsmpp.session.MessageReceiverListener;
 import org.jsmpp.session.SMPPSession;
 import org.jsmpp.session.SessionStateListener;
@@ -13,6 +14,7 @@ import org.jsmpp.session.connection.Connection;
 import org.jsmpp.session.connection.ConnectionFactory;
 import org.jsmpp.session.connection.socket.SocketConnection;
 import org.jsmpp.util.DefaultComposer;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.util.Assert;
@@ -42,9 +44,8 @@ import java.net.Socket;
  * timeout			a good default value is 60000  (1 minute)
  *
  * @author Josh Long
- *
- * todo support a proxied SMPPSession that automatically recovers from disconnects a la the examples {@link org.jsmpp.examples.gateway.AutoReconnectGateway}
- *
+ *         <p/>
+ *         todo support a proxied SMPPSession that automatically recovers from disconnects a la the examples {@link org.jsmpp.examples.gateway.AutoReconnectGateway}
  * @see org.jsmpp.session.SMPPSession#SMPPSession()
  * @see org.jsmpp.session.SMPPSession#connectAndBind(String, int, org.jsmpp.session.BindParameter)
  * @see org.jsmpp.session.SMPPSession#connectAndBind(String, int, org.jsmpp.bean.BindType, String, String, String, org.jsmpp.bean.TypeOfNumber, org.jsmpp.bean.NumberingPlanIndicator, String, long)
@@ -52,6 +53,7 @@ import java.net.Socket;
  */
 public class SmppSessionFactoryBean implements FactoryBean<SMPPSession>, InitializingBean {
 
+	private Log log = LogFactory.getLog(getClass());
 	private SessionStateListener sessionStateListener;
 	private boolean ssl = false;
 	private String host = "127.0.0.1";
@@ -63,8 +65,8 @@ public class SmppSessionFactoryBean implements FactoryBean<SMPPSession>, Initial
 	private String password;
 	private String systemType = "cp";
 	private TypeOfNumber addrTon = TypeOfNumber.UNKNOWN;
-	private NumberingPlanIndicator addrNpi = NumberingPlanIndicator.UNKNOWN;
 
+	private NumberingPlanIndicator addrNpi = NumberingPlanIndicator.UNKNOWN;
 
 	private MessageReceiverListener messageReceiverListener;
 
@@ -135,21 +137,90 @@ public class SmppSessionFactoryBean implements FactoryBean<SMPPSession>, Initial
 			smppSession.addSessionStateListener(this.sessionStateListener);
 	}
 
+	/**
+	 * we return a subclass of {@link SMPPSession} - {@link InitializationAndDisposalAwareSmppSession a subclass that knows about the {@link InitializingBean} and {@link DisposableBean} interfaces} -
+	 * to ensure that the SMPPSession is adapted for Spring's lifecycle managment hooks.
+	 * Additionally, we use this method to provide a bit of indirection so that we can plugin an alternate {@link ConnectionFactory} implementation to support SSL.
+	 *
+	 * @return the configured SMPPSession
+	 * @throws Exception should anything go wrong
+	 */
 	private SMPPSession buildSmppSession() throws Exception {
 		SMPPSession smppSession = null;
 		if (!ssl) {
-			smppSession = new SMPPSession();
+			smppSession = new InitializationAndDisposalAwareSmppSession();
 		} else {
-			smppSession = new SMPPSession(new SynchronizedPDUSender(new DefaultPDUSender(new DefaultComposer())), new DefaultPDUReader(), sslConnectionFactory);
+			smppSession = new InitializationAndDisposalAwareSmppSession(new SynchronizedPDUSender(new DefaultPDUSender(new DefaultComposer())), new DefaultPDUReader(), sslConnectionFactory);
 		}
 		customizeSmppSession(smppSession);
-		smppSession.connectAndBind(host, port, bindType, systemId, password, systemType, addrTon, addrNpi, addressRange, timeout);
+
 		return smppSession;
 	}
 
+	/**
+	 * delegates to {@link #buildSmppSession()}
+	 */
 	@Override
 	public SMPPSession getObject() throws Exception {
 		return buildSmppSession();
+	}
+
+	/**
+	 * Adapting {@link SMPPSession} subclass that makes the {@link SMPPSession} participate in Spring lifecycle hooks.
+	 */
+	@SuppressWarnings("unused")
+	private class InitializationAndDisposalAwareSmppSession extends SMPPSession implements InitializingBean, DisposableBean {
+
+		InitializationAndDisposalAwareSmppSession() {
+		}
+
+		InitializationAndDisposalAwareSmppSession(PDUSender pduSender, PDUReader pduReader, ConnectionFactory connFactory) {
+			super(pduSender, pduReader, connFactory);
+		}
+
+		InitializationAndDisposalAwareSmppSession(String host, int port, BindParameter bindParam, PDUSender pduSender, PDUReader pduReader, ConnectionFactory connFactory) throws IOException {
+			super(host, port, bindParam, pduSender, pduReader, connFactory);
+		}
+
+		InitializationAndDisposalAwareSmppSession(String host, int port, BindParameter bindParam) throws IOException {
+			super(host, port, bindParam);
+		}
+
+		@Override
+		public void destroy() throws Exception {
+			log.debug(DisposableBean.class.getName() + "#destroy() called. calling closeSmppSessionSafely(this.smppSession).");
+			closeSmppSessionSafely(this);
+		}
+
+		@Override
+		public void afterPropertiesSet() throws Exception {
+			log.debug(InitializingBean.class.getName() + "#afterPropertiesSet called. calling connectAndBindSmppSessionSafely(this.smppSession).");
+			connectAndBindSmppSessionSafely(this);
+		}
+	}
+
+	private void closeSmppSessionSafely(SMPPSession session) {
+		if (session != null) {
+			if (session.getSessionState().isBound()) {
+				try {
+					session.unbindAndClose();
+				} catch (Throwable t) {
+					log.warn("couldn't close and unbind the session", t);
+				}
+			}
+		} else {
+			log.warn("the smppSession given to close is null");
+		}
+	}
+
+	private void connectAndBindSmppSessionSafely(SMPPSession smppSession) throws Exception {
+		if (smppSession != null) {
+			if (smppSession.getSessionState().isBound()) {
+				log.warn("the session is already bound. Returning without any changes..");
+				return;
+			}
+			smppSession.connectAndBind(host, port, bindType, systemId, password, systemType, addrTon, addrNpi, addressRange, timeout);
+		}
 	}
 
 	@Override
@@ -177,15 +248,6 @@ public class SmppSessionFactoryBean implements FactoryBean<SMPPSession>, Initial
 			return new SocketConnection(socket);
 		}
 	};
-
-	/**
-	 * the JSMPP project has some samples and in one of them - the
-	 * {@link org.jsmpp.examples.gateway.AutoReconnectGateway} - there's
-	 * a demonstration of how to reconnect
-	 */
-	private void ensureConnected() throws Exception {
-
-	}
 }
 
 /*    private void reconnectAfter(final long timeInMillis) {
