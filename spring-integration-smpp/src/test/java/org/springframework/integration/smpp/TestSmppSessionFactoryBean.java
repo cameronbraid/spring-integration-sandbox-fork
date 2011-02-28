@@ -3,13 +3,8 @@ package org.springframework.integration.smpp;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jsmpp.bean.*;
-import org.jsmpp.extra.ProcessRequestException;
-import org.jsmpp.session.DataSmResult;
-import org.jsmpp.session.MessageReceiverListener;
 import org.jsmpp.session.SMPPSession;
-import org.jsmpp.session.Session;
 import org.jsmpp.util.AbsoluteTimeFormatter;
-import org.jsmpp.util.InvalidDeliveryReceiptException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -23,14 +18,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Simple test, more of the SMPP API than anything, at the moment.
- *
+ * <p/>
  * Demonstrates that the {@link SmppSessionFactoryBean} works, too.
  *
- * @since 5.3
  * @author Josh Long
+ * @since 5.3
  */
 public class TestSmppSessionFactoryBean {
-
 
 	private Log logger = LogFactory.getLog(getClass());
 
@@ -46,8 +40,8 @@ public class TestSmppSessionFactoryBean {
 
 	private String password = "password";
 
-	private String smsMessageToSend ="jSMPP is truly a convenient, and powerful API for SMPP on " +
-			"the Java and Spring Integration platforms (sent " +System.currentTimeMillis()+ ")";
+	private String smsMessageToSend = "jSMPP is truly a convenient, and powerful API for SMPP on " +
+			"the Java and Spring Integration platforms (sent " + System.currentTimeMillis() + ")";
 
 	private AtomicInteger atomicInteger = new AtomicInteger();
 
@@ -59,7 +53,7 @@ public class TestSmppSessionFactoryBean {
 		smppSessionFactoryBean.setPassword(this.password);
 		smppSessionFactoryBean.setSystemId(this.systemId);
 		smppSessionFactoryBean.setPort(this.port);
-		smppSessionFactoryBean.setMessageReceiverListener(new CountingMessageReceiver(this.smsMessageToSend,barrier,atomicInteger));
+		smppSessionFactoryBean.setMessageReceiverListener(new CountingMessageReceiver(this.smsMessageToSend, barrier, atomicInteger));
 		smppSessionFactoryBean.afterPropertiesSet();
 
 		return smppSessionFactoryBean.getObject();

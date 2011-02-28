@@ -2,7 +2,6 @@ package org.springframework.integration.smpp;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.jsmpp.bean.*;
 import org.jsmpp.session.SMPPSession;
 import org.jsmpp.util.AbsoluteTimeFormatter;
 import org.junit.After;
@@ -12,7 +11,6 @@ import org.junit.Test;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 
-import java.util.Date;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -70,8 +68,8 @@ public class TestSmesMessageSpecification {
 	@Test
 	public void testSendingAndReceivingASmppMessageUsingRawApi() throws Throwable {
 
-		String messageId  = SmesMessageSpecification.newSMESMessageSpecification(
-				smppSession,"1616", "628176504657",smsMessageToSend).send();
+		String messageId = SmesMessageSpecification.newSMESMessageSpecification(
+				smppSession, "1616", "628176504657", smsMessageToSend).send();
 		Assert.assertNotNull("messageId should not be null", messageId);
 		Assert.assertTrue("the returned message ID should not be -1", Integer.parseInt(messageId) >= 0);
 
@@ -81,13 +79,12 @@ public class TestSmesMessageSpecification {
 		Assert.assertEquals("the counter should be equal to 1, to account for the one message we've sent.", 1, this.atomicInteger.intValue());
 	}
 
-	@Test( expected = IllegalArgumentException.class)
-	public void testFaultySmesMessageSpecification () throws Throwable {
-			String messageId  = SmesMessageSpecification.newSMESMessageSpecification(
-				smppSession,"1616", "628176504657",smsMessageToSend)
-					.setEsmClass(null)   // this will cause an error
-					.send();
-
+	@Test(expected = IllegalArgumentException.class)
+	public void testFaultySmesMessageSpecification() throws Throwable {
+		String messageId = SmesMessageSpecification.newSMESMessageSpecification(
+				smppSession, "1616", "628176504657", smsMessageToSend)
+				.setEsmClass(null)	 // this will cause an error
+				.send();
 	}
 
 	@After

@@ -7,7 +7,7 @@ import org.aopalliance.intercept.MethodInvocation;
  * Simple method interceptor that does nothing but store the currently executing method and make it available for the duration
  * of the invoked method, so that any class may introspect the currently running method
  * without setting up a custom {@link MethodInterceptor} like this one.
- *
+ * <p/>
  * In a sense, this is like JavaScript's method arity feature.
  *
  * @author Josh Long

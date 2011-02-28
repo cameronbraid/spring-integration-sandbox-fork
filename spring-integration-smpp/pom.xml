@@ -25,7 +25,7 @@
         </dependencies>
     </dependencyManagement>
     <dependencies>
-          <dependency>
+        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-log4j12</artifactId>
             <version>1.4.3</version>
@@ -62,7 +62,7 @@
             <artifactId>spring-test</artifactId>
             <version>${spring.version}</version>
         </dependency>
-                <dependency>
+        <dependency>
             <groupId>org.springframework.integration</groupId>
             <artifactId>spring-integration-ws</artifactId>
             <version>${spring.integration.version}</version>
@@ -93,7 +93,6 @@
             <artifactId>spring-aop</artifactId>
             <version>${spring.version}</version>
         </dependency>
-
 
 
         <dependency>

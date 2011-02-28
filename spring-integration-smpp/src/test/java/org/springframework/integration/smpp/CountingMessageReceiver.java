@@ -61,7 +61,7 @@ public class CountingMessageReceiver implements MessageReceiverListener {
 	}
 
 	public DataSmResult onAcceptDataSm(DataSm dataSm, Session source) throws ProcessRequestException {
-		return null;     // noop
+		return null;		 // noop
 	}
 
 	public void onAcceptAlertNotification(AlertNotification alertNotification) {
