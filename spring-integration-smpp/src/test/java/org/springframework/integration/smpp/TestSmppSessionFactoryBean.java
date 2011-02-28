@@ -21,16 +21,30 @@ import java.util.Date;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Simple test, more of the SMPP API than anything, at the moment.
+ *
+ * Demonstrates that the {@link SmppSessionFactoryBean} works, too.
+ *
+ * @since 5.3
+ * @author Josh Long
+ */
 public class TestSmppSessionFactoryBean {
 
 	private Log logger = LogFactory.getLog(getClass());
 
 	private SMPPSession smppSession;
+
 	private AbsoluteTimeFormatter timeFormatter = new AbsoluteTimeFormatter();
+
 	private String host = "127.0.0.1";
+
 	private int port = 2775;
+
 	private String systemId = "smppclient1";
+
 	private String password = "password";
+
 	private String smsMessageToSend ="jSMPP is truly a convenient, and powerful API for SMPP on " +
 			"the Java and Spring Integration platforms (sent " +System.currentTimeMillis()+ ")";
 
