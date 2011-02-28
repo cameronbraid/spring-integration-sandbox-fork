@@ -25,12 +25,13 @@ import static org.springframework.integration.smpp.SmppConstants.*;
  */
 public class SmesMessageSpecification {
 
+	private int maxLengthSmsMessages = 140;
+
 	// pool of SmesMessageSpecification objects
 	private static final ThreadLocal<SmesMessageSpecification> poolOfSpecifications =
 			new NamedThreadLocal<SmesMessageSpecification>(SmesMessageSpecification.class.getName().toLowerCase());
 
 	private TimeFormatter timeFormatter = new AbsoluteTimeFormatter();
-
 	private String sourceAddr;
 	private String destinationAddr;
 	private String serviceType;
@@ -48,6 +49,7 @@ public class SmesMessageSpecification {
 	private DataCoding dataCoding;
 	private byte smDefaultMsgId;
 	private byte[] shortMessage;
+
 	private SMPPSession smppSession;
 
 	/**
@@ -227,6 +229,12 @@ public class SmesMessageSpecification {
 		return this;
 	}
 
+	/**
+	 * the 'to' phone number
+	 *
+	 * @param destinationAddr the phone number
+	 * @return the current spec
+	 */
 	public SmesMessageSpecification setDestinationAddress(String destinationAddr) {
 		this.destinationAddr = destinationAddr;
 		return this;
@@ -347,7 +355,7 @@ public class SmesMessageSpecification {
 	}
 
 	/**
-	 * todo it's not <em>quite</em> true that the payload needs to be 140c. The message can be split up into smaller messages,
+	 * todo it's not <em>quite</em> true that the payload needs to be 140c. A large message can be split up into smaller messages,
 	 * but for now it's more useful to have this validation in place than not.
 	 *
 	 * @param s the text message body
@@ -355,8 +363,19 @@ public class SmesMessageSpecification {
 	 */
 	public SmesMessageSpecification setShortTextMessage(String s) {
 		Assert.notNull(s, "the SMS message payload must not be null");
-		Assert.isTrue(s.length() <= 140, "the SMS message payload must be 140 characters or less.");
+		Assert.isTrue(s.length() <= this.maxLengthSmsMessages, "the SMS message payload must be 140 characters or less.");
 		this.shortMessage = s.getBytes();
 		return this;
+	}
+
+	/**
+	 * this is a good value, but not strictly speaking universal.
+	 *
+	 * See: http://www.nowsms.com/long-sms-text-messages-and-the-160-character-limit
+	 *
+	 * @param maxLengthSmsMessages the length of sms messages
+	 */
+	public void setMaxLengthSmsMessages(int maxLengthSmsMessages) {
+		this.maxLengthSmsMessages = maxLengthSmsMessages;
 	}
 }
