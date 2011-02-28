@@ -7,3 +7,4 @@ Alternatively, the JSMPP project itself has an SMPP simulator as well.
 
 If you want to go the full nine yards, it's pretty easy to find full-blow SMPP servers like Kanell out there.
 
+http://www.techdive.in/java/send-sms-using-jsmpp
