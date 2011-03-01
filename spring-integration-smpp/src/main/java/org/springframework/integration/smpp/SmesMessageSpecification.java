@@ -1,16 +1,13 @@
 package org.springframework.integration.smpp;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.jsmpp.bean.*;
 import org.jsmpp.session.SMPPSession;
 import org.jsmpp.util.AbsoluteTimeFormatter;
 import org.jsmpp.util.TimeFormatter;
-import org.springframework.aop.framework.ProxyFactoryBean;
-import org.springframework.core.NamedThreadLocal;
 import org.springframework.integration.Message;
-import org.springframework.integration.smpp.util.CurrentExecutingMethodHolder;
-import org.springframework.integration.smpp.util.CurrentMethodExposingMethodInterceptor;
 import org.springframework.util.Assert;
-import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 
 import java.util.Date;
@@ -25,38 +22,35 @@ import static org.springframework.integration.smpp.SmppConstants.*;
  */
 public class SmesMessageSpecification {
 
-	private int maxLengthSmsMessages = 140;
-
-	// pool of SmesMessageSpecification objects
-	private static final ThreadLocal<SmesMessageSpecification> poolOfSpecifications =
-			new NamedThreadLocal<SmesMessageSpecification>(SmesMessageSpecification.class.getName().toLowerCase());
-
+	private Log log = LogFactory.getLog(getClass());
 	private TimeFormatter timeFormatter = new AbsoluteTimeFormatter();
-	private String sourceAddr;
-	private String destinationAddr;
+
+	private int maxLengthSmsMessages = 140;
+	private String sourceAddress;
+	private String destinationAddress;
 	private String serviceType;
-	private TypeOfNumber sourceAddrTon;
-	private NumberingPlanIndicator sourceAddrNpi;
-	private TypeOfNumber destAddrTon;
-	private NumberingPlanIndicator destAddrNpi;
+	private TypeOfNumber sourceAddressTypeOfNumber;
+	private NumberingPlanIndicator sourceAddressNumberingPlanIndicator;
+	private TypeOfNumber destinationAddressTypeOfNumber;
+	private NumberingPlanIndicator destinationAddressNumberingPlanIndicator;
 	private ESMClass esmClass;
 	private byte protocolId;
 	private byte priorityFlag;
-	private String scheduleDeliveryTime;
+	private String scheduleDeliveryTime = timeFormatter.format(new Date());
 	private String validityPeriod;
 	private RegisteredDelivery registeredDelivery;
 	private byte replaceIfPresentFlag;
 	private DataCoding dataCoding;
 	private byte smDefaultMsgId;
 	private byte[] shortMessage;
-
 	private SMPPSession smppSession;
 
 	/**
 	 * this method will take an inbound Spring Integration {@link Message} and map it to a {@link SmesMessageSpecification}
 	 * which we can use to send the SMS message.
 	 *
-	 * @param msg a new {@link Message}
+	 * @param msg				 a new {@link Message}
+	 * @param smppSession the SMPPSession
 	 * @return a {@link SmesMessageSpecification}
 	 */
 	public static SmesMessageSpecification fromMessage(SMPPSession smppSession, Message<?> msg) {
@@ -70,24 +64,37 @@ public class SmesMessageSpecification {
 				smsTxt = (String) payload;
 			}
 		}
+		SmesMessageSpecification spec = SmesMessageSpecification.newSmesMessageSpecification(smppSession, srcAddy, dstAddy, smsTxt);
+		spec.setDestinationAddressNumberingPlanIndicator(SmesMessageSpecification.<NumberingPlanIndicator>valueIfHeaderExists(DST_NPI, msg));
+		spec.setSourceAddressNumberingPlanIndicator(SmesMessageSpecification.<NumberingPlanIndicator>valueIfHeaderExists(SRC_NPI, msg));
+		spec.setDestinationAddressTypeOfNumber(SmesMessageSpecification.<TypeOfNumber>valueIfHeaderExists(DST_TON, msg));
+		spec.setSourceAddressTypeOfNumber(SmesMessageSpecification.<TypeOfNumber>valueIfHeaderExists(SRC_TON, msg));
+		spec.setServiceType(SmesMessageSpecification.<String>valueIfHeaderExists(SERVICE_TYPE, msg));
+		spec.setEsmClass(SmesMessageSpecification.<ESMClass>valueIfHeaderExists(ESM_CLASS, msg));
+		spec.setScheduleDeliveryTime(SmesMessageSpecification.<Date>valueIfHeaderExists(SCHEDULED_DELIVERY_TIME, msg));
+		spec.setDataCoding(SmesMessageSpecification.<DataCoding>valueIfHeaderExists(DATA_CODING, msg));
+		spec.setValidityPeriod(SmesMessageSpecification.<String>valueIfHeaderExists(VALIDITY_PERIOD, msg));
 
-		SmesMessageSpecification smesMessageSpecification = SmesMessageSpecification.newSMESMessageSpecification(smppSession, srcAddy, dstAddy, smsTxt)
-				.setDestinationAddressNumberingPlanIndicator(SmesMessageSpecification.<NumberingPlanIndicator>valueIfHeaderExists(DST_NPI, msg))
-				.setSourceAddressNumberingPlanIndicator(SmesMessageSpecification.<NumberingPlanIndicator>valueIfHeaderExists(SRC_NPI, msg))
-				.setDestinationAddressTypeOfNumber(SmesMessageSpecification.<TypeOfNumber>valueIfHeaderExists(DST_TON, msg))
-				.setSourceAddressTypeOfNumber(SmesMessageSpecification.<TypeOfNumber>valueIfHeaderExists(SRC_TON, msg))
-				.setServiceType(SmesMessageSpecification.<String>valueIfHeaderExists(SERVICE_TYPE, msg))
-				.setEsmClass(SmesMessageSpecification.<ESMClass>valueIfHeaderExists(ESM_CLASS, msg))
-				.setProtocolId(SmesMessageSpecification.<Byte>valueIfHeaderExists(PROTOCOL_ID, msg))
-				.setScheduleDeliveryTime(SmesMessageSpecification.<Date>valueIfHeaderExists(SCHEDULED_DELIVERY_TIME, msg))
-				.setValidityPeriod(SmesMessageSpecification.<String>valueIfHeaderExists(VALIDITY_PERIOD, msg))
-				.setPriorityFlag(SmesMessageSpecification.<Byte>valueIfHeaderExists(PRIORITY_FLAG, msg))
-				.setDataCoding(SmesMessageSpecification.<DataCoding>valueIfHeaderExists(DATA_CODING, msg))
-				.setSmDefaultMsgId(SmesMessageSpecification.<Byte>valueIfHeaderExists(SM_DEFAULT_MSG_ID, msg))
-				.setReplaceIfPresentFlag(SmesMessageSpecification.<Byte>valueIfHeaderExists(REPLACE_IF_PRESENT_FLAG, msg))
-				.setRegisteredDelivery(registeredDeliveryFromHeader(msg));
+		// byte landmine. autoboxing causes havoc with <em>null</em> bytes.
+		Byte priorityFlag1 = SmesMessageSpecification.<Byte>valueIfHeaderExists(PRIORITY_FLAG, msg);
+		if (priorityFlag1 != null)
+			spec.setPriorityFlag(priorityFlag1);
 
-		return smesMessageSpecification;
+		Byte smDefaultMsgId1 = SmesMessageSpecification.<Byte>valueIfHeaderExists(SM_DEFAULT_MSG_ID, msg);
+		if (smDefaultMsgId1 != null)
+			spec.setSmDefaultMsgId(smDefaultMsgId1);
+
+		Byte replaceIfPresentFlag1 = SmesMessageSpecification.<Byte>valueIfHeaderExists(REPLACE_IF_PRESENT_FLAG, msg);
+		if (replaceIfPresentFlag1 != null)
+			spec.setReplaceIfPresentFlag(replaceIfPresentFlag1);
+
+		Byte protocolId1 = SmesMessageSpecification.<Byte>valueIfHeaderExists(PROTOCOL_ID, msg);
+		if (null != protocolId1)
+			spec.setProtocolId(protocolId1);
+
+		spec.setRegisteredDelivery(registeredDeliveryFromHeader(msg));
+
+		return spec;
 	}
 
 	/**
@@ -115,7 +122,12 @@ public class SmesMessageSpecification {
 
 	/**
 	 * you need to use the builder API
+	 *
+	 * @param smppSession the SMPPSession instance against which we should work.
+	 * @see org.springframework.integration.smpp.SmesMessageSpecification#SmesMessageSpecification()
 	 */
+
+	@SuppressWarnings("unused")
 	SmesMessageSpecification(SMPPSession smppSession) {
 		this.smppSession = smppSession;
 	}
@@ -139,38 +151,11 @@ public class SmesMessageSpecification {
 	}
 
 	/**
-	 * Resets the thread local, pooled objects to a known state before reuse.
-	 * <p/>
-	 * Resetting the variables is trivially cheap compared to proxying a new one each time.
-	 *
-	 * @return the cleaned up {@link SmesMessageSpecification}
-	 */
-	public SmesMessageSpecification reset() {
-		sourceAddr = null;
-		destinationAddr = null;
-		serviceType = "CMT";
-		sourceAddrTon = TypeOfNumber.UNKNOWN;
-		sourceAddrNpi = NumberingPlanIndicator.UNKNOWN;
-		destAddrTon = TypeOfNumber.UNKNOWN;
-		destAddrNpi = NumberingPlanIndicator.UNKNOWN;
-		esmClass = new ESMClass();
-		protocolId = 0;
-		priorityFlag = 1;
-		scheduleDeliveryTime = null;
-		validityPeriod = null;
-		registeredDelivery = new RegisteredDelivery(SMSCDeliveryReceipt.DEFAULT);
-		replaceIfPresentFlag = 0;
-		dataCoding = new GeneralDataCoding(false, true, MessageClass.CLASS1, Alphabet.ALPHA_DEFAULT);
-		smDefaultMsgId = 0;
-		shortMessage = null; // the bytes to the 140 character text message
-		smppSession = null;
-		return this;
-	}
-
-	/**
 	 * use the builder API, but we need this to cleanly proxy
 	 */
+	@SuppressWarnings("unused")
 	SmesMessageSpecification() {
+		this(null);
 	}
 
 	/**
@@ -179,21 +164,12 @@ public class SmesMessageSpecification {
 	 * @param srcAddress	the source address
 	 * @param destAddress the destination address
 	 * @param txtMessage	the message to send (must be  no more than 140 characters
+	 * @param ss					the SMPPSession
 	 * @return the {@link SmesMessageSpecification}
 	 */
-	public static SmesMessageSpecification newSMESMessageSpecification(SMPPSession ss, String srcAddress, String destAddress, String txtMessage) {
+	public static SmesMessageSpecification newSmesMessageSpecification(SMPPSession ss, String srcAddress, String destAddress, String txtMessage) {
 
-		SmesMessageSpecification smesMessageSpecification = poolOfSpecifications.get();
-
-		if (null == smesMessageSpecification) {
-			ProxyFactoryBean proxyFactoryBean = new ProxyFactoryBean();
-			proxyFactoryBean.setProxyTargetClass(true);
-			proxyFactoryBean.setBeanClassLoader(ClassUtils.getDefaultClassLoader());
-			proxyFactoryBean.setTarget(new SmesMessageSpecification());
-			proxyFactoryBean.addAdvice(new CurrentMethodExposingMethodInterceptor());
-			smesMessageSpecification = (SmesMessageSpecification) proxyFactoryBean.getObject();
-			poolOfSpecifications.set(smesMessageSpecification);
-		}
+		SmesMessageSpecification smesMessageSpecification = new SmesMessageSpecification();
 
 		smesMessageSpecification
 				.reset()
@@ -210,22 +186,44 @@ public class SmesMessageSpecification {
 	 * <p/>
 	 * todo can we do something smart here or through an adapter to handle the situation where we have asked for a message receipt? what about if we're using a message receipt <em>and</eM> we're only a receiver or a sender connection and not a transceiver? We need gateway semantics across two unidirectional SMPPSessions, then
 	 *
+	 * @return the messageId (required if you want to then track it or correllate it with message receipt confirmations)
 	 * @throws Exception the {@link SMPPSession#submitShortMessage(String, org.jsmpp.bean.TypeOfNumber, org.jsmpp.bean.NumberingPlanIndicator, String, org.jsmpp.bean.TypeOfNumber, org.jsmpp.bean.NumberingPlanIndicator, String, org.jsmpp.bean.ESMClass, byte, byte, String, String, org.jsmpp.bean.RegisteredDelivery, byte, org.jsmpp.bean.DataCoding, byte, byte[], org.jsmpp.bean.OptionalParameter...)} method throws lots of Exceptions, including {@link java.io.IOException}
 	 */
 	public String send() throws Exception {
 		validate();
-		String messageId = this.smppSession.submitShortMessage(this.serviceType, this.sourceAddrTon, this.sourceAddrNpi, this.sourceAddr, this.destAddrTon, destAddrNpi, this.destinationAddr, this.esmClass, this.protocolId, this.priorityFlag, this.scheduleDeliveryTime, this.validityPeriod, this.registeredDelivery, this.replaceIfPresentFlag, this.dataCoding, this.smDefaultMsgId, this.shortMessage);
-		return messageId;
+		String msgId = this.smppSession.submitShortMessage(
+				this.serviceType,
+				this.sourceAddressTypeOfNumber,
+				this.sourceAddressNumberingPlanIndicator,
+				this.sourceAddress,
+
+				this.destinationAddressTypeOfNumber,
+				this.destinationAddressNumberingPlanIndicator,
+				this.destinationAddress,
+
+				this.esmClass,
+				this.protocolId,
+				this.priorityFlag,
+				this.scheduleDeliveryTime,
+				this.validityPeriod,
+				this.registeredDelivery,
+				this.replaceIfPresentFlag,
+				this.dataCoding,
+				this.smDefaultMsgId,
+				this.shortMessage);
+
+		return msgId;
 	}
 
 	protected void validate() {
-		Assert.notNull(this.sourceAddr, "the source address must not be null");
-		Assert.notNull(this.destinationAddr, "the destination address must not be null");
+		Assert.notNull(this.sourceAddress, "the source address must not be null");
+		Assert.notNull(this.destinationAddress, "the destination address must not be null");
 		Assert.isTrue(this.shortMessage != null && this.shortMessage.length > 0, "the message must not be null");
 	}
 
 	public SmesMessageSpecification setSourceAddress(String sourceAddr) {
-		this.sourceAddr = sourceAddr;
+		if (!nullHeaderWillOverwriteDefault(sourceAddr))
+			this.sourceAddress = sourceAddr;
 		return this;
 	}
 
@@ -236,27 +234,31 @@ public class SmesMessageSpecification {
 	 * @return the current spec
 	 */
 	public SmesMessageSpecification setDestinationAddress(String destinationAddr) {
-		this.destinationAddr = destinationAddr;
+		this.destinationAddress = destinationAddr;
 		return this;
 	}
 
 	public SmesMessageSpecification setServiceType(String serviceType) {
-		this.serviceType = serviceType;
+		if (!nullHeaderWillOverwriteDefault(serviceType))
+			this.serviceType = serviceType;
 		return this;
 	}
 
 	public SmesMessageSpecification setSourceAddressTypeOfNumber(TypeOfNumber sourceAddrTon) {
-		this.sourceAddrTon = sourceAddrTon;
+		if (!nullHeaderWillOverwriteDefault(sourceAddrTon))
+			this.sourceAddressTypeOfNumber = sourceAddrTon;
 		return this;
 	}
 
 	public SmesMessageSpecification setSourceAddressNumberingPlanIndicator(NumberingPlanIndicator sourceAddrNpi) {
-		this.sourceAddrNpi = sourceAddrNpi;
+		if (!nullHeaderWillOverwriteDefault(sourceAddrNpi))
+			this.sourceAddressNumberingPlanIndicator = sourceAddrNpi;
 		return this;
 	}
 
 	public SmesMessageSpecification setDestinationAddressTypeOfNumber(TypeOfNumber destAddrTon) {
-		this.destAddrTon = destAddrTon;
+		if (!nullHeaderWillOverwriteDefault(destAddrTon))
+			this.destinationAddressTypeOfNumber = destAddrTon;
 		return this;
 	}
 
@@ -264,40 +266,37 @@ public class SmesMessageSpecification {
 	 * guard against overwriting perfectly good defaults with null values.
 	 *
 	 * @param v value the value
+	 * @return can the write proceed unabated?
 	 */
-	private void errorOnNullHeaderSet(Object v) {
-		String methodName = CurrentExecutingMethodHolder.getCurrentlyExecutingMethod().getName();
-		if (StringUtils.hasText(methodName)) {
-			if (methodName.toLowerCase().startsWith("set")) {
-				methodName = methodName.substring(3);
-				methodName = (methodName.charAt(0) + "").toLowerCase() + methodName.substring(1);
-			}
-			Assert.notNull(v, "the property ['" + methodName + "'] can't be null. There is a default in place, but don't overwrite it with null");
-		} else {
-			Assert.notNull(v, "There is a default in place for this property; don't overwrite it with null");
+	private boolean nullHeaderWillOverwriteDefault(Object v) {
+		if (v == null) {
+			if (log.isDebugEnabled()) log.debug("There is a default in place for this property; don't overwrite it with null");
+			return true;
 		}
+		return false;
 	}
 
 	public SmesMessageSpecification setDestinationAddressNumberingPlanIndicator(NumberingPlanIndicator destAddrNpi) {
-		this.destAddrNpi = destAddrNpi;
+		if (!nullHeaderWillOverwriteDefault(destAddrNpi))
+			this.destinationAddressNumberingPlanIndicator = destAddrNpi;
 		return this;
 	}
 
 	public SmesMessageSpecification setEsmClass(ESMClass esmClass) {
-		errorOnNullHeaderSet(esmClass);
-		this.esmClass = esmClass;
+		if (!nullHeaderWillOverwriteDefault(esmClass))
+			this.esmClass = esmClass;
 		return this;
 	}
 
 	public SmesMessageSpecification setProtocolId(byte protocolId) {
-		errorOnNullHeaderSet(protocolId);
-		this.protocolId = protocolId;
+		if (!nullHeaderWillOverwriteDefault(protocolId))
+			this.protocolId = protocolId;
 		return this;
 	}
 
 	public SmesMessageSpecification setPriorityFlag(byte pf) {
-		errorOnNullHeaderSet(pf);
-		this.priorityFlag = pf;
+		if (!nullHeaderWillOverwriteDefault(pf))
+			this.priorityFlag = pf;
 		return this;
 	}
 
@@ -313,33 +312,39 @@ public class SmesMessageSpecification {
 	 * to be tested with a particular operator first to determine if it can be used reliably.
 	 * <p/>
 	 * That information came from <a href="http://www.nowsms.com/smpp-information">the NowSMS website.</a>.
+	 *
+	 * @param v the period of validity. There are specific formats for this, however this method provides no validation.
+	 *          <p/>
+	 *          todo provide format validation if possible
+	 * @return the current SmesMessageSpecification
 	 */
-	public SmesMessageSpecification setValidityPeriod(String validityPeriod) {
-		this.validityPeriod = validityPeriod;
+	public SmesMessageSpecification setValidityPeriod(String v) {
+		if (!nullHeaderWillOverwriteDefault(v))
+			this.validityPeriod = v;
 		return this;
 	}
 
 	public SmesMessageSpecification setScheduleDeliveryTime(Date d) {
-		errorOnNullHeaderSet(d);
-		this.scheduleDeliveryTime = timeFormatter.format(d);
+		if (!nullHeaderWillOverwriteDefault(d))
+			this.scheduleDeliveryTime = timeFormatter.format(d);
 		return this;
 	}
 
-	public SmesMessageSpecification setRegisteredDelivery(RegisteredDelivery registeredDelivery) {
-		errorOnNullHeaderSet(registeredDelivery);
-		this.registeredDelivery = registeredDelivery;
+	public SmesMessageSpecification setRegisteredDelivery(RegisteredDelivery rd) {
+		if (!nullHeaderWillOverwriteDefault(rd))
+			this.registeredDelivery = rd;
 		return this;
 	}
 
 	public SmesMessageSpecification setReplaceIfPresentFlag(byte replaceIfPresentFlag) {
-		errorOnNullHeaderSet(replaceIfPresentFlag);
-		this.replaceIfPresentFlag = replaceIfPresentFlag;
+		if (!nullHeaderWillOverwriteDefault(replaceIfPresentFlag))
+			this.replaceIfPresentFlag = replaceIfPresentFlag;
 		return this;
 	}
 
 	public SmesMessageSpecification setDataCoding(DataCoding dataCoding) {
-		errorOnNullHeaderSet(dataCoding);
-		this.dataCoding = dataCoding;
+		if (!nullHeaderWillOverwriteDefault(dataCoding))
+			this.dataCoding = dataCoding;
 		return this;
 	}
 
@@ -349,8 +354,8 @@ public class SmesMessageSpecification {
 	}
 
 	public SmesMessageSpecification setTimeFormatter(TimeFormatter timeFormatter) {
-		errorOnNullHeaderSet(timeFormatter);
-		this.timeFormatter = timeFormatter;
+		if (!nullHeaderWillOverwriteDefault(timeFormatter))
+			this.timeFormatter = timeFormatter;
 		return this;
 	}
 
@@ -369,13 +374,49 @@ public class SmesMessageSpecification {
 	}
 
 	/**
-	 * this is a good value, but not strictly speaking universal.
-	 *
+	 * this is a good value, but not strictly speaking universal. This is intended only for exceptional configuration cases
+	 * <p/>
 	 * See: http://www.nowsms.com/long-sms-text-messages-and-the-160-character-limit
 	 *
 	 * @param maxLengthSmsMessages the length of sms messages
+	 * @see #setShortTextMessage(String)
 	 */
+	@SuppressWarnings("unused")
 	public void setMaxLengthSmsMessages(int maxLengthSmsMessages) {
 		this.maxLengthSmsMessages = maxLengthSmsMessages;
+	}
+
+	/**
+	 * Resets the thread local, pooled objects to a known state before reuse.
+	 * <p/>
+	 * Resetting the variables is trivially cheap compared to proxying a new one each time.
+	 *
+	 * @return the cleaned up {@link SmesMessageSpecification}
+	 */
+	protected SmesMessageSpecification reset() {
+
+		// configuration params - should they be reset?
+		maxLengthSmsMessages = 140;
+		timeFormatter = new AbsoluteTimeFormatter();
+
+		sourceAddress = null;
+		destinationAddress = null;
+		serviceType = "CMT";
+		sourceAddressTypeOfNumber = TypeOfNumber.UNKNOWN;
+		sourceAddressNumberingPlanIndicator = NumberingPlanIndicator.UNKNOWN;
+		destinationAddressTypeOfNumber = TypeOfNumber.UNKNOWN;
+		destinationAddressNumberingPlanIndicator = NumberingPlanIndicator.UNKNOWN;
+		esmClass = new ESMClass();
+		protocolId = 0;
+		priorityFlag = 1;
+		scheduleDeliveryTime = null;
+		validityPeriod = null;
+		registeredDelivery = new RegisteredDelivery(SMSCDeliveryReceipt.DEFAULT);
+		replaceIfPresentFlag = 0;
+		dataCoding = new GeneralDataCoding(false, true, MessageClass.CLASS1, Alphabet.ALPHA_DEFAULT);
+		smDefaultMsgId = 0;
+		shortMessage = null; // the bytes to the 140 character text message
+		smppSession = null;
+		return this;
 	}
 }

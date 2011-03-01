@@ -11,6 +11,7 @@ import org.junit.Test;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 
+import java.lang.reflect.Field;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -68,7 +69,7 @@ public class TestSmesMessageSpecification {
 	@Test
 	public void testSendingAndReceivingASmppMessageUsingRawApi() throws Throwable {
 
-		String messageId = SmesMessageSpecification.newSMESMessageSpecification(
+		String messageId = SmesMessageSpecification.newSmesMessageSpecification(
 				smppSession, "1616", "628176504657", smsMessageToSend).send();
 		Assert.assertNotNull("messageId should not be null", messageId);
 		Assert.assertTrue("the returned message ID should not be -1", Integer.parseInt(messageId) >= 0);
@@ -79,12 +80,16 @@ public class TestSmesMessageSpecification {
 		Assert.assertEquals("the counter should be equal to 1, to account for the one message we've sent.", 1, this.atomicInteger.intValue());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testFaultySmesMessageSpecification() throws Throwable {
-		String messageId = SmesMessageSpecification.newSMESMessageSpecification(
+		SmesMessageSpecification smesMessageSpecification = SmesMessageSpecification.newSmesMessageSpecification(
 				smppSession, "1616", "628176504657", smsMessageToSend)
-				.setEsmClass(null)	 // this will cause an error
-				.send();
+				.setEsmClass(null);	 // this will cause an error
+
+		Field field = smesMessageSpecification.getClass().getField("esmClasss");
+		field.setAccessible(true);
+		Object esmClazzInstanceValue = field.get(smesMessageSpecification);
+		Assert.assertNotNull("the field should be non-null since its a default on the class and we passed in a null", esmClazzInstanceValue);
 	}
 
 	@After

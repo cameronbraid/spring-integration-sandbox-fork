@@ -6,6 +6,10 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.aop.framework.ProxyFactoryBean;
 
+/**
+ * @author Josh Long
+ * @since 2.1
+ */
 public class TestCurrentExecutingMethodAdvice {
 	static String currentMethodName() {
 		return CurrentExecutingMethodHolder.getCurrentlyExecutingMethod().getName();
@@ -19,7 +23,7 @@ public class TestCurrentExecutingMethodAdvice {
 
 		public void testMe() throws Throwable {
 			Assert.assertEquals("testMe", currentMethodName());
-			l.debug("this is just evil. The currently executing method name is " + currentMethodName());
+			l.debug("The currently executing method name is " + currentMethodName());
 		}
 	}
 

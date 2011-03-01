@@ -47,18 +47,6 @@ public class TestSmppSessionFactoryBean {
 
 	private final CyclicBarrier barrier = new CyclicBarrier(2);
 
-	private SMPPSession buildSmppSession() throws Throwable {
-		SmppSessionFactoryBean smppSessionFactoryBean = new SmppSessionFactoryBean();
-		smppSessionFactoryBean.setHost(this.host);
-		smppSessionFactoryBean.setPassword(this.password);
-		smppSessionFactoryBean.setSystemId(this.systemId);
-		smppSessionFactoryBean.setPort(this.port);
-		smppSessionFactoryBean.setMessageReceiverListener(new CountingMessageReceiver(this.smsMessageToSend, barrier, atomicInteger));
-		smppSessionFactoryBean.afterPropertiesSet();
-
-		return smppSessionFactoryBean.getObject();
-	}
-
 	@Before
 	public void before() throws Throwable {
 		if (logger.isInfoEnabled())
@@ -90,6 +78,18 @@ public class TestSmppSessionFactoryBean {
 		barrier.await();
 		logger.debug("the counter says: " + this.atomicInteger.intValue());
 		Assert.assertEquals("the counter should be equal to 1, to account for the one message we've sent.", 1, this.atomicInteger.intValue());
+	}
+
+	private SMPPSession buildSmppSession() throws Throwable {
+		SmppSessionFactoryBean smppSessionFactoryBean = new SmppSessionFactoryBean();
+		smppSessionFactoryBean.setHost(this.host);
+		smppSessionFactoryBean.setPassword(this.password);
+		smppSessionFactoryBean.setSystemId(this.systemId);
+		smppSessionFactoryBean.setPort(this.port);
+		smppSessionFactoryBean.setMessageReceiverListener(new CountingMessageReceiver(this.smsMessageToSend, barrier, atomicInteger));
+		smppSessionFactoryBean.afterPropertiesSet();
+
+		return smppSessionFactoryBean.getObject();
 	}
 
 	@After

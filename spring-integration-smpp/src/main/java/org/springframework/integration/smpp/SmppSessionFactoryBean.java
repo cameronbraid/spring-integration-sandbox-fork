@@ -59,15 +59,13 @@ public class SmppSessionFactoryBean implements FactoryBean<SMPPSession>, Initial
 	private String host = "127.0.0.1";
 	private String addressRange;
 	private long timeout = 60 * 1000;// 1 minute
-	private int port = 2775;
-	private BindType bindType = BindType.BIND_TRX;
-	private String systemId = getClass().getSimpleName().toLowerCase();
+	private int port = 2775;	// good default though this has been known to change
+	private BindType bindType = BindType.BIND_TRX; // bind as a 'transceiver' - only 3.4 of the spec <em>requires</em> support for this
+	private String systemId = getClass().getSimpleName().toLowerCase();	 // what would typically be called 'user' in a user/pw scheme
 	private String password;
 	private String systemType = "cp";
 	private TypeOfNumber addrTon = TypeOfNumber.UNKNOWN;
-
 	private NumberingPlanIndicator addrNpi = NumberingPlanIndicator.UNKNOWN;
-
 	private MessageReceiverListener messageReceiverListener;
 
 	public void setSsl(boolean ssl) {
@@ -153,6 +151,9 @@ public class SmppSessionFactoryBean implements FactoryBean<SMPPSession>, Initial
 			smppSession = new InitializationAndDisposalAwareSmppSession(new SynchronizedPDUSender(new DefaultPDUSender(new DefaultComposer())), new DefaultPDUReader(), sslConnectionFactory);
 		}
 		customizeSmppSession(smppSession);
+
+		// todo shouldnt this automatically get called by the container on the bean once its returned <em>from</em> the factory?
+		((InitializationAndDisposalAwareSmppSession) smppSession).afterPropertiesSet();
 
 		return smppSession;
 	}
