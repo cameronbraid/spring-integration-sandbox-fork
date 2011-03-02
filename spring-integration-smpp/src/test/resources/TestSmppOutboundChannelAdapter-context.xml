@@ -15,9 +15,10 @@
 
     <bean class="org.springframework.integration.smpp.session.SmppSessionFactoryBean" id="session">
         <property name="host" value="${smpp.host}"/>
+        <property name="bindType" value="BIND_TX"/>
         <property name="password" value="${smpp.password}"/>
         <property name="systemId" value="${smpp.systemId}"/>
-    </bean>
+     </bean>
 
     <bean class="org.springframework.integration.smpp.SmppOutboundChannelAdapter" id="adapter">
         <property name="smppSession" ref="session"/>

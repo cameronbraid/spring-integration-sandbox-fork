@@ -30,7 +30,7 @@ public class SmppOutboundChannelAdapter extends IntegrationObjectSupport impleme
 
 	private TypeOfNumber defaultSourceAddressTypeOfNumber = TypeOfNumber.UNKNOWN;
 
-	private TimeFormatter timeFormatter;
+	private TimeFormatter timeFormatter = new AbsoluteTimeFormatter();
 
 	private ExtendedSmppSession smppSession;
 

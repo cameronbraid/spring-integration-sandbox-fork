@@ -1,7 +1,15 @@
 package org.springframework.integration.smpp;
 
+import org.jsmpp.bean.TypeOfNumber;
+import org.jsmpp.session.ClientSession;
+import org.jsmpp.util.AbsoluteTimeFormatter;
+import org.jsmpp.util.TimeFormatter;
 import org.springframework.integration.Message;
 import org.springframework.integration.handler.AbstractReplyProducingMessageHandler;
+import org.springframework.integration.smpp.session.ExtendedSmppSession;
+import org.springframework.integration.smpp.session.ExtendedSmppSessionAdaptingDelegate;
+import org.springframework.integration.support.MessageBuilder;
+import org.springframework.util.StringUtils;
 
 /**
  * Support for request/reply exchanges over SMPP to a SMSC.
@@ -15,8 +23,6 @@ import org.springframework.integration.handler.AbstractReplyProducingMessageHand
  * Conceptually it should be possible to support two {@link org.jsmpp.session.SMPPSession}s, one in "sender" mode, and another in
  * "receiver" mode and handle the duplexing manually. The corellation logic is the same, in any event.
  * <p/>
- * TODO all of the above
- * TODO also where do we store the correllation data (e.g., it might take ten seconds to get the confirmation and its asynchronous. we need to store it)
  *
  * @author Josh Long
  * @since 2.1
@@ -24,6 +30,67 @@ import org.springframework.integration.handler.AbstractReplyProducingMessageHand
 public class SmppOutboundGateway extends AbstractReplyProducingMessageHandler {
 	@Override
 	protected Object handleRequestMessage(Message<?> requestMessage) {
-		return null;
+		try {
+
+
+			SmesMessageSpecification specification = applyDefaultsIfNecessary(
+					SmesMessageSpecification.fromMessage(this.smppSession, requestMessage)
+							.setTimeFormatter(this.timeFormatter));
+
+			String smsMessageId = specification.send();
+
+			logger.debug("message ID for the sent message is: " + smsMessageId);
+
+			return MessageBuilder.withPayload(smsMessageId).build()  ;
+
+		} catch (Exception e) {
+			throw new RuntimeException("Exception in trying to process the inbound SMPP message", e);
+		}
 	}
+
+	private String defaultSourceAddress;
+
+	private TypeOfNumber defaultSourceAddressTypeOfNumber = TypeOfNumber.UNKNOWN;
+
+	private TimeFormatter timeFormatter = new AbsoluteTimeFormatter();
+
+	private ExtendedSmppSession smppSession;
+
+	@SuppressWarnings("unused")
+	public void setDefaultSourceAddress(String defaultSourceAddress) {
+		this.defaultSourceAddress = defaultSourceAddress;
+	}
+
+	@SuppressWarnings("unused")
+	public void setDefaultSourceAddressTypeOfNumber(TypeOfNumber defaultSourceAddressTypeOfNumber) {
+		this.defaultSourceAddressTypeOfNumber = defaultSourceAddressTypeOfNumber;
+	}
+
+	@SuppressWarnings("unused")
+	public void setTimeFormatter(TimeFormatter timeFormatter) {
+		this.timeFormatter = timeFormatter;
+	}
+
+
+
+	private SmesMessageSpecification applyDefaultsIfNecessary(SmesMessageSpecification smsSpec) {
+
+		if (defaultSourceAddressTypeOfNumber != null)
+			smsSpec.setSourceAddressTypeOfNumberIfRequired(this.defaultSourceAddressTypeOfNumber);
+
+		if (StringUtils.hasText(this.defaultSourceAddress))
+			smsSpec.setSourceAddressIfRequired(this.defaultSourceAddress);
+
+		return smsSpec;
+	}
+
+	public void setSmppSession(ClientSession s) {
+
+		if (!(s instanceof ExtendedSmppSession))
+			this.smppSession = new ExtendedSmppSessionAdaptingDelegate(s);
+		else {
+			this.smppSession = (ExtendedSmppSession) s;
+		}
+	}
+
 }
