@@ -3,6 +3,7 @@ package org.springframework.integration.smpp;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jsmpp.bean.*;
+import org.jsmpp.session.ClientSession;
 import org.jsmpp.session.SMPPSession;
 import org.jsmpp.util.AbsoluteTimeFormatter;
 import org.jsmpp.util.TimeFormatter;
@@ -43,7 +44,7 @@ public class SmesMessageSpecification {
 	private DataCoding dataCoding;
 	private byte smDefaultMsgId;
 	private byte[] shortMessage;
-	private SMPPSession smppSession;
+	private ClientSession smppSession;
 
 	/**
 	 * this method will take an inbound Spring Integration {@link Message} and map it to a {@link SmesMessageSpecification}
@@ -53,7 +54,7 @@ public class SmesMessageSpecification {
 	 * @param smppSession the SMPPSession
 	 * @return a {@link SmesMessageSpecification}
 	 */
-	public static SmesMessageSpecification fromMessage(SMPPSession smppSession, Message<?> msg) {
+	public static SmesMessageSpecification fromMessage(ClientSession smppSession, Message<?> msg) {
 
 		String srcAddy = valueIfHeaderExists(SRC_ADDR, msg);
 		String dstAddy = valueIfHeaderExists(DST_ADDR, msg);
@@ -114,6 +115,11 @@ public class SmesMessageSpecification {
 			return new RegisteredDelivery(smscDeliveryReceipt);
 		}
 
+		if (rd instanceof SMSCDeliveryReceipt) {
+			SMSCDeliveryReceipt smscDeliveryReceipt = (SMSCDeliveryReceipt) rd;
+			return new RegisteredDelivery(smscDeliveryReceipt);
+		}
+
 		if (rd instanceof RegisteredDelivery) {
 			return (RegisteredDelivery) rd;
 		}
@@ -145,7 +151,7 @@ public class SmesMessageSpecification {
 	 * @param ss the {@link SMPPSession}
 	 * @return the current spec
 	 */
-	SmesMessageSpecification setSmppSession(SMPPSession ss) {
+	SmesMessageSpecification setSmppSession(ClientSession ss) {
 		this.smppSession = ss;
 		return this;
 	}
@@ -167,7 +173,7 @@ public class SmesMessageSpecification {
 	 * @param ss					the SMPPSession
 	 * @return the {@link SmesMessageSpecification}
 	 */
-	public static SmesMessageSpecification newSmesMessageSpecification(SMPPSession ss, String srcAddress, String destAddress, String txtMessage) {
+	public static SmesMessageSpecification newSmesMessageSpecification(ClientSession ss, String srcAddress, String destAddress, String txtMessage) {
 
 		SmesMessageSpecification smesMessageSpecification = new SmesMessageSpecification();
 
@@ -179,6 +185,19 @@ public class SmesMessageSpecification {
 				.setShortTextMessage(txtMessage);
 
 		return smesMessageSpecification;
+	}
+
+	/**
+	 * Only sets the #sourceAddressTypeOfNumber if the current value is null, otherwise, it leaves it.
+	 *
+	 * @param sourceAddressTypeOfNumberIfRequired
+	 *         the {@link TypeOfNumber}
+	 * @return this
+	 */
+	public SmesMessageSpecification setSourceAddressTypeOfNumberIfRequired(TypeOfNumber sourceAddressTypeOfNumberIfRequired) {
+		if (this.sourceAddressTypeOfNumber == null)
+			this.sourceAddressTypeOfNumber = sourceAddressTypeOfNumberIfRequired;
+		return this;
 	}
 
 	/**
@@ -330,6 +349,7 @@ public class SmesMessageSpecification {
 		return this;
 	}
 
+
 	public SmesMessageSpecification setRegisteredDelivery(RegisteredDelivery rd) {
 		if (!nullHeaderWillOverwriteDefault(rd))
 			this.registeredDelivery = rd;
@@ -417,6 +437,12 @@ public class SmesMessageSpecification {
 		smDefaultMsgId = 0;
 		shortMessage = null; // the bytes to the 140 character text message
 		smppSession = null;
+		return this;
+	}
+
+	public SmesMessageSpecification setSourceAddressIfRequired(String defaultSourceAddress) {
+		if (!StringUtils.hasText(this.sourceAddress))
+			this.sourceAddress = defaultSourceAddress;
 		return this;
 	}
 }

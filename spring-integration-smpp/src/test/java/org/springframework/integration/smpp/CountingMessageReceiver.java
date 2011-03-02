@@ -20,8 +20,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @since 2.1
  */
 public class CountingMessageReceiver implements MessageReceiverListener {
-	private AtomicInteger atomicInteger;
+
 	private Log logger = LogFactory.getLog(getClass());
+
+	private AtomicInteger atomicInteger;
 	private CyclicBarrier barrier = null;
 	private String smsMessageToSend;
 
