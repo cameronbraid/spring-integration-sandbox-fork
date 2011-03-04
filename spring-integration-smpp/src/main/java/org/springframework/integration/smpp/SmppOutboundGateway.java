@@ -1,14 +1,14 @@
 package org.springframework.integration.smpp;
 
+import org.jsmpp.bean.BindType;
 import org.jsmpp.bean.TypeOfNumber;
-import org.jsmpp.session.ClientSession;
 import org.jsmpp.util.AbsoluteTimeFormatter;
 import org.jsmpp.util.TimeFormatter;
 import org.springframework.integration.Message;
 import org.springframework.integration.handler.AbstractReplyProducingMessageHandler;
 import org.springframework.integration.smpp.session.ExtendedSmppSession;
-import org.springframework.integration.smpp.session.ExtendedSmppSessionAdaptingDelegate;
 import org.springframework.integration.support.MessageBuilder;
+import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 /**
@@ -20,7 +20,7 @@ import org.springframework.util.StringUtils;
  * of waiting for the reply and corellating it to the outbound request.
  * <p/>
  * By default this component assumes one {@link org.jsmpp.session.SMPPSession} in "transceiver" mode - it can both request and reply.
- * Conceptually it should be possible to support two {@link org.jsmpp.session.SMPPSession}s, one in "sender" mode, and another in
+ * Conceptually it should be possible to support two {@link org.jsmpp.session.SMPPSession}running, one in "sender" mode, and another in
  * "receiver" mode and handle the duplexing manually. The corellation logic is the same, in any event.
  * <p/>
  *
@@ -29,9 +29,18 @@ import org.springframework.util.StringUtils;
  */
 public class SmppOutboundGateway extends AbstractReplyProducingMessageHandler {
 	@Override
+	protected void onInit() {
+		Assert.isTrue(
+				this.smppSession.getBindType().equals(BindType.BIND_TX)||
+				this.smppSession.getBindType().equals(BindType.BIND_TRX),
+				"the smppSession's bindType must be BindType.BIND_TX or BindType.BIND_TRX");
+
+		this.smppSession.start();
+	}
+
+	@Override
 	protected Object handleRequestMessage(Message<?> requestMessage) {
 		try {
-
 
 			SmesMessageSpecification specification = applyDefaultsIfNecessary(
 					SmesMessageSpecification.fromMessage(this.smppSession, requestMessage)
@@ -41,8 +50,7 @@ public class SmppOutboundGateway extends AbstractReplyProducingMessageHandler {
 
 			logger.debug("message ID for the sent message is: " + smsMessageId);
 
-			return MessageBuilder.withPayload(smsMessageId).build()  ;
-
+			return MessageBuilder.withPayload(smsMessageId).build();
 		} catch (Exception e) {
 			throw new RuntimeException("Exception in trying to process the inbound SMPP message", e);
 		}
@@ -71,8 +79,6 @@ public class SmppOutboundGateway extends AbstractReplyProducingMessageHandler {
 		this.timeFormatter = timeFormatter;
 	}
 
-
-
 	private SmesMessageSpecification applyDefaultsIfNecessary(SmesMessageSpecification smsSpec) {
 
 		if (defaultSourceAddressTypeOfNumber != null)
@@ -84,13 +90,7 @@ public class SmppOutboundGateway extends AbstractReplyProducingMessageHandler {
 		return smsSpec;
 	}
 
-	public void setSmppSession(ClientSession s) {
-
-		if (!(s instanceof ExtendedSmppSession))
-			this.smppSession = new ExtendedSmppSessionAdaptingDelegate(s);
-		else {
-			this.smppSession = (ExtendedSmppSession) s;
-		}
+	public void setSmppSession(ExtendedSmppSession s) {
+		this.smppSession = s;
 	}
-
 }

@@ -1,5 +1,7 @@
 package org.springframework.integration.smpp.session;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.jsmpp.InvalidResponseException;
 import org.jsmpp.PDUException;
 import org.jsmpp.bean.*;
@@ -7,8 +9,8 @@ import org.jsmpp.extra.NegativeResponseException;
 import org.jsmpp.extra.ResponseTimeoutException;
 import org.jsmpp.extra.SessionState;
 import org.jsmpp.session.*;
-import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.context.Lifecycle;
 
 import java.io.IOException;
 
@@ -18,32 +20,71 @@ import java.io.IOException;
  * @author Josh Long
  * @since 2.1
  */
-public class ExtendedSmppSessionAdaptingDelegate implements ExtendedSmppSession, InitializingBean, DisposableBean {
+public class ExtendedSmppSessionAdaptingDelegate implements /*Lifecycle,*/ ExtendedSmppSession, InitializingBean {
 
+	/**
+	 * callback for custom lifecycle events
+	 */
+	private Lifecycle lifecycle;
+	private Log log = LogFactory.getLog(getClass());
 	private final DelegatingMessageReceiverListener delegatingMessageReceiverListener = new DelegatingMessageReceiverListener();
+	private volatile boolean running;
+	private BindType bindType;
+	private SMPPSession session;
 
-	private ClientSession clientSession;
-
-	public ClientSession getTargetClientSession() {
-		return this.clientSession;
+	public void setBindType(BindType bindType) {
+		this.bindType = bindType;
 	}
 
-	public void destroy() throws Exception {
-		if (clientSession instanceof DisposableBean)
-			((DisposableBean) clientSession).destroy();
+	public SMPPSession getTargetClientSession() {
+		return this.session;
 	}
 
-	public void afterPropertiesSet() throws Exception {
+	public void start() {
 
-		if (clientSession instanceof SMPPSession)
-			((SMPPSession) clientSession).setMessageReceiverListener(delegatingMessageReceiverListener);
+		if( this.running)
+			return;
 
-		if (clientSession instanceof InitializingBean)
-			((InitializingBean) clientSession).afterPropertiesSet();
+		lifecycle.start();
+		this.running = true;
 	}
 
-	public ExtendedSmppSessionAdaptingDelegate(ClientSession clientSession) {
-		this.clientSession = clientSession;
+	public void stop() {
+		lifecycle.stop();
+		this.running = false;
+	}
+
+	public boolean isRunning() {
+		return this.running;
+	}
+
+	public BindType getBindType() {
+		return this.bindType;
+	}
+
+	/**
+	 * noops for the {@link Lifecycle} arg in {@link ExtendedSmppSessionAdaptingDelegate#ExtendedSmppSessionAdaptingDelegate(org.jsmpp.session.SMPPSession, org.springframework.context.Lifecycle)}
+	 *
+	 * @param session the session
+	 */
+	public ExtendedSmppSessionAdaptingDelegate(SMPPSession session) {
+		this(session, new Lifecycle() {
+			public void start() {
+			}
+
+			public void stop() {
+			}
+
+			public boolean isRunning() {
+				return true;
+			}
+		});
+	}
+
+	public ExtendedSmppSessionAdaptingDelegate(SMPPSession session, Lifecycle lifecycle) {
+		this.lifecycle = lifecycle;
+		this.session = session;
+		this.session.setMessageReceiverListener(this.delegatingMessageReceiverListener);
 	}
 
 	public void addMessageReceiverListener(MessageReceiverListener messageReceiverListener) {
@@ -53,73 +94,77 @@ public class ExtendedSmppSessionAdaptingDelegate implements ExtendedSmppSession,
 	public String submitShortMessage(String serviceType, TypeOfNumber sourceAddrTon, NumberingPlanIndicator sourceAddrNpi,
 																	 String sourceAddr, TypeOfNumber destAddrTon, NumberingPlanIndicator destAddrNpi,
 																	 String destinationAddr, ESMClass esmClass, byte protocolId, byte priorityFlag, String scheduleDeliveryTime, String validityPeriod, RegisteredDelivery registeredDelivery, byte replaceIfPresentFlag, DataCoding dataCoding, byte smDefaultMsgId, byte[] shortMessage, OptionalParameter... optionalParameters) throws PDUException, ResponseTimeoutException, InvalidResponseException, NegativeResponseException, IOException {
-		return clientSession.submitShortMessage(serviceType, sourceAddrTon, sourceAddrNpi, sourceAddr, destAddrTon, destAddrNpi, destinationAddr, esmClass, protocolId, priorityFlag, scheduleDeliveryTime, validityPeriod, registeredDelivery, replaceIfPresentFlag, dataCoding, smDefaultMsgId, shortMessage, optionalParameters);
+		return session.submitShortMessage(serviceType, sourceAddrTon, sourceAddrNpi, sourceAddr, destAddrTon, destAddrNpi, destinationAddr, esmClass, protocolId, priorityFlag, scheduleDeliveryTime, validityPeriod, registeredDelivery, replaceIfPresentFlag, dataCoding, smDefaultMsgId, shortMessage, optionalParameters);
 	}
 
 	public SubmitMultiResult submitMultiple(String serviceType, TypeOfNumber sourceAddrTon, NumberingPlanIndicator sourceAddrNpi, String sourceAddr, Address[] destinationAddresses, ESMClass esmClass, byte protocolId, byte priorityFlag, String scheduleDeliveryTime, String validityPeriod, RegisteredDelivery registeredDelivery, ReplaceIfPresentFlag replaceIfPresentFlag, DataCoding dataCoding, byte smDefaultMsgId, byte[] shortMessage, OptionalParameter[] optionalParameters) throws PDUException, ResponseTimeoutException, InvalidResponseException, NegativeResponseException, IOException {
-		return clientSession.submitMultiple(
+		return session.submitMultiple(
 				serviceType, sourceAddrTon, sourceAddrNpi, sourceAddr, destinationAddresses, esmClass, protocolId, priorityFlag, scheduleDeliveryTime, validityPeriod, registeredDelivery, replaceIfPresentFlag, dataCoding, smDefaultMsgId, shortMessage, optionalParameters
 		);
 	}
 
 	public QuerySmResult queryShortMessage(String messageId, TypeOfNumber sourceAddrTon, NumberingPlanIndicator sourceAddrNpi, String sourceAddr) throws PDUException, ResponseTimeoutException, InvalidResponseException, NegativeResponseException, IOException {
-		return clientSession.queryShortMessage(messageId, sourceAddrTon, sourceAddrNpi, sourceAddr);
+		return session.queryShortMessage(messageId, sourceAddrTon, sourceAddrNpi, sourceAddr);
 	}
 
 	public void cancelShortMessage(String serviceType, String messageId, TypeOfNumber sourceAddrTon, NumberingPlanIndicator sourceAddrNpi, String sourceAddr,
 																 TypeOfNumber destAddrTon, NumberingPlanIndicator destAddrNpi, String destinationAddress) throws PDUException, ResponseTimeoutException, InvalidResponseException, NegativeResponseException, IOException {
-		clientSession.cancelShortMessage(serviceType, messageId, sourceAddrTon, sourceAddrNpi, sourceAddr, destAddrTon, destAddrNpi, destinationAddress);
+		session.cancelShortMessage(serviceType, messageId, sourceAddrTon, sourceAddrNpi, sourceAddr, destAddrTon, destAddrNpi, destinationAddress);
 	}
 
 	public void replaceShortMessage(String messageId, TypeOfNumber sourceAddrTon, NumberingPlanIndicator sourceAddrNpi, String sourceAddr, String scheduleDeliveryTime, String validityPeriod, RegisteredDelivery registeredDelivery, byte smDefaultMsgId, byte[] shortMessage) throws PDUException, ResponseTimeoutException, InvalidResponseException, NegativeResponseException, IOException {
-		clientSession.replaceShortMessage(messageId, sourceAddrTon, sourceAddrNpi, sourceAddr, scheduleDeliveryTime, validityPeriod, registeredDelivery, smDefaultMsgId, shortMessage);
+		session.replaceShortMessage(messageId, sourceAddrTon, sourceAddrNpi, sourceAddr, scheduleDeliveryTime, validityPeriod, registeredDelivery, smDefaultMsgId, shortMessage);
 	}
 
 	public DataSmResult dataShortMessage(String serviceType, TypeOfNumber sourceAddrTon, NumberingPlanIndicator sourceAddrNpi, String sourceAddr, TypeOfNumber destAddrTon, NumberingPlanIndicator destAddrNpi, String destinationAddr, ESMClass esmClass, RegisteredDelivery registeredDelivery, DataCoding dataCoding, OptionalParameter... optionalParameters) throws PDUException, ResponseTimeoutException, InvalidResponseException, NegativeResponseException, IOException {
-		return clientSession.dataShortMessage(serviceType, sourceAddrTon, sourceAddrNpi, sourceAddr, destAddrTon, destAddrNpi, destinationAddr, esmClass, registeredDelivery, dataCoding, optionalParameters);
+		return session.dataShortMessage(serviceType, sourceAddrTon, sourceAddrNpi, sourceAddr, destAddrTon, destAddrNpi, destinationAddr, esmClass, registeredDelivery, dataCoding, optionalParameters);
 	}
 
 	public String getSessionId() {
-		return clientSession.getSessionId();
+		return session.getSessionId();
 	}
 
 	public void setEnquireLinkTimer(int enquireLinkTimer) {
-		clientSession.setEnquireLinkTimer(enquireLinkTimer);
+		session.setEnquireLinkTimer(enquireLinkTimer);
 	}
 
 	public int getEnquireLinkTimer() {
-		return clientSession.getEnquireLinkTimer();
+		return session.getEnquireLinkTimer();
 	}
 
 	public void setTransactionTimer(long transactionTimer) {
-		clientSession.setTransactionTimer(transactionTimer);
+		session.setTransactionTimer(transactionTimer);
 	}
 
 	public long getTransactionTimer() {
-		return clientSession.getTransactionTimer();
+		return session.getTransactionTimer();
 	}
 
 	public SessionState getSessionState() {
-		return clientSession.getSessionState();
+		return session.getSessionState();
 	}
 
 	public void addSessionStateListener(SessionStateListener l) {
-		clientSession.addSessionStateListener(l);
+		session.addSessionStateListener(l);
 	}
 
 	public void removeSessionStateListener(SessionStateListener l) {
-		clientSession.removeSessionStateListener(l);
+		session.removeSessionStateListener(l);
 	}
 
 	public long getLastActivityTimestamp() {
-		return clientSession.getLastActivityTimestamp();
+		return session.getLastActivityTimestamp();
 	}
 
 	public void close() {
-		clientSession.close();
+		session.close();
 	}
 
 	public void unbindAndClose() {
-		clientSession.unbindAndClose();
+		session.unbindAndClose();
+	}
+
+	public void afterPropertiesSet() throws Exception {
+	 System.out.println( "afterPropertiesSet!");
 	}
 }

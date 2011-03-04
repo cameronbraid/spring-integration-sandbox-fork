@@ -2,7 +2,9 @@ package org.springframework.integration.smpp.session;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.jsmpp.*;
+import org.jsmpp.DefaultPDUReader;
+import org.jsmpp.DefaultPDUSender;
+import org.jsmpp.SynchronizedPDUSender;
 import org.jsmpp.bean.BindType;
 import org.jsmpp.bean.NumberingPlanIndicator;
 import org.jsmpp.bean.TypeOfNumber;
@@ -13,9 +15,11 @@ import org.jsmpp.session.connection.Connection;
 import org.jsmpp.session.connection.ConnectionFactory;
 import org.jsmpp.session.connection.socket.SocketConnection;
 import org.jsmpp.util.DefaultComposer;
-import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.context.Lifecycle;
+import org.springframework.context.SmartLifecycle;
+import org.springframework.core.Ordered;
 import org.springframework.util.Assert;
 
 import javax.net.SocketFactory;
@@ -53,9 +57,17 @@ import java.util.Set;
  * @see org.jsmpp.session.SMPPSession#connectAndBind(String, int, org.jsmpp.bean.BindType, String, String, String, org.jsmpp.bean.TypeOfNumber, org.jsmpp.bean.NumberingPlanIndicator, String, long)
  * @since 2.1
  */
-public class SmppSessionFactoryBean implements FactoryBean<ExtendedSmppSession>, InitializingBean {
+public class SmppSessionFactoryBean implements FactoryBean<ExtendedSmppSession>, SmartLifecycle, InitializingBean {
 
+	/**
+	 * impl of {@link Lifecycle} that connects and disconnects respectively in
+	 * {@link org.springframework.context.Lifecycle#start()} and {@link org.springframework.context.Lifecycle#stop()}
+	 *
+	 * @author Josh Long
+	 */
 	private Set<MessageReceiverListener> messageReceiverListeners = new HashSet<MessageReceiverListener>();
+	private boolean autoStartup;
+	private volatile boolean running;
 	private Log log = LogFactory.getLog(getClass());
 	private SessionStateListener sessionStateListener;
 	private boolean ssl = false;
@@ -69,6 +81,8 @@ public class SmppSessionFactoryBean implements FactoryBean<ExtendedSmppSession>,
 	private String systemType = "cp";
 	private TypeOfNumber addrTon = TypeOfNumber.UNKNOWN;
 	private NumberingPlanIndicator addrNpi = NumberingPlanIndicator.UNKNOWN;
+
+	private ExtendedSmppSessionAdaptingDelegate product;
 
 	public void setSsl(boolean ssl) {
 		this.ssl = ssl;
@@ -127,77 +141,123 @@ public class SmppSessionFactoryBean implements FactoryBean<ExtendedSmppSession>,
 	}
 
 	/**
-	 * we return a subclass of {@link SMPPSession} - {@link InitializationAndDisposalAwareSmppSession a subclass that knows about the {@link InitializingBean} and {@link DisposableBean} interfaces} -
-	 * to ensure that the SMPPSession is adapted for Spring's lifecycle managment hooks.
-	 * Additionally, we use this method to provide a bit of indirection so that we can plugin an alternate {@link ConnectionFactory} implementation to support SSL.
-	 *
 	 * @return the configured SMPPSession
 	 * @throws Exception should anything go wrong
 	 */
-	private ExtendedSmppSession buildSmppSession() throws Exception {
-		InitializationAndDisposalAwareSmppSession smppSession = null;
+	private ExtendedSmppSessionAdaptingDelegate buildSmppSession() throws Exception {
+		SMPPSession smppSession = null;
 		if (!ssl) {
-			smppSession = new InitializationAndDisposalAwareSmppSession();
+			smppSession = new SMPPSession();
 		} else {
-			smppSession = new InitializationAndDisposalAwareSmppSession(new SynchronizedPDUSender(new DefaultPDUSender(new DefaultComposer())), new DefaultPDUReader(), sslConnectionFactory);
+			smppSession = new SMPPSession(new SynchronizedPDUSender(new DefaultPDUSender(new DefaultComposer())), new DefaultPDUReader(), sslConnectionFactory);
 		}
 
-		ExtendedSmppSessionAdaptingDelegate extendedSmppSessionAdaptingDelegate = new ExtendedSmppSessionAdaptingDelegate(smppSession);
+		ExtendedSmppSessionAdaptingDelegate extendedSmppSessionAdaptingDelegate = new ExtendedSmppSessionAdaptingDelegate(smppSession, new ConnectingLifecycle(smppSession));
 
 		for (MessageReceiverListener mrl : this.messageReceiverListeners)
 			extendedSmppSessionAdaptingDelegate.addMessageReceiverListener(mrl);
 
+		extendedSmppSessionAdaptingDelegate.setBindType(this.bindType);
 		return extendedSmppSessionAdaptingDelegate;
 	}
 
+	public void setAutoStartup(boolean autoStartup) {
+		this.autoStartup = autoStartup;
+	}
+
 	/**
+	 * {@inheritDoc}
+	 */
+	public boolean isAutoStartup() {
+		return this.autoStartup;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public void stop(Runnable callback) {
+		try {
+			log.debug("shutting down in " + getClass().getName() + "#stop(Runnable).");
+			callback.run();
+		} catch (Throwable throwable) {
+			log.warn("error when trying to shutdown " + getClass().getName() + ", could not invoke the callback's Runnable#run method");
+		}
+		this.stop();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public void start() {
+		log.debug("starting up in " + getClass().getName() + "#start().");
+		( product).start();
+		this.running = true;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public void stop() {
+		log.debug("shutting down in " + getClass().getName() + "#stop().");
+		(  product).stop();
+		this.running = false;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public boolean isRunning() {
+		return this.running;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public int getPhase() {
+		return Ordered.LOWEST_PRECEDENCE;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * <p/>
 	 * delegates to {@link #buildSmppSession()}
 	 */
 	public ExtendedSmppSession getObject() throws Exception {
-		ExtendedSmppSession extendedSmppSession = buildSmppSession();
-		((InitializingBean) extendedSmppSession).afterPropertiesSet();
-		return extendedSmppSession;
+		return product;
 	}
 
 	/**
-	 * Adapting {@link SMPPSession} subclass that makes the {@link SMPPSession} participate in Spring lifecycle hooks.
-	 *
-	 * @author Josh Long
+	 * {@inheritDoc}
 	 */
-	class InitializationAndDisposalAwareSmppSession extends SMPPSession implements InitializingBean, DisposableBean {
-
-		public InitializationAndDisposalAwareSmppSession() {
-		}
-
-		public InitializationAndDisposalAwareSmppSession(PDUSender pduSender, PDUReader pduReader, ConnectionFactory connFactory) {
-			super(pduSender, pduReader, connFactory);
-		}
-
-		public void destroy() throws Exception {
-			log.debug(DisposableBean.class.getName() + "#destroy() called. calling closeSmppSessionSafely(this.smppSession).");
-			SmppSessionUtils.closeSmppSessionSafely(this);
-		}
-
-		public void afterPropertiesSet() throws Exception {
-			log.debug(InitializingBean.class.getName() + "#afterPropertiesSet called. calling connectAndBindSmppSessionSafely(this.smppSession).");
-			SmppSessionUtils.connectAndBindSmppSessionSafely(this, host, port, bindType, systemId, password, systemType, addrTon, addrNpi, addressRange, timeout);
-		}
-	}
-
 	public Class<?> getObjectType() {
-		return InitializationAndDisposalAwareSmppSession.class;
+		return ExtendedSmppSessionAdaptingDelegate.class;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	public boolean isSingleton() {
-		return false;
+		return true;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	public void afterPropertiesSet() throws Exception {
+
+		// NB, the reference handed back by {@link org.springframework.beans.factory.FactoryBean#getObject()}  isn't itself
+		// managed, only the factory, so we cache it and then delegate through the factory's lifecycle methods.
+
 		Assert.notNull(this.systemId, "the systemId can't be null");
 		Assert.notNull(this.host, "the host can't be null");
 		Assert.notNull(this.port, "the port can't be null");
+
+		this.product = buildSmppSession();
 	}
 
+	/**
+	 * singleton {@link ConnectionFactory} that handles SSL
+	 */
 	final private static ConnectionFactory sslConnectionFactory = new ConnectionFactory() {
 
 		public Connection createConnection(String host, int port) throws IOException {
@@ -206,6 +266,48 @@ public class SmppSessionFactoryBean implements FactoryBean<ExtendedSmppSession>,
 			return new SocketConnection(socket);
 		}
 	};
+
+	/**
+	 * lifecycle implementation that simply {@link SMPPSession#connectAndBind(String, int, org.jsmpp.session.BindParameter)} and
+	 * {@link org.jsmpp.session.SMPPSession#unbindAndClose()}.
+	 */
+	private class ConnectingLifecycle implements Lifecycle {
+
+		private volatile boolean running;
+
+		private SMPPSession session;
+
+		private ConnectingLifecycle(SMPPSession smppSession) {
+			this.session = smppSession;
+		}
+
+		public boolean isRunning() {
+			return this.running;
+		}
+
+		public void stop() {
+			if (session != null) {
+				if (session.getSessionState().isBound()) {
+					try {
+						session.unbindAndClose();
+					} catch (Throwable t) {
+						log.warn("couldn't close and unbind the session", t);
+					}
+				}
+			} else {
+				log.warn("the smppSession given to close is null");
+			}
+		}
+
+		public void start() {
+			try {
+				session.connectAndBind(host, port, bindType, systemId, password, systemType, addrTon, addrNpi, addressRange, timeout);
+				this.running = true;
+			} catch (IOException e) {
+				log.error("something happened when trying to connect", e);
+			}
+		}
+	}
 }
 
 /*    private void reconnectAfter(final long timeInMillis) {

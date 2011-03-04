@@ -23,7 +23,6 @@ import java.util.concurrent.CopyOnWriteArraySet;
  */
 public class DelegatingMessageReceiverListener implements MessageReceiverListener {
 
-
 	private volatile Set<MessageReceiverListener> messageReceiverListenerSet =
 			new CopyOnWriteArraySet<MessageReceiverListener>();
 

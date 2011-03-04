@@ -1,9 +1,10 @@
 package org.springframework.integration.smpp;
 
+import org.jsmpp.bean.BindType;
 import org.jsmpp.bean.TypeOfNumber;
-import org.jsmpp.session.ClientSession;
 import org.jsmpp.util.AbsoluteTimeFormatter;
 import org.jsmpp.util.TimeFormatter;
+import org.springframework.context.Lifecycle;
 import org.springframework.integration.Message;
 import org.springframework.integration.MessagingException;
 import org.springframework.integration.context.IntegrationObjectSupport;
@@ -24,7 +25,6 @@ import org.springframework.util.StringUtils;
  * @since 2.1
  */
 public class SmppOutboundChannelAdapter extends IntegrationObjectSupport implements MessageHandler {
-
 
 	private String defaultSourceAddress;
 
@@ -51,10 +51,16 @@ public class SmppOutboundChannelAdapter extends IntegrationObjectSupport impleme
 
 	@Override
 	protected void onInit() throws Exception {
-		Assert.notNull(this.smppSession, "the smppSession must not be null");
 		if (this.timeFormatter == null) {
 			this.timeFormatter = new AbsoluteTimeFormatter();
 		}
+
+		Assert.notNull(this.smppSession, "the smppSession must not be null");
+		Assert.isTrue(!this.smppSession.getBindType().equals(BindType.BIND_RX),
+				"the BindType must support message production: BindType.TX or BindType.TRX only supported");
+
+		this.smppSession.start();
+
 	}
 
 	private SmesMessageSpecification applyDefaultsIfNecessary(SmesMessageSpecification smsSpec) {
@@ -68,13 +74,8 @@ public class SmppOutboundChannelAdapter extends IntegrationObjectSupport impleme
 		return smsSpec;
 	}
 
-	public void setSmppSession(ClientSession s) {
-
-		if (!(s instanceof ExtendedSmppSession))
-			this.smppSession = new ExtendedSmppSessionAdaptingDelegate(s);
-		else {
-			this.smppSession = (ExtendedSmppSession) s;
-		}
+	public void setSmppSession(ExtendedSmppSession s) {
+		this.smppSession = s;
 	}
 
 	public void handleMessage(Message<?> message) throws MessagingException {

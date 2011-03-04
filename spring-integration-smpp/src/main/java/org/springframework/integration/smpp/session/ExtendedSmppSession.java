@@ -1,5 +1,6 @@
 package org.springframework.integration.smpp.session;
 
+import org.jsmpp.bean.BindType;
 import org.jsmpp.session.ClientSession;
 import org.jsmpp.session.MessageReceiverListener;
 
@@ -21,4 +22,16 @@ public interface ExtendedSmppSession extends ClientSession {
 	 * @param messageReceiverListener the message receiver listener
 	 */
 	void addMessageReceiverListener(MessageReceiverListener messageReceiverListener);
+
+	/**
+	 * We need to know this to determine whether or not this session can handle the requirements we need.
+	 *
+	 * @return the {@link BindType}
+	 */
+	BindType getBindType();
+
+	void start() ;
+
+	void stop() ;
+
 }

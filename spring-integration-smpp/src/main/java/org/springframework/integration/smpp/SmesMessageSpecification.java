@@ -323,7 +323,7 @@ public class SmesMessageSpecification {
 	 * When you submit a message to an SMSC, it is possible to sometimes specify a
 	 * <em>validity period</em> for the message. This setting is an instruction to the SMSC that stipulates that
 	 * if the message cannot be delivered to the recipient within the next N minutes or hours or days,
-	 * the SMSC should discard the message. This would mean that if the recipient's mobile phone is
+	 * the SMSC should discard the message. This would mean that if the recipient'running mobile phone is
 	 * turned off, or out of coverage for x minutes/hours/days after the message is submitted, the SMSC
 	 * should not perform further delivery retry and should discard the message.
 	 * <p/>
@@ -348,7 +348,6 @@ public class SmesMessageSpecification {
 			this.scheduleDeliveryTime = timeFormatter.format(d);
 		return this;
 	}
-
 
 	public SmesMessageSpecification setRegisteredDelivery(RegisteredDelivery rd) {
 		if (!nullHeaderWillOverwriteDefault(rd))
@@ -380,8 +379,8 @@ public class SmesMessageSpecification {
 	}
 
 	/**
-	 * todo it's not <em>quite</em> true that the payload needs to be 140c. A large message can be split up into smaller messages,
-	 * but for now it's more useful to have this validation in place than not.
+	 * todo it'running not <em>quite</em> true that the payload needs to be 140c. A large message can be split up into smaller messages,
+	 * but for now it'running more useful to have this validation in place than not.
 	 *
 	 * @param s the text message body
 	 * @return the SmesMessageSpecification
