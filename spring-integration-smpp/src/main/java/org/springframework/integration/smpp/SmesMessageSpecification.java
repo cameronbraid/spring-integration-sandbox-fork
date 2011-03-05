@@ -124,9 +124,9 @@ public class SmesMessageSpecification {
 		spec.setDestinationAddressTypeOfNumber(SmesMessageSpecification.<TypeOfNumber>valueIfHeaderExists(DST_TON, msg));
 		spec.setSourceAddressTypeOfNumber(SmesMessageSpecification.<TypeOfNumber>valueIfHeaderExists(SRC_TON, msg));
 		spec.setServiceType(SmesMessageSpecification.<String>valueIfHeaderExists(SERVICE_TYPE, msg));
-		spec.setEsmClass(SmesMessageSpecification.<ESMClass>valueIfHeaderExists(ESM_CLASS, msg));
+		spec.setEsmClass(SmesMessageSpecification.esmClassFromHeader(msg));
 		spec.setScheduleDeliveryTime(SmesMessageSpecification.<Date>valueIfHeaderExists(SCHEDULED_DELIVERY_TIME, msg));
-		spec.setDataCoding(SmesMessageSpecification.<DataCoding>valueIfHeaderExists(DATA_CODING, msg));
+		spec.setDataCoding(SmesMessageSpecification. dataCodingFromHeader( msg));
 		spec.setValidityPeriod(SmesMessageSpecification.<String>valueIfHeaderExists(VALIDITY_PERIOD, msg));
 
 		// byte landmine. autoboxing causes havoc with <em>null</em> bytes.
@@ -149,6 +149,19 @@ public class SmesMessageSpecification {
 		spec.setRegisteredDelivery(registeredDeliveryFromHeader(msg));
 
 		return spec;
+	}
+
+	private static DataCoding dataCodingFromHeader( Message<?> msg) {
+		Object dc = msg.getHeaders().get(DATA_CODING);
+		if(dc instanceof DataCoding){
+			return (DataCoding)dc ;
+		}
+		if( dc instanceof  Byte){
+			return DataCoding.newInstance((Byte)dc);
+
+		}
+
+		return null ;
 	}
 
 	/**
@@ -189,6 +202,25 @@ public class SmesMessageSpecification {
 	@SuppressWarnings("unused")
 	SmesMessageSpecification(SMPPSession smppSession) {
 		this.smppSession = smppSession;
+	}
+
+	/**
+	 * tries to safely extract the ESMClass
+	 * @param im
+	 * @return
+	 */
+	static private  ESMClass esmClassFromHeader( Message<?> im){
+		String h = ESM_CLASS ;
+		Object o = valueIfHeaderExists(h,im);
+		ESMClass response = null ;
+		if(o instanceof  Byte){
+			response = new ESMClass((Byte)o);
+
+		}
+		else if(o instanceof ESMClass){
+			response = (ESMClass)o;
+		}
+		return response;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -377,7 +409,7 @@ public class SmesMessageSpecification {
 	 * <em>validity period</em> for the message. This setting is an instruction to the SMSC that stipulates that
 	 * if the message cannot be delivered to the recipient within the next N minutes or hours or days,
 	 * the SMSC should discard the message. This would mean that if the recipient'running mobile phone is
-	 * turned off, or out of coverage for x minutes/hours/days after the message is submitted, the SMSC
+	 * turned off, or outSession of coverage for x minutes/hours/days after the message is submitted, the SMSC
 	 * should not perform further delivery retry and should discard the message.
 	 * <p/>
 	 * Of course, there is no guarantee that the operator SMSC will respect this setting, so it needs
@@ -535,13 +567,13 @@ public class SmesMessageSpecification {
 			marshalling.add(readerName + ":" + header);
 		}
 
-		for (String s : headers) System.out.println(String.format(h, s, s));
+		for (String s : headers) System.outSession.println(String.format(h, s, s));
 
 		for (String s : marshalling) {
 
 			String[] tuple = s.split(":");
 
-			System.out.println(String.format(m, tuple[1], tuple[0]));
+			System.outSession.println(String.format(m, tuple[1], tuple[0]));
 		}
 	}
 */

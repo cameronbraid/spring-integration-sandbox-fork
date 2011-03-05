@@ -7,6 +7,7 @@ import org.springframework.integration.Message;
 import org.springframework.integration.gateway.MessagingGatewaySupport;
 import org.springframework.integration.smpp.session.ExtendedSmppSession;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 
 /**
  * what'running an inbound gateway in this case? Receive a text message and then automatically send a response.
@@ -49,17 +50,43 @@ public class SmppInboundGateway extends MessagingGatewaySupport {
 					logger.debug("received an SMS in " + getClass() + ". Processing it.");
 					Message<?> msg = SmesMessageSpecification.toMessageFromSms(deliverSm, txtMessage);
 
-					// send it INTO SI, where it can be processed. The reply message is sent BACK to this, which we then send BACK out through SMS
+					// send it INTO SI, where it can be processed. The reply message is sent BACK to this, which we then send BACK outSession through SMS
 					logger.debug("sending the SMS inbound to be processed; awaiting a reply.");
 
 					Message<?> response = sendAndReceiveMessage(msg);
 					logger.debug("received a reply message; will handle as in outbound adapter");
 
-					SmesMessageSpecification.fromMessage(smppSession, response).send();
+					// todo copy all the code from the outbound adapter reated to defaults
+					/// todo also make sure that we simply flip the inbound to outbound
+					applyDefaults(msg, response, SmesMessageSpecification.fromMessage(smppSession, response)).send();
 					logger.debug("the reply SMS message has been sent.");
-
 				}
 			};
+
+	/**
+	 * among other things this method simply 'flips' the src/dst
+	 *
+	 * @param request									req
+	 * @param response								 res
+	 * @param smesMessageSpecification spec
+	 * @return same spec reflecting new switches
+	 */
+	static SmesMessageSpecification applyDefaults(Message<?> request, Message<?> response, SmesMessageSpecification smesMessageSpecification) {
+
+		String from = null, to = null;
+		if (request.getHeaders().containsKey(SmppConstants.SRC_ADDR)) {
+			to = (String) request.getHeaders().get(SmppConstants.SRC_ADDR);
+			if (StringUtils.hasText(to))
+				smesMessageSpecification.setDestinationAddress(to);
+		}
+		if (request.getHeaders().containsKey(SmppConstants.DEST_ADDRESS)) {
+			from = (String) request.getHeaders().get(SmppConstants.DEST_ADDRESS);
+			if (StringUtils.hasText(from))
+				smesMessageSpecification.setSourceAddressIfRequired(from);
+		}
+
+		return smesMessageSpecification;
+	}
 
 	@Override
 	protected void doStart() {

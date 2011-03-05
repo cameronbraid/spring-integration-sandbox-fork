@@ -7,7 +7,7 @@ package org.springframework.integration.smpp;
  */
 public abstract class SmppConstants {
 
-	public static final String SMS="SMS", SRC_ADDR = "SRC_ADDRESS", DST_ADDR = "DST_ADDRESS", SMS_MSG = "SMS_SHORT_MESSAGE";
+	public static final String SMS="SMS", SRC_ADDR = "SRC_ADDRESS", DST_ADDR =  "DEST_ADDRESS", SMS_MSG = "SMS_SHORT_MESSAGE";
 
 	public static final String REGISTERED_DELIVERY_MODE = "REGISTERED_DELIVERY_MODE", REPLACE_IF_PRESENT_FLAG = "REPLACE_IF_PRESENT_FLAG";
 	public static final String SRC_TON = "SRC_ADDR_TON", DST_TON = "DST_ADDR_TON", DST_NPI = "DST_ADDR_NPI", SRC_NPI = "SRC_ADDR_NPI";
@@ -22,7 +22,7 @@ public abstract class SmppConstants {
 	public static final String COMMAND_ID = "COMMAND_ID";
 	public static final String SME_DELIVERY_AND_MANUAL_ACK_REQUESTED = "SME_DELIVERY_AND_MANUAL_ACK_REQUESTED";
 	public static final String VALIDITY_PERIOD = "VALIDITY_PERIOD";
-	public static final String SOURCE_ADDR = "SOURCE_ADDR";
+	public static final String SOURCE_ADDR = SRC_ADDR;
 	public static final String ESM_CLASS = "ESM_CLASS";
 	public static final String PROTOCOL_ID = "PROTOCOL_ID";
 	public static final String SERVICE_TYPE = "SERVICE_TYPE";
@@ -47,6 +47,6 @@ public abstract class SmppConstants {
 	public static final String DEFAULT_MESSAGE_TYPE = "DEFAULT_MESSAGE_TYPE";
 	public static final String SM_DEFAULT_MSG_ID = "SM_DEFAULT_MSG_ID";
 	public static final String REPLY_PATH = "REPLY_PATH";
-	public static final String DEST_ADDRESS = "DEST_ADDRESS";
+	public static final String DEST_ADDRESS = DST_ADDR;
 	public static final String OPTIONAL_PARAMETES = "OPTIONAL_PARAMETES";
 }
