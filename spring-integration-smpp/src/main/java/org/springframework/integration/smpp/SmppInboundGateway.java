@@ -3,6 +3,7 @@ package org.springframework.integration.smpp;
 import org.jsmpp.bean.BindType;
 import org.jsmpp.bean.DeliverSm;
 import org.jsmpp.bean.DeliveryReceipt;
+import org.jsmpp.bean.TypeOfNumber;
 import org.springframework.integration.Message;
 import org.springframework.integration.gateway.MessagingGatewaySupport;
 import org.springframework.integration.smpp.session.ExtendedSmppSession;
@@ -18,6 +19,16 @@ import org.springframework.util.StringUtils;
 public class SmppInboundGateway extends MessagingGatewaySupport {
 
 	private ExtendedSmppSession smppSession;
+	private TypeOfNumber defaultSourceAddressTypeOfNumber;
+	private String defaultSourceAddress;
+
+	public void setDefaultSourceAddressTypeOfNumber(TypeOfNumber defaultSourceAddressTypeOfNumber) {
+		this.defaultSourceAddressTypeOfNumber = defaultSourceAddressTypeOfNumber;
+	}
+
+	public void setDefaultSourceAddress(String defaultSourceAddress) {
+		this.defaultSourceAddress = defaultSourceAddress;
+	}
 
 	/**
 	 * for configuration purposes.
@@ -71,7 +82,7 @@ public class SmppInboundGateway extends MessagingGatewaySupport {
 	 * @param smesMessageSpecification spec
 	 * @return same spec reflecting new switches
 	 */
-	static SmesMessageSpecification applyDefaults(Message<?> request, Message<?> response, SmesMessageSpecification smesMessageSpecification) {
+	SmesMessageSpecification applyDefaults(Message<?> request, Message<?> response, SmesMessageSpecification smesMessageSpecification) {
 
 		String from = null, to = null;
 		if (request.getHeaders().containsKey(SmppConstants.SRC_ADDR)) {
@@ -84,7 +95,11 @@ public class SmppInboundGateway extends MessagingGatewaySupport {
 			if (StringUtils.hasText(from))
 				smesMessageSpecification.setSourceAddressIfRequired(from);
 		}
+		if (defaultSourceAddressTypeOfNumber != null)
+			smesMessageSpecification.setSourceAddressTypeOfNumberIfRequired(this.defaultSourceAddressTypeOfNumber);
 
+		if (StringUtils.hasText(this.defaultSourceAddress))
+			smesMessageSpecification.setSourceAddressIfRequired(this.defaultSourceAddress);
 		return smesMessageSpecification;
 	}
 
