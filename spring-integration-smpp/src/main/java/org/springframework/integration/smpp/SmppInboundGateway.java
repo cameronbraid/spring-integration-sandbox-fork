@@ -4,9 +4,6 @@ import org.jsmpp.bean.BindType;
 import org.jsmpp.bean.DeliverSm;
 import org.jsmpp.bean.DeliveryReceipt;
 import org.springframework.integration.Message;
-import org.springframework.integration.MessageChannel;
-import org.springframework.integration.core.MessagingTemplate;
-import org.springframework.integration.endpoint.AbstractEndpoint;
 import org.springframework.integration.gateway.MessagingGatewaySupport;
 import org.springframework.integration.smpp.session.ExtendedSmppSession;
 import org.springframework.util.Assert;
@@ -19,33 +16,24 @@ import org.springframework.util.Assert;
  */
 public class SmppInboundGateway extends MessagingGatewaySupport {
 
-
-	private MessagingTemplate messagingTemplate;
-	private MessageChannel channel;
 	private ExtendedSmppSession smppSession;
 
 	/**
-	 * the channel on which inbound SMS messages should be delivered to Spring Integration components.
+	 * for configuration purposes.
 	 *
-	 * @param channel the channel
+	 * @param s the session to use
 	 */
-	public void setChannel(MessageChannel channel) {
-		this.channel = channel;
-		this.messagingTemplate = new MessagingTemplate(this.channel);
+	public void setSmppSession(ExtendedSmppSession s) {
+		this.smppSession = s;
 	}
 
 	@Override
 	protected void onInit() throws Exception {
-		Assert.notNull(this.channel, "the 'channel' property must not be set");
 		Assert.notNull(this.smppSession, "the 'smppSession' property must be set");
 		Assert.isTrue(this.smppSession.getBindType().isReceiveable() ||
-								this.smppSession.getBindType().equals(BindType.BIND_TRX),
-						"this session's bind type should support " +
+				this.smppSession.getBindType().equals(BindType.BIND_TRX),
+				"this session's bind type should support " +
 						"receiving messages or both sending *and* receiving messages!");
-	}
-
-	public void setSmppSession(ExtendedSmppSession s) {
-		this.smppSession = s;
 	}
 
 	private AbstractReceivingMessageListener abstractReceivingMessageListener =
@@ -58,11 +46,18 @@ public class SmppInboundGateway extends MessagingGatewaySupport {
 				@Override
 				protected void onTextMessage(DeliverSm deliverSm, String txtMessage) throws Exception {
 					// we receive sms
-					Message<?> msg = SmesMessageSpecification.toMessageFromSms(deliverSm ,txtMessage);
+					logger.debug("received an SMS in " + getClass() + ". Processing it.");
+					Message<?> msg = SmesMessageSpecification.toMessageFromSms(deliverSm, txtMessage);
 
 					// send it INTO SI, where it can be processed. The reply message is sent BACK to this, which we then send BACK out through SMS
-					Message<?> response =	messagingTemplate.sendAndReceive(msg);
-					SmesMessageSpecification.fromMessage(smppSession,response).send();
+					logger.debug("sending the SMS inbound to be processed; awaiting a reply.");
+
+					Message<?> response = sendAndReceiveMessage(msg);
+					logger.debug("received a reply message; will handle as in outbound adapter");
+
+					SmesMessageSpecification.fromMessage(smppSession, response).send();
+					logger.debug("the reply SMS message has been sent.");
+
 				}
 			};
 

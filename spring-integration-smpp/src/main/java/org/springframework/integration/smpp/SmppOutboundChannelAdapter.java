@@ -92,7 +92,7 @@ public class SmppOutboundChannelAdapter extends IntegrationObjectSupport impleme
 							.setTimeFormatter(this.timeFormatter));
 
 			String smsMessageId = specification.send();
-
+			logger.debug( "sent message : "+message.getPayload());
 			logger.debug("message ID for the sent message is: " + smsMessageId);
 		} catch (Exception e) {
 			throw new RuntimeException("Exception in trying to process the inbound SMPP message", e);

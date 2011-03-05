@@ -13,11 +13,21 @@
     <context:property-placeholder location="smpp.properties"/>
     <context:annotation-config/>
 
-    <bean class="org.springframework.integration.smpp.session.SmppSessionFactoryBean" id="session">
+    <!-- SENDS SMSs to a specific number -->
+    <bean class="org.springframework.integration.smpp.session.SmppSessionFactoryBean" id="outboundSession">
+        <property name="host" value="${smpp.host}"/>
+        <property name="bindType" value="BIND_TX"/>
+        <property name="password" value="${smpp.password}"/>
+        <property name="addressRange" value="${test.dst.number}"/>
+        <property name="systemId" value="${smpp.systemId}" />
+     </bean>
+
+    <!-- RECEIVES SMSs from a specific number-->
+    <bean class="org.springframework.integration.smpp.session.SmppSessionFactoryBean" id="inboundSession">
         <property name="host" value="${smpp.host}"/>
         <property name="bindType" value="BIND_RX"/>
         <property name="password" value="${smpp.password}"/>
-        <property name="addressRange" value="628176504657"/>
+        <property name="addressRange" value="${test.dst.number}"/>
         <!--
             this says: 'i only want to receive SMS at this addy, though i can also specify a range. It is, however, optional.
             This is particularly useful as a consumer, however.
@@ -26,10 +36,20 @@
         <property name="systemId" value="${smpp.systemId}" />
      </bean>
 
+
+
     <bean class="org.springframework.integration.smpp.SmppInboundChannelAdapter" id="smppInboundChannelAdapter">
-        <property name="smppSession"  ref="session"/>
+        <property name="smppSession"  ref="inboundSession"/>
         <property name="channel" ref="inbound"/>
     </bean>
+
+    <bean class="org.springframework.integration.smpp.SmppOutboundChannelAdapter" id="smppOutboundChannelAdapter">
+        <property name="smppSession" ref="outboundSession"/>
+     </bean>
+
+    <int:outbound-channel-adapter ref="smppOutboundChannelAdapter" channel="outbound"/>
+
+    <int:channel id="outbound"/>
 
     <int:channel id="inbound"/>
 
