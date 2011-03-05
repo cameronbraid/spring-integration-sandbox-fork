@@ -120,6 +120,13 @@ public class SmppSessionFactoryBean implements FactoryBean<ExtendedSmppSession>,
 		this.addrNpi = addrNpi;
 	}
 
+	/**
+	 * this specifies the range of numbers we want to <em>listen</em> to - as a consumer. If you
+	 * specify '1234' as a destination address, and want to listen / receive all messages sent
+	 * to that number, then specify '1234' as the {@link #addressRange}.
+	 *
+	 * @param addressRange the range of phone numbers to receive from.
+	 */
 	public void setAddressRange(String addressRange) {
 		this.addressRange = addressRange;
 	}

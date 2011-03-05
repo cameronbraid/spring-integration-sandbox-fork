@@ -53,6 +53,6 @@ public class TestSmppOutboundGateway {
 
 		Assert.assertNotNull(response);
 		Assert.assertTrue(response.getPayload() instanceof String);
-		log.info("received the SMS Message ID: " + response.getPayload());;
+		log.info("received the SMS Message ID: " + response.getPayload());
 	}
 }

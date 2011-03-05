@@ -8,6 +8,7 @@ import org.jsmpp.session.SMPPSession;
 import org.jsmpp.util.AbsoluteTimeFormatter;
 import org.jsmpp.util.TimeFormatter;
 import org.springframework.integration.Message;
+import org.springframework.integration.support.MessageBuilder;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -45,6 +46,58 @@ public class SmesMessageSpecification {
 	private byte smDefaultMsgId;
 	private byte[] shortMessage;
 	private ClientSession smppSession;
+
+	/**
+	 * this method takes an inbound SMS message and converts it to a Spring Integration message
+	 *
+	 * @param dsm				the {@link DeliverSm} from {@link AbstractReceivingMessageListener#onTextMessage(org.jsmpp.bean.DeliverSm, String)}
+	 * @param txtMessage the String from {@link AbstractReceivingMessageListener#onTextMessage(org.jsmpp.bean.DeliverSm, String)}
+	 * @return a Spring Integration message
+	 */
+	public static Message<?> toMessageFromSms(DeliverSm dsm, String txtMessage) {
+
+		Assert.isTrue(!dsm.isSmscDeliveryReceipt(), "the message should not be a delivery confirmation receipt!");
+
+		MessageBuilder<String> mb = MessageBuilder.withPayload(txtMessage);
+		mb.setHeader(SmppConstants.SMS, dsm);
+		mb.setHeader(SmppConstants.REPLACE_IF_PRESENT, dsm.getReplaceIfPresent());
+		mb.setHeader(SmppConstants.SHORT_MESSAGE, dsm.getShortMessage());
+		mb.setHeader(SmppConstants.OPTIONAL_PARAMETES, dsm.getOptionalParametes());
+		mb.setHeader(SmppConstants.UDHI_AND_REPLY_PATH, dsm.isUdhiAndReplyPath());
+		mb.setHeader(SmppConstants.VALIDITY_PERIOD, dsm.getValidityPeriod());
+		mb.setHeader(SmppConstants.COMMAND_LENGTH, dsm.getCommandLength());
+		mb.setHeader(SmppConstants.COMMAND_ID, dsm.getCommandId());
+		mb.setHeader(SmppConstants.SME_ACK_NOT_REQUESTED, dsm.isSmeAckNotRequested());
+		mb.setHeader(SmppConstants.DATA_CODING, dsm.getDataCoding());
+		mb.setHeader(SmppConstants.REPLY_PATH, dsm.isReplyPath());
+		mb.setHeader(SmppConstants.SOURCE_ADDR_TON, dsm.getSourceAddrTon());
+		mb.setHeader(SmppConstants.SM_DEFAULT_MSG_ID, dsm.getSmDefaultMsgId());
+		mb.setHeader(SmppConstants.UDHI, dsm.isUdhi());
+		mb.setHeader(SmppConstants.SME_MANUAL_ACKNOWLEDGMENT, dsm.isSmeManualAcknowledgment());
+		mb.setHeader(SmppConstants.CONVERSATION_ABORT, dsm.isConversationAbort());
+		mb.setHeader(SmppConstants.DEST_ADDRESS, dsm.getDestAddress());
+		mb.setHeader(SmppConstants.ESM_CLASS, dsm.getEsmClass());
+		mb.setHeader(SmppConstants.COMMAND_ID_AS_HEX, dsm.getCommandIdAsHex());
+		mb.setHeader(SmppConstants.SME_DELIVERY_AND_MANUAL_ACK_REQUESTED, dsm.isSmeDeliveryAndManualAckRequested());
+		mb.setHeader(SmppConstants.SMSC_DELIVERY_RECEIPT, dsm.isSmscDeliveryReceipt());
+		mb.setHeader(SmppConstants.SME_MANUAL_ACK_REQUESTED, dsm.isSmeManualAckRequested());
+		mb.setHeader(SmppConstants.PRIORITY_FLAG, dsm.getPriorityFlag());
+		mb.setHeader(SmppConstants.DEST_ADDR_TON, dsm.getDestAddrTon());
+		mb.setHeader(SmppConstants.COMMAND_STATUS_AS_HEX, dsm.getCommandStatusAsHex());
+		mb.setHeader(SmppConstants.SERVICE_TYPE, dsm.getServiceType());
+		mb.setHeader(SmppConstants.INTERMEDIATE_DELIVERY_NOTIFICATION, dsm.isIntermedietDeliveryNotification());
+		mb.setHeader(SmppConstants.SOURCE_ADDR_NPI, dsm.getSourceAddrNpi());
+		mb.setHeader(SmppConstants.REGISTERED_DELIVERY, dsm.getRegisteredDelivery());
+		mb.setHeader(SmppConstants.DEST_ADDR_NPI, dsm.getDestAddrNpi());
+		mb.setHeader(SmppConstants.COMMAND_STATUS, dsm.getCommandStatus());
+		mb.setHeader(SmppConstants.DEFAULT_MESSAGE_TYPE, dsm.isDefaultMessageType());
+		mb.setHeader(SmppConstants.PROTOCOL_ID, dsm.getProtocolId());
+		mb.setHeader(SmppConstants.SOURCE_ADDR, dsm.getSourceAddr());
+		mb.setHeader(SmppConstants.SEQUENCE_NUMBER, dsm.getSequenceNumber());
+		mb.setHeader(SmppConstants.SCHEDULE_DELIVERY_TIME, dsm.getScheduleDeliveryTime());
+		mb.setHeader(SmppConstants.SME_DELIVERY_ACK_REQUESTED, dsm.isSmeDeliveryAckRequested());
+		return mb.build();
+	}
 
 	/**
 	 * this method will take an inbound Spring Integration {@link Message} and map it to a {@link SmesMessageSpecification}
@@ -445,3 +498,50 @@ public class SmesMessageSpecification {
 		return this;
 	}
 }
+
+/*	private static String fromPropertyToHeaderConstant(String n) {
+
+		StringBuffer stringBuffer = new StringBuffer();
+
+		for (char c : n.toCharArray()) {
+			if (Character.isUpperCase(c)) {
+				stringBuffer.append("_");
+			}
+			stringBuffer.append(c);
+		}
+
+		String nn = stringBuffer.toString().toUpperCase();
+
+		String is = "IS_",
+				get = "GET_";
+		if (nn.startsWith(is)) nn = nn.substring(is.length());
+		if (nn.startsWith(get)) nn = nn.substring(get.length());
+
+		return nn;
+	}
+
+	static public void main(String[] args) throws Throwable {
+		String m = "mb.setHeader( SmppConstants.%s,  dsm.%s() );";
+		String h = "public static final String %s = \"%s\";";
+		Set<String> marshalling = new HashSet<String>();
+		Set<String> headers = new HashSet<String>();
+		PropertyDescriptor[] pds = PropertyUtils.getPropertyDescriptors(DeliverSm.class);
+		for (PropertyDescriptor propertyDescriptor : pds) {
+			Method reader = propertyDescriptor.getReadMethod();
+			String readerName = reader.getName();
+
+			String header = fromPropertyToHeaderConstant(readerName);
+			headers.add(header);
+			marshalling.add(readerName + ":" + header);
+		}
+
+		for (String s : headers) System.out.println(String.format(h, s, s));
+
+		for (String s : marshalling) {
+
+			String[] tuple = s.split(":");
+
+			System.out.println(String.format(m, tuple[1], tuple[0]));
+		}
+	}
+*/

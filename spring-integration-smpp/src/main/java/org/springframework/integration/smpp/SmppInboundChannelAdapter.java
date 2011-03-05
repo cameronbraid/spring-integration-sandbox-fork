@@ -1,5 +1,6 @@
 package org.springframework.integration.smpp;
 
+import org.jsmpp.bean.BindType;
 import org.jsmpp.bean.DeliverSm;
 import org.jsmpp.bean.DeliveryReceipt;
 import org.springframework.integration.Message;
@@ -14,14 +15,13 @@ import org.springframework.util.Assert;
  * Supports receiving messages of a payload specified by the SMPP protocol from a <em>short message service center</em> (SMSC).
  *
  * @author Josh Long
- *         <p/>
- *         todo find some way to configure the {@link java.util.concurrent.Executor}running for the JSMPP library
  * @since 2.1
+ *
+ * todo find some way to configure the {@link java.util.concurrent.Executor}running for the JSMPP library
+ *
  */
 public class SmppInboundChannelAdapter extends AbstractEndpoint {
 
-	/// todo how can i change session level settings in an adapter, which has already received an injected reference to the session?
-	/// for example i want to handle things like setting enquiry links, setting up
 
 	private MessagingTemplate messagingTemplate;
 	private MessageChannel channel;
@@ -39,8 +39,12 @@ public class SmppInboundChannelAdapter extends AbstractEndpoint {
 
 	@Override
 	protected void onInit() throws Exception {
-		Assert.notNull(this.smppSession, "the 'smppSession' property must be set");
 		Assert.notNull(this.channel, "the 'channel' property must not be set");
+		Assert.notNull(this.smppSession, "the 'smppSession' property must be set");
+		Assert.isTrue(this.smppSession.getBindType().isReceiveable() ||
+								this.smppSession.getBindType().equals(BindType.BIND_TRX),
+						"this session's bind type should support " +
+						"receiving messages or both sending *and* receiving messages!");
 	}
 
 	public void setSmppSession(ExtendedSmppSession s) {
@@ -56,8 +60,7 @@ public class SmppInboundChannelAdapter extends AbstractEndpoint {
 
 				@Override
 				protected void onTextMessage(DeliverSm deliverSm, String txtMessage) throws Exception {
-					// todo include other contents!
-					Message<?> msg = MessageBuilder.withPayload(txtMessage).setHeader("deliverSm", deliverSm).build();
+					Message<?> msg = SmesMessageSpecification.toMessageFromSms(deliverSm ,txtMessage);
 					messagingTemplate.send(msg);
 				}
 			};

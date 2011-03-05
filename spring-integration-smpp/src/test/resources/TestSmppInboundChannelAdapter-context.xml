@@ -15,9 +15,14 @@
 
     <bean class="org.springframework.integration.smpp.session.SmppSessionFactoryBean" id="session">
         <property name="host" value="${smpp.host}"/>
-        <property name="bindType" value="BIND_TX"/>
+        <property name="bindType" value="BIND_RX"/>
         <property name="password" value="${smpp.password}"/>
-        <property name="addressRange" value="2222"/>  <!-- this says: 'i only want to receive SMS at this addy, though i can also specify a range. It is, however, optional.-->
+        <property name="addressRange" value="628176504657"/>
+        <!--
+            this says: 'i only want to receive SMS at this addy, though i can also specify a range. It is, however, optional.
+            This is particularly useful as a consumer, however.
+
+        -->
         <property name="systemId" value="${smpp.systemId}" />
      </bean>
 
