@@ -31,8 +31,8 @@ public class SmppOutboundGateway extends AbstractReplyProducingMessageHandler {
 	@Override
 	protected void onInit() {
 		Assert.isTrue(
-				this.smppSession.getBindType().equals(BindType.BIND_TX)||
-				this.smppSession.getBindType().equals(BindType.BIND_TRX),
+				this.smppSession.getBindType().equals(BindType.BIND_TX) ||
+						this.smppSession.getBindType().equals(BindType.BIND_TRX),
 				"the smppSession's bindType must be BindType.BIND_TX or BindType.BIND_TRX");
 
 		this.smppSession.start();
