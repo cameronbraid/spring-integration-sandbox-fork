@@ -8,7 +8,6 @@ import org.springframework.integration.MessageChannel;
 import org.springframework.integration.core.MessagingTemplate;
 import org.springframework.integration.endpoint.AbstractEndpoint;
 import org.springframework.integration.smpp.session.ExtendedSmppSession;
-import org.springframework.integration.support.MessageBuilder;
 import org.springframework.util.Assert;
 
 /**
@@ -16,12 +15,10 @@ import org.springframework.util.Assert;
  *
  * @author Josh Long
  * @since 2.1
- *
- * todo find some way to configure the {@link java.util.concurrent.Executor}running for the JSMPP library
- *
+ *        <p/>
+ *        todo find some way to configure the {@link java.util.concurrent.Executor}running for the JSMPP library
  */
 public class SmppInboundChannelAdapter extends AbstractEndpoint {
-
 
 	private MessagingTemplate messagingTemplate;
 	private MessageChannel channel;
@@ -42,8 +39,8 @@ public class SmppInboundChannelAdapter extends AbstractEndpoint {
 		Assert.notNull(this.channel, "the 'channel' property must not be set");
 		Assert.notNull(this.smppSession, "the 'smppSession' property must be set");
 		Assert.isTrue(this.smppSession.getBindType().isReceiveable() ||
-								this.smppSession.getBindType().equals(BindType.BIND_TRX),
-						"this session's bind type should support " +
+				this.smppSession.getBindType().equals(BindType.BIND_TRX),
+				"this session's bind type should support " +
 						"receiving messages or both sending *and* receiving messages!");
 	}
 
@@ -60,7 +57,7 @@ public class SmppInboundChannelAdapter extends AbstractEndpoint {
 
 				@Override
 				protected void onTextMessage(DeliverSm deliverSm, String txtMessage) throws Exception {
-					Message<?> msg = SmesMessageSpecification.toMessageFromSms(deliverSm ,txtMessage);
+					Message<?> msg = SmesMessageSpecification.toMessageFromSms(deliverSm, txtMessage);
 					messagingTemplate.send(msg);
 				}
 			};
