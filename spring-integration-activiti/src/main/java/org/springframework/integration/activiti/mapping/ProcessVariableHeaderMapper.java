@@ -24,4 +24,12 @@ import java.util.Map;
  * @since 5.1
  */
 public interface ProcessVariableHeaderMapper extends HeaderMapper<Map<String, Object>> {
+
+	/**
+	 * this needs to be available for all methods in the {@link HeaderMapper}.
+	 * For testing, this can be a simple mock, for concurrent access, bind a threadsafe proxy.
+	 *
+	 * @param ae
+	 */
+	void setCurrentActivityExecution(ActivityExecution ae);
 }

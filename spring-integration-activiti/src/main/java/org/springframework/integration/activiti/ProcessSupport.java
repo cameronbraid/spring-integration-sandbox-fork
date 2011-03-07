@@ -19,6 +19,7 @@ import org.activiti.engine.impl.pvm.delegate.ActivityExecution;
 import org.activiti.engine.impl.runtime.ExecutionEntity;
 import org.springframework.integration.Message;
 import org.springframework.integration.activiti.mapping.DefaultProcessVariableHeaderMapper;
+import org.springframework.integration.activiti.mapping.ProcessVariableHeaderMapper;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -56,14 +57,10 @@ public abstract class ProcessSupport {
 
   public static void signalProcessExecution(ProcessEngine processEngine, ActivityExecution activityExecution,
                                             ProcessExecutionSignallerCallback callback,
-                                            DefaultProcessVariableHeaderMapper processVariableHeaderMapper,
+                                           	ProcessVariableHeaderMapper processVariableHeaderMapper,
                                             Message<?> message) throws Exception {
-
-    DefaultProcessVariableHeaderMapper defaultProcessVariableHeaderMapper =
-        new DefaultProcessVariableHeaderMapper(processVariableHeaderMapper, activityExecution);
-
     Map<String, Object> vars = new HashMap<String, Object>();
-    defaultProcessVariableHeaderMapper.fromHeaders(message.getHeaders(), vars);
+    processVariableHeaderMapper.fromHeaders(message.getHeaders(), vars);
 
     for (String key : vars.keySet())
       callback.setProcessVariable(processEngine, activityExecution, key, vars.get(key));

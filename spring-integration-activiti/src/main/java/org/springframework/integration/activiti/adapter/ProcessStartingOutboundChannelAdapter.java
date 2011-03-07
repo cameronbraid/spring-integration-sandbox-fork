@@ -14,9 +14,11 @@ package org.springframework.integration.activiti.adapter;
 
 import org.activiti.engine.ProcessEngine;
 import org.activiti.engine.runtime.ProcessInstance;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.integration.Message;
 import org.springframework.integration.activiti.ActivitiConstants;
 import org.springframework.integration.activiti.mapping.DefaultProcessVariableHeaderMapper;
+import org.springframework.integration.activiti.mapping.ProcessVariableHeaderMapper;
 import org.springframework.integration.context.IntegrationObjectSupport;
 import org.springframework.integration.core.MessageHandler;
 import org.springframework.util.Assert;
@@ -33,7 +35,7 @@ import java.util.Map;
  * @author Josh Long
  * @since 2.1
  */
-public class ProcessStartingOutboundChannelAdapter extends IntegrationObjectSupport implements MessageHandler {
+public class ProcessStartingOutboundChannelAdapter extends IntegrationObjectSupport implements MessageHandler  {
 
   private String processHeaderMustNotBeNullMessage = String.format(
       "you must specify a processDefinitionName, either through " +
@@ -47,13 +49,13 @@ public class ProcessStartingOutboundChannelAdapter extends IntegrationObjectSupp
    */
   private ProcessEngine processEngine;
 
-  private DefaultProcessVariableHeaderMapper defaultProcessVariableHeaderMapper;
+  private ProcessVariableHeaderMapper processVariableHeaderMapper;
 
-  public void setDefaultProcessVariableHeaderMapper(DefaultProcessVariableHeaderMapper defaultProcessVariableHeaderMapper) {
-    this.defaultProcessVariableHeaderMapper = defaultProcessVariableHeaderMapper;
-  }
+	public void setProcessVariableHeaderMapper(ProcessVariableHeaderMapper processVariableHeaderMapper) {
+		this.processVariableHeaderMapper = processVariableHeaderMapper;
+	}
 
-  /**
+	/**
    * Do you want all flows that come into this component to launch the same business process? Hard code the process name here.
    * If this is null, the component will expect a well known header value and use that to spawn the process definition name.
    */
@@ -83,13 +85,13 @@ public class ProcessStartingOutboundChannelAdapter extends IntegrationObjectSupp
       processName = this.processDefinitionName;
     }
 
-    DefaultProcessVariableHeaderMapper processVariableHeaderMapper = new DefaultProcessVariableHeaderMapper(this.defaultProcessVariableHeaderMapper, null);
-    processVariableHeaderMapper.setRequiresActivityExecution(false);
-    try {
-      processVariableHeaderMapper.afterPropertiesSet();
-    } catch (Exception e) {
-      logger.error(e);
-    }
+////    DefaultProcessVariableHeaderMapper processVariableHeaderMapper = new DefaultProcessVariableHeaderMapper(this.processVariableHeaderMapper, null);
+////    processVariableHeaderMapper.setRequiresActivityExecution(false);
+//    try {
+//      processVariableHeaderMapper.afterPropertiesSet();
+//    } catch (Exception e) {
+//      logger.error(e);
+//    }
 
     processVariableHeaderMapper.fromHeaders(message.getHeaders(), processVariablesFromHeaders);
 

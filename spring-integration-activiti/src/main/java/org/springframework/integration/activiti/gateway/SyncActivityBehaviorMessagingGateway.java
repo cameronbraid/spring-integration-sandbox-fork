@@ -27,7 +27,7 @@ public class SyncActivityBehaviorMessagingGateway extends AbstractActivityBehavi
     Message<?> reply = this.messagingTemplate.sendAndReceive(this.requestChannel, msg);
 
     ProcessSupport.signalProcessExecution(this.processEngine ,ex,
-        new TransactionAwareProcessExecutionSignallerCallback(),defaultProcessVariableHeaderMapper, reply);
+        new TransactionAwareProcessExecutionSignallerCallback(), headerMapper, reply);
 
     leave(ex); // undo the wait state nature of this class
 

@@ -12,8 +12,8 @@
  */
 package org.springframework.integration.activiti.gateway;
 
+import org.activiti.engine.impl.bpmn.behavior.ReceiveTaskActivityBehavior;
 import org.activiti.engine.ProcessEngine;
-import org.activiti.engine.impl.bpmn.ReceiveTaskActivity;
 import org.activiti.engine.impl.pvm.delegate.ActivityBehavior;
 import org.activiti.engine.impl.pvm.delegate.ActivityExecution;
 import org.activiti.engine.runtime.Execution;
@@ -33,7 +33,7 @@ import org.springframework.util.ClassUtils;
  * Asynchronous implementation of the messaging asyncGateway -- requests don't execute in the same transaction
  *
  * @author Josh Long
- * @see ReceiveTaskActivity  the {@link ActivityBehavior} impl that ships w/ Activiti that has the machinery to wake up when signaled
+ * @see ReceiveTaskActivityBehavior  the {@link ActivityBehavior} impl that ships w/ Activiti that has the machinery to wake up when signaled
  * @see ProcessEngine the process engine instance is required to be able to use this namespace
  * @see org.activiti.spring.ProcessEngineFactoryBean - use this class to create the aforementioned ProcessEngine instance!
  */
@@ -64,7 +64,7 @@ public class AsyncActivityBehaviorMessagingGateway extends AbstractActivityBehav
       ActivityExecution activityExecution = (ActivityExecution) execution;
 
       try {
-        ProcessSupport.signalProcessExecution(processEngine, activityExecution, processExecutionSignallerCallback, defaultProcessVariableHeaderMapper, message);
+        ProcessSupport.signalProcessExecution(processEngine, activityExecution, processExecutionSignallerCallback, headerMapper, message);
       } catch (Exception e) {
         log.error(e);
         throw new RuntimeException(e);

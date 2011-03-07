@@ -27,182 +27,167 @@ import static org.mockito.Mockito.when;
  */
 public class DefaultProcessVariableHeaderMapperTest {
 
-  private String prefix = "theprefix";
-  private DefaultProcessVariableHeaderMapper processVariableHeaderMapper;
-  private ProcessEngine processEngine;
-  private ActivityExecution activityExecution;
-  private RuntimeService runtimeService;
+	private String[] testKeys = new String[]{"crm*", "customerId"};
+	private String prefix = "theprefix";
+	private DefaultProcessVariableHeaderMapper processVariableHeaderMapper;
+	private RuntimeService runtimeService;
+	private ProcessEngine processEngine;
+	private int countOfWellKnownProcessHeaders = 4;
+	private ActivityExecution activityExecution;
 
-  @Before
-  public void begin() throws Throwable {
-    this.processEngine = mock(ProcessEngine.class);
-    this.runtimeService = mock(RuntimeService.class);
-    when(this.processEngine.getRuntimeService()).thenReturn(this.runtimeService);
-    activityExecution = mock(ActivityExecution.class);
-    processVariableHeaderMapper = new DefaultProcessVariableHeaderMapper(this.processEngine, this.activityExecution);
-    processVariableHeaderMapper.setPrefix(this.prefix);
-  }
+	@Before
+	public void begin() throws Throwable {
 
-  @Test(expected = IllegalArgumentException.class)
-  public void testRequiresActivityExecutionWorks() throws Throwable {
-    processVariableHeaderMapper.setRequiresActivityExecution(true);
-    processVariableHeaderMapper.setCurrentActivityExecution(null);
-    processVariableHeaderMapper.afterPropertiesSet();
-    processVariableHeaderMapper.validate() ;
+		this.processEngine = mock(ProcessEngine.class);
+		this.runtimeService = mock(RuntimeService.class);
+		when(this.processEngine.getRuntimeService()).thenReturn(this.runtimeService);
+		activityExecution = buildActivityExecution();
+		processVariableHeaderMapper = new DefaultProcessVariableHeaderMapper(this.processEngine, this.activityExecution);
+		processVariableHeaderMapper.setPrefix(this.prefix);
+	}
 
-  }
+	@Test
+	public void testMappingHeadersToProcessVariables() throws Throwable {
 
-  private String[] testKeys = new String[]{"crm*", "customerId"};
+		processVariableHeaderMapper.setHeaderToProcessVariableNames((String[]) null);
+		processVariableHeaderMapper.afterPropertiesSet();
 
-  @Test
-  public void testMappingHeadersToProcessVariables() throws Throwable {
+		processVariableHeaderMapper.setHeaderToProcessVariableNames(this.testKeys);
+		processVariableHeaderMapper.afterPropertiesSet();
 
-    processVariableHeaderMapper.setHeaderToProcessVariableNames(null);
-    processVariableHeaderMapper.afterPropertiesSet();
+		Map<String, Object> vars = new HashMap<String, Object>();
 
-    processVariableHeaderMapper.setHeaderToProcessVariableNames(this.testKeys);
-    processVariableHeaderMapper.afterPropertiesSet();
+		String prefixKey = prefix + "name";
+		String food = "food";
 
-    Map<String, Object> vars = new HashMap<String, Object>();
+		Map<String, Object> headersMap = new HashMap<String, Object>();
+		headersMap.put("crmData", new Date());
+		headersMap.put("customerId", 232);
+		headersMap.put("crmId", 232);
+		headersMap.put(prefixKey, "Spring");
+		headersMap.put(food, "donuts");
+		headersMap.put(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY, "exe");
 
-    String prefixKey = prefix + "name";
-    String food = "food";
+		MessageHeaders headers = new MessageHeaders(headersMap);
 
-    Map<String, Object> headersMap = new HashMap<String, Object>();
-    headersMap.put("crmData", new Date());
-    headersMap.put("customerId", 232);
-    headersMap.put("crmId", 232);
-    headersMap.put(prefixKey, "Spring");
-    headersMap.put(food, "donuts");
-    headersMap.put(ActivitiConstants.WELL_KNOWN_EXECUTION_ID_HEADER_KEY, "exe");
+		processVariableHeaderMapper.setIncludeHeadersWithWellKnownPrefix(true);
+		processVariableHeaderMapper.afterPropertiesSet();
+		processVariableHeaderMapper.fromHeaders(headers, vars);
+		assertTrue("all keys except for 'food' should be in the headers.", !vars.containsKey(food) && vars.size() == (headersMap.size() - 1));
 
-    MessageHeaders headers = new MessageHeaders(headersMap);
+		vars.clear();
+		processVariableHeaderMapper.setIncludeHeadersWithWellKnownPrefix(false);
+		processVariableHeaderMapper.afterPropertiesSet();
+		processVariableHeaderMapper.fromHeaders(headers, vars);
+		assertTrue("all keys except for 'food' should be in the headers.",
+				!vars.containsKey(food) && !vars.containsKey(prefixKey) && vars.size() == (headersMap.size() - 2));
+	}
 
-    processVariableHeaderMapper.setIncludeHeadersWithWellKnownPrefix(true);
-    processVariableHeaderMapper.afterPropertiesSet();
-    processVariableHeaderMapper.fromHeaders(headers, vars);
-    assertTrue("all keys except for 'food' should be in the headers.", !vars.containsKey(food) && vars.size() == (headersMap.size() - 1));
+	private ActivityExecution buildActivityExecution() {
+		ExecutionEntity ex = mock(ExecutionEntity.class);
+		when(ex.getId()).thenReturn("buildActivityExecution.executionId");
+		when(ex.getProcessDefinitionId()).thenReturn("buildActivityExecution.processDefinitionId");
+		when(ex.getId()).thenReturn("buildActivityExecution.id");
+		ActivityImpl pvmActivity = mock(ActivityImpl.class);
 
-    vars.clear();
-    processVariableHeaderMapper.setIncludeHeadersWithWellKnownPrefix(false);
-    processVariableHeaderMapper.afterPropertiesSet();
-    processVariableHeaderMapper.fromHeaders(headers, vars);
-    assertTrue("all keys except for 'food' should be in the headers.",
-        !vars.containsKey(food) && !vars.containsKey(prefixKey) && vars.size() == (headersMap.size() - 2));
-  }
+		when(pvmActivity.getId()).thenReturn("pvmActivity.id");
+		when(ex.getActivity()).thenReturn(pvmActivity);
 
-  private ActivityExecution execution() {
-    ExecutionEntity ex = mock(ExecutionEntity.class);
-    when(ex.getId()).thenReturn("execution.executionId");
-    when(ex.getProcessDefinitionId()).thenReturn("execution.processDefinitionId");
-    when(ex.getId()).thenReturn("execution.id");
-    ActivityImpl pvmActivity = mock(ActivityImpl.class);
+		return ex;
+	}
 
-    when(pvmActivity.getId()).thenReturn("pvmActivity.id");
-    when(ex.getActivity()).thenReturn(pvmActivity);
+	@Test
+	public void testMappingProcVarsToHeadersWithExecution() throws Throwable {
 
-    return ex;
-  }
+		Map<String, Object> pvs = new HashMap<String, Object>();
+		pvs.put("customerId", 22);
+		pvs.put("age", 232);
 
-  @Test
-  public void testMappingProcVarsToHeadersWithExecution() throws Throwable {
+		this.processVariableHeaderMapper.afterPropertiesSet();
 
-    Map<String, Object> pvs = new HashMap<String, Object>();
-    pvs.put("customerId", 22);
-    pvs.put("age", 232);
+		Map<String, ?> res = this.processVariableHeaderMapper.toHeaders(pvs);
+		assertTrue("we should have the process variables " +
+				"as well as the headers matching the " +
+				ActivitiConstants.class.getName() + ".* constants",
+				res.size() > pvs.size());
+	}
 
-    ActivityExecution ex = execution();
-    this.processVariableHeaderMapper.setCurrentActivityExecution(ex);
-    this.processVariableHeaderMapper.afterPropertiesSet();
+	@Test
+	public void testProcVarToHeaderWhitelist() throws Throwable {
 
-    Map<String, ?> res = this.processVariableHeaderMapper.toHeaders(pvs);
-    assertTrue("we should have the process variables " +
-        "as well as the headers matching the " +
-        ActivitiConstants.class.getName() + ".* constants",
-        res.size() > pvs.size());
-  }
+		Map<String, Object> pvs = new HashMap<String, Object>();
+		pvs.put("customerId", 22);
+		pvs.put("age", 232);
 
-  @Test
-  public void testProcVarToHeaderWhitelist() throws Throwable {
+		this.processVariableHeaderMapper.setProcessVariableToHeaderNames("age");
+		this.processVariableHeaderMapper.afterPropertiesSet();
 
-    Map<String, Object> pvs = new HashMap<String, Object>();
-    pvs.put("customerId", 22);
-    pvs.put("age", 232);
+		Map<String, ?> rex = this.processVariableHeaderMapper.toHeaders(pvs);
+		assertTrue(rex.size() == countOfWellKnownProcessHeaders+ 1);
+	}
 
-    this.processVariableHeaderMapper.setRequiresActivityExecution(false);
-    this.processVariableHeaderMapper.setCurrentActivityExecution(null);
-    this.processVariableHeaderMapper.setProcessVariableToHeaderNames("age");
-    this.processVariableHeaderMapper.afterPropertiesSet();
+	@Test
+	public void testPrefixingOfMessageHeaders() throws Throwable {
 
-    Map<String, ?> rex = this.processVariableHeaderMapper.toHeaders(pvs);
-    assertTrue(rex.size() == 1);
-  }
+		Map<String, Object> pvs = new HashMap<String, Object>();
+		pvs.put("customerId", 22);
+		pvs.put("age", 232);
 
-  @Test
-  public void testPrefixingOfMessageHeaders() throws Throwable {
+		this.processVariableHeaderMapper.setPrefix(this.prefix);
+		this.processVariableHeaderMapper.setShouldPrefixProcessVariables(true);
+//    this.processVariableHeaderMapper.setRequiresActivityExecution(false);
+		//   this.processVariableHeaderMapper.setCurrentActivityExecution(null);
+		this.processVariableHeaderMapper.afterPropertiesSet();
+		Map<String, ?> rex = this.processVariableHeaderMapper.toHeaders(pvs);
+		assertTrue(rex.size() ==  countOfWellKnownProcessHeaders+pvs.size());
+		for (String pvKey : pvs.keySet())
+			assertTrue(rex.containsKey(prefix + pvKey));
 
-    Map<String, Object> pvs = new HashMap<String, Object>();
-    pvs.put("customerId", 22);
-    pvs.put("age", 232);
+		// now do the same thing with a null prefix
+		processVariableHeaderMapper.setPrefix(null);
+		processVariableHeaderMapper.afterPropertiesSet();
 
-    this.processVariableHeaderMapper.setPrefix(this.prefix);
-    this.processVariableHeaderMapper.setShouldPrefixProcessVariables(true);
-    this.processVariableHeaderMapper.setRequiresActivityExecution(false);
-    this.processVariableHeaderMapper.setCurrentActivityExecution(null);
-    this.processVariableHeaderMapper.afterPropertiesSet();
-    Map<String, ?> rex = this.processVariableHeaderMapper.toHeaders(pvs);
-    assertTrue(rex.size() == pvs.size());
-    for (String pvKey : pvs.keySet())
-      assertTrue(rex.containsKey(prefix + pvKey));
+		rex = this.processVariableHeaderMapper.toHeaders(pvs);
+		assertTrue(rex.size() == countOfWellKnownProcessHeaders+ pvs.size());
+		for (String pvKey : pvs.keySet())
+			assertTrue(rex.containsKey(pvKey));
+	}
 
-    // now do the same thing with a null prefix
-    processVariableHeaderMapper.setPrefix(null);
-    processVariableHeaderMapper.afterPropertiesSet();
+	@Test
+	public void testMappingProcVarsToHeadersWithoutExecution() throws Throwable {
 
-    rex = this.processVariableHeaderMapper.toHeaders(pvs);
-    assertTrue(rex.size() == pvs.size());
-    for (String pvKey : pvs.keySet())
-      assertTrue(rex.containsKey(pvKey));
-  }
+		Map<String, Object> pvs = new HashMap<String, Object>();
+		pvs.put("customerId", 22);
+		pvs.put("age", 232);
 
-  @Test
-  public void testMappingProcVarsToHeadersWithoutExecution() throws Throwable {
+		this.processVariableHeaderMapper.setProcessVariableToHeaderNames("*");
+		this.processVariableHeaderMapper.afterPropertiesSet();
 
-    Map<String, Object> pvs = new HashMap<String, Object>();
-    pvs.put("customerId", 22);
-    pvs.put("age", 232);
+		Map<String, ?> res = this.processVariableHeaderMapper.toHeaders(pvs);
+		assertEquals(res.size(), countOfWellKnownProcessHeaders + pvs.size()); // account for
+	}
 
-    // can't do any more than respond to what was given since were not passing in an execution
-    this.processVariableHeaderMapper.setProcessVariableToHeaderNames("*");
-    this.processVariableHeaderMapper.setCurrentActivityExecution(null);
-    this.processVariableHeaderMapper.setRequiresActivityExecution(false);
-    this.processVariableHeaderMapper.afterPropertiesSet();
+	@Test
+	public void testMappingProcessVariablesToHeadersSetup() throws Throwable {
 
-    Map<String, ?> res = this.processVariableHeaderMapper.toHeaders(pvs);
-    assertEquals(res.size(), pvs.size());
-  }
+		processVariableHeaderMapper.setProcessVariableToHeaderNames((String[]) null);
+		processVariableHeaderMapper.afterPropertiesSet();
 
-  @Test
-  public void testMappingProcessVariablesToHeadersSetup() throws Throwable {
+		processVariableHeaderMapper.setProcessVariableToHeaderNames(this.testKeys);
+		processVariableHeaderMapper.afterPropertiesSet();
+	}
 
-    processVariableHeaderMapper.setProcessVariableToHeaderNames(null);
-    processVariableHeaderMapper.afterPropertiesSet();
+	@Test
+	public void testActivityExecutionStates() throws Throwable {
 
-    processVariableHeaderMapper.setProcessVariableToHeaderNames(this.testKeys);
-    processVariableHeaderMapper.afterPropertiesSet();
-  }
+//    processVariableHeaderMapper.setRequiresActivityExecution(false);
+		processVariableHeaderMapper.afterPropertiesSet();
 
-  @Test
-  public void testActivityExecutionStates() throws Throwable {
+		//  processVariableHeaderMapper.setCurrentActivityExecution(null);
+		processVariableHeaderMapper.afterPropertiesSet();
 
-    processVariableHeaderMapper.setRequiresActivityExecution(false);
-    processVariableHeaderMapper.afterPropertiesSet();
-
-    processVariableHeaderMapper.setCurrentActivityExecution(null);
-    processVariableHeaderMapper.afterPropertiesSet();
-
-    processVariableHeaderMapper.setCurrentActivityExecution(activityExecution);
-    processVariableHeaderMapper.setRequiresActivityExecution(true);
-    processVariableHeaderMapper.afterPropertiesSet();
-  }
+		//processVariableHeaderMapper.setCurrentActivityExecution(activityExecution);
+//    processVariableHeaderMapper.setRequiresActivityExecution(true);
+		processVariableHeaderMapper.afterPropertiesSet();
+	}
 }
