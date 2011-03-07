@@ -1,4 +1,17 @@
+/* Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.springframework.integration.activiti.gateway;
+
 
 import org.activiti.engine.ProcessEngine;
 import org.activiti.engine.RuntimeService;
@@ -24,9 +37,10 @@ import org.springframework.util.Assert;
 import java.util.HashMap;
 import java.util.Map;
 
+
 /**
- * This class is plugged into an Activiti workflow. <serviceTask /> let's us plugin a custom {@link	ActivityBehavior}.
- * We need to build an {@link	ActivityBehavior} that can send and receive the message,
+ * This class is plugged into an Activiti workflow. <serviceTask /> let's us plugin a custom {@link		 ActivityBehavior}.
+ * We need to build an {@link	 ActivityBehavior} that can send and receive the message,
  * propagating the {@code executionId} and potentially process variables/ header variables.
  * <p/>
  * Simply <code>svn co http://svn.codehaus.org/activiti/activiti/branches/alpha4-spring-integration-adapter</code> that repository and then <code>mvn clean install </code> it.
@@ -44,13 +58,11 @@ import java.util.Map;
  * Thanks to Dave Syer and Tom Baeyens for the help brainstorming.
  *
  * @author Josh Long
- * @see ReceiveTaskActivityBehavior	the {@link ActivityBehavior} impl that ships w/ Activiti that has the machinery to wake up when signaled
+ * @see ReceiveTaskActivityBehavior		 the {@link ActivityBehavior} impl that ships w/ Activiti that has the machinery to wake up when signaled
  * @see ProcessEngine the process engine instance is required to be able to use this namespace
  * @see org.activiti.spring.ProcessEngineFactoryBean - use this class to create the aforementioned ProcessEngine instance!
  */
 public abstract class AbstractActivityBehaviorMessagingGateway extends ReceiveTaskActivityBehavior implements BeanFactoryAware, BeanNameAware, ActivityBehavior, InitializingBean {
-
-	protected ProcessVariableHeaderMapper headerMapper;
 
 	protected Log log = LogFactory.getLog(getClass());
 
@@ -59,31 +71,6 @@ public abstract class AbstractActivityBehaviorMessagingGateway extends ReceiveTa
 	 */
 	protected MessagingTemplate messagingTemplate = new MessagingTemplate();
 
-	/**
-	 * This is the channel on which we expect requests - {@link	Execution}s from Activiti - to arrive
-	 */
-	protected volatile MessageChannel requestChannel;
-
-	/**
-	 * This is the channel on which we expect to send replies - ie, the result of our work in
-	 * Spring Integration - back to Activiti, which should be waiting for the results
-	 */
-	protected volatile MessageChannel replyChannel;
-
-	/**
-	 * Injected from Spring or some other mechanism. Recommended approach is through a {@link	org.activiti.spring.ProcessEngineFactoryBean}
-	 */
-	protected volatile ProcessEngine processEngine;
-
-	/**
-	 * Should we update the process variables based on the reply {@link org.springframework.integration.Message}'s {@link org.springframework.integration.MessageHeaders}?
-	 */
-	protected volatile boolean updateProcessVariablesFromReplyMessageHeaders;
-
-	/**
-	 * Should we pass the workflow process variables as message headers when we send a message into the Spring Integration framework?
-	 */
-	protected volatile boolean forwardProcessVariablesAsMessageHeaders;
 
 	/**
 	 * A reference to the {@link org.springframework.beans.factory.BeanFactory} that's hosting this component. Spring will inject this reference automatically assuming
@@ -92,14 +79,45 @@ public abstract class AbstractActivityBehaviorMessagingGateway extends ReceiveTa
 	protected volatile BeanFactory beanFactory;
 
 	/**
+	 * {@link BeanNameAware#setBeanName(String)}
+	 */
+	protected String beanName;
+
+	/**
+	 * Should we pass the workflow process variables as message headers when we send a message into the Spring Integration framework?
+	 */
+	protected volatile boolean forwardProcessVariablesAsMessageHeaders;
+
+	/**
+	 * Presumably this is an instance of {@link DefaultProcessVariableHeaderMapper}.
+	 */
+	protected ProcessVariableHeaderMapper headerMapper;
+
+	/**
+	 * Injected from Spring or some other mechanism. Recommended approach is through a {@link			 org.activiti.spring.ProcessEngineFactoryBean}
+	 */
+	protected volatile ProcessEngine processEngine;
+
+	/**
 	 * The process engine instance that controls the Activiti PVM. Recommended creation is through {@link org.activiti.spring.ProcessEngineFactoryBean}
 	 */
 	protected RuntimeService processService;
 
 	/**
-	 * {@link BeanNameAware#setBeanName(String)}
+	 * This is the channel on which we expect to send replies - ie, the result of our work in
+	 * Spring Integration - back to Activiti, which should be waiting for the results
 	 */
-	protected String beanName;
+	protected volatile MessageChannel replyChannel;
+
+	/**
+	 * This is the channel on which we expect requests - {@link		 Execution}s from Activiti - to arrive
+	 */
+	protected volatile MessageChannel requestChannel;
+
+	/**
+	 * Should we update the process variables based on the reply {@link org.springframework.integration.Message}'s {@link org.springframework.integration.MessageHeaders}?
+	 */
+	protected volatile boolean updateProcessVariablesFromReplyMessageHeaders;
 
 	@SuppressWarnings("unused")
 	public void setRequestChannel(MessageChannel requestChannel) {
@@ -122,7 +140,8 @@ public abstract class AbstractActivityBehaviorMessagingGateway extends ReceiveTa
 	}
 
 	@SuppressWarnings("unused")
-	public void setUpdateProcessVariablesFromReplyMessageHeaders(boolean updateProcessVariablesFromReplyMessageHeaders) {
+	public void setUpdateProcessVariablesFromReplyMessageHeaders(
+			boolean updateProcessVariablesFromReplyMessageHeaders) {
 		this.updateProcessVariablesFromReplyMessageHeaders = updateProcessVariablesFromReplyMessageHeaders;
 	}
 
@@ -138,28 +157,28 @@ public abstract class AbstractActivityBehaviorMessagingGateway extends ReceiveTa
 	/**
 	 * Provides an opportunity for subclasses to provide extra headers to the adapter message
 	 *
+	 * @return a map of the headers contributed
 	 * @param activityExecution of the current process as it was received when we entered this {@link ActivityBehavior} instance
+	 * @throws Exception ex
 	 */
 	@SuppressWarnings("unused")
 	protected Map<String, Object> contributeHeadersForOutboundMessage(ActivityExecution activityExecution) throws Exception {
 		return new HashMap<String, Object>();
 	}
 
-	private ActivityExecution activityExecution;
-
 	/**
 	 * implementations should use this to handle sending the final message
 	 *
 	 * @param ex ActivityExecution instance as passed in from {@link ReceiveTaskActivityBehavior#execute(org.activiti.engine.impl.pvm.delegate.ActivityExecution)}
+	 * @throws Exception general escape hatch exception. we'll handle it, if thrown.
 	 */
 	protected abstract void onExecute(ActivityExecution ex) throws Exception;
 
 	/**
 	 * hook for setup {@link #afterPropertiesSet()} logic after we've setup state
 	 *
-	 * @throws Exception
+	 * @throws Exception      general escape hatch exception. we'll handle it, if thrown.
 	 */
-
 	protected abstract void onInit() throws Exception;
 
 	/**
@@ -173,8 +192,8 @@ public abstract class AbstractActivityBehaviorMessagingGateway extends ReceiveTa
 	}
 
 	/**
-	 * Verify the presence of references to a request and reply {@link	org.springframework.integration.MessageChannel},
-	 * the {@link	ProcessEngine}, and setup the {@link org.springframework.integration.core.MessageHandler} that handles the replies
+	 * Verify the presence of references to a request and reply {@link			org.springframework.integration.MessageChannel},
+	 * the {@link	 ProcessEngine}, and setup the {@link org.springframework.integration.core.MessageHandler} that handles the replies
 	 *
 	 * @throws Exception
 	 */
@@ -182,19 +201,16 @@ public abstract class AbstractActivityBehaviorMessagingGateway extends ReceiveTa
 		Assert.state(this.replyChannel != null, "'replyChannel' can't be null!");
 		Assert.state(this.requestChannel != null, "'requestChannel' can't be null!");
 		Assert.state(this.processEngine != null, "'processEngine' can't be null!");
-
 		processService = this.processEngine.getRuntimeService();
 
 		if (this.headerMapper == null) {
-			// provides a thread safe proxy
 			ActivityExecutionFactoryBean activityExecutionFactoryBean = new ActivityExecutionFactoryBean();
 			activityExecutionFactoryBean.afterPropertiesSet();
 			ActivityExecution execution = activityExecutionFactoryBean.getObject();
-
-			this.headerMapper = new DefaultProcessVariableHeaderMapper(this.processEngine, execution);
+			this.headerMapper = new DefaultProcessVariableHeaderMapper( execution);
 		}
 
-		Assert.notNull(this.headerMapper, "the 'headerMapper' can't be null") ;
+		Assert.notNull(this.headerMapper, "the 'headerMapper' can't be null");
 		Assert.notNull(this.processService, "'processService' can't be null");
 		onInit();
 	}
@@ -204,13 +220,7 @@ public abstract class AbstractActivityBehaviorMessagingGateway extends ReceiveTa
 	}
 
 	protected MessageBuilder<?> doBasicOutboundMessageConstruction(ActivityExecution execution) throws Exception {
-
 		Map<String, ?> headers = headerMapper.toHeaders(execution.getVariables());
-
-		MessageBuilder<?> messageBuilder = MessageBuilder.withPayload(execution)
-				.copyHeadersIfAbsent(this.contributeHeadersForOutboundMessage(execution))
-						//   .setReplyChannel(replyChannel)
-				.copyHeaders(headers);
-		return messageBuilder;
+		return MessageBuilder.withPayload(execution).copyHeadersIfAbsent(contributeHeadersForOutboundMessage(execution)).copyHeaders(headers);
 	}
 }

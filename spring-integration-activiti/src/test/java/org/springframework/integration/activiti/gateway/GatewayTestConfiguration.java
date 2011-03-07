@@ -34,14 +34,5 @@ public class GatewayTestConfiguration extends CommonConfiguration {
     gateway.setReplyChannel(this.replies);
     return gateway;
   }
-/*
-  @Bean
-  public SyncActivityBehaviorMessagingGateway syncGateway() throws Exception {
-    return configureAbstractActivityBehaviorMessagingGateway(new SyncActivityBehaviorMessagingGateway());
-  }
 
-  @Bean
-  public AsyncActivityBehaviorMessagingGateway asyncGateway() throws Exception {
-    return configureAbstractActivityBehaviorMessagingGateway(new AsyncActivityBehaviorMessagingGateway());
-  }*/
 }

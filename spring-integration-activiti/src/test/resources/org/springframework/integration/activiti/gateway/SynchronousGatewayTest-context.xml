@@ -10,8 +10,8 @@
             ">
 
 
-     <context:property-placeholder location="db.properties"/>
-        <context:annotation-config/>
+    <context:property-placeholder location="db.properties"/>
+    <context:annotation-config/>
 
     <bean class="org.springframework.integration.activiti.gateway.SynchronousGatewayConfiguration"/>
 
@@ -19,11 +19,12 @@
         <int:queue capacity="10"/>
     </int:channel>
 
-    <int:service-activator input-channel="request" ref="serviceActivator" >
+    <int:service-activator input-channel="request" ref="serviceActivator">
         <int:poller fixed-rate="1000"/>
     </int:service-activator>
 
-    <int:channel id="response" /><!--unneeded-->
+    <int:channel id="response"/>
+    <!--unneeded-->
 
 
 </beans>

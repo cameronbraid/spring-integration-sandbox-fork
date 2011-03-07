@@ -13,8 +13,10 @@
 
 package org.springframework.integration.activiti.adapter;
 
-import org.activiti.engine.test.Deployment;
+import org.activiti.engine.ProcessEngine;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.integration.Message;
 import org.springframework.integration.MessageChannel;
@@ -23,30 +25,21 @@ import org.springframework.integration.activiti.test.AbstractSpringIntegrationAc
 import org.springframework.integration.core.MessagingTemplate;
 import org.springframework.integration.support.MessageBuilder;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @ContextConfiguration(  "ProcessStartingOutboundChannelAdapterTest-context.xml")
-
-//@RunWith(SpringJUnit4ClassRunner.class)
+@RunWith(SpringJUnit4ClassRunner.class)
 public class ProcessStartingOutboundAdapterTest extends AbstractSpringIntegrationActivitiTestCase {
 
   @Value("#{triggerChannel}")
   private MessageChannel messageChannel;
-
+	      @Autowired 	ProcessEngine pe;
   private MessagingTemplate messagingTemplate = new MessagingTemplate();
 
-
-/*
-  @Before
-  public void setup() throws Throwable {
-
-    processEngine.getRepositoryService().createDeployment().addClasspathResource("").deploy();
-  }*/
-
   @Test
-  // @Deployment(  resources = "processes/hello.bpmn20.xml")
   public void testOutboundAdapter() throws Throwable {
 
-    processEngine.getRepositoryService().createDeployment().addClasspathResource("processes/hello.bpmn20.xml").deploy() ;
+    pe.getRepositoryService().createDeployment().addClasspathResource("processes/hello.bpmn20.xml").deploy() ;
 
     Message<?> msg = MessageBuilder.withPayload("hello, from " + System.currentTimeMillis())
         .setHeader(ActivitiConstants.WELL_KNOWN_PROCESS_DEFINITION_NAME_HEADER_KEY, "hello")

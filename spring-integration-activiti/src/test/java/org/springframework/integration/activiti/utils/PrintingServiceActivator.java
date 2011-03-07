@@ -31,13 +31,11 @@ import java.util.Map;
  *
  * @author Josh Long
  */
+@SuppressWarnings("unused")
 public class PrintingServiceActivator {
 
     private Log log = LogFactory.getLog(getClass());
 
-    public void setWhatToPrint(String whatToPrint) {
-        this.whatToPrint = whatToPrint;
-    }
 
     private String whatToPrint = "Arrived in " + getClass().getName();
 

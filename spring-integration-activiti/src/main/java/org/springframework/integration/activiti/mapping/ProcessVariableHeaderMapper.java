@@ -29,7 +29,7 @@ public interface ProcessVariableHeaderMapper extends HeaderMapper<Map<String, Ob
 	 * this needs to be available for all methods in the {@link HeaderMapper}.
 	 * For testing, this can be a simple mock, for concurrent access, bind a threadsafe proxy.
 	 *
-	 * @param ae
+	 * @param ae the current {@link ActivityExecution}.
 	 */
 	void setCurrentActivityExecution(ActivityExecution ae);
 }
