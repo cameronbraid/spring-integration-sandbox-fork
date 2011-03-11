@@ -56,6 +56,8 @@ public class AmqpInboundChannelAdapterParser extends AbstractSingleBeanDefinitio
 		builder.addConstructorArgReference(connectionFactoryRef);
 		IntegrationNamespaceUtils.setValueIfAttributeDefined(builder, element, "queue-name");
 		IntegrationNamespaceUtils.setReferenceIfAttributeDefined(builder, element, "channel", "outputChannel");
+		IntegrationNamespaceUtils.setReferenceIfAttributeDefined(builder, element, "error-channel");
+		IntegrationNamespaceUtils.setReferenceIfAttributeDefined(builder, element, "message-converter");
 	}
 
 }

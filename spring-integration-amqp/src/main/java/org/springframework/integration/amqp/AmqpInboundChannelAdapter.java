@@ -20,6 +20,7 @@ import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageListener;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
+import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.amqp.support.converter.SimpleMessageConverter;
 import org.springframework.integration.endpoint.MessageProducerSupport;
 import org.springframework.integration.support.MessageBuilder;
@@ -36,7 +37,7 @@ public class AmqpInboundChannelAdapter extends MessageProducerSupport {
 
 	private final SimpleMessageListenerContainer messageListenerContainer;
 
-	private final SimpleMessageConverter messageConverter = new SimpleMessageConverter();
+	private volatile MessageConverter messageConverter = new SimpleMessageConverter();
 
 
 	public AmqpInboundChannelAdapter(ConnectionFactory connectionFactory) {
@@ -48,6 +49,11 @@ public class AmqpInboundChannelAdapter extends MessageProducerSupport {
 
 	public void setQueueName(String queueName) {
 		this.messageListenerContainer.setQueueName(queueName);
+	}
+
+	public void setMessageConverter(MessageConverter messageConverter) {
+		Assert.notNull(messageConverter, "messageConverter must not be null");
+		this.messageConverter = messageConverter;
 	}
 
 	@Override
