@@ -24,6 +24,8 @@ import org.springframework.integration.Message;
 import org.springframework.integration.handler.AbstractReplyProducingMessageHandler;
 import org.springframework.util.Assert;
 
+import com.rabbitmq.client.impl.Frame;
+
 /**
  * Adapter that converts and sends Messages to an AMQP Exchange.
  * 
@@ -39,7 +41,6 @@ public class AmqpOutboundEndpoint extends AbstractReplyProducingMessageHandler {
 	private volatile String routingKey = "";
 
 	private volatile boolean expectReply;
-
 
 	public AmqpOutboundEndpoint(AmqpTemplate amqpTemplate) {
 		Assert.notNull(amqpTemplate, "AmqpTemplate must not be null");
@@ -70,18 +71,44 @@ public class AmqpOutboundEndpoint extends AbstractReplyProducingMessageHandler {
 		}
 	}
 
-	private void send(Message<?> requestMessage) {
-		this.amqpTemplate.convertAndSend(this.exchangeName, this.routingKey, requestMessage.getPayload(), new MessagePostProcessor() {
-			@Override
-			public org.springframework.amqp.core.Message postProcessMessage(org.springframework.amqp.core.Message message) throws AmqpException {
-				//message.getMessageProperties().setX
-				return message;
+	public class HeaderCopyMessagePostProcessor implements MessagePostProcessor {
+		final private Message<?> requestMessage;
+		public HeaderCopyMessagePostProcessor(Message<?> requestMessage) {
+			this.requestMessage = requestMessage;
+		}
+		@Override
+		public org.springframework.amqp.core.Message postProcessMessage(org.springframework.amqp.core.Message message) throws AmqpException {
+			for (String headerName : requestMessage.getHeaders().keySet()) {
+					Object headerValue = requestMessage.getHeaders().get(headerName);
+					boolean isHeaderSupported = includeMessageHeader(headerName, headerValue);
+					if (isHeaderSupported) {
+						message.getMessageProperties().setHeader(headerName, headerValue);
+					}
+					
 			}
-		});
+			return message;
+		}
+	}
+
+	protected boolean includeMessageHeader(String headerName, Object headerValue) {
+		boolean isHeaderSupported = false;
+		try {
+			Frame.fieldValueSize(headerValue);
+			isHeaderSupported = true;
+		}
+		catch (Exception e) {
+			// Frame.fieldValueSize throws an exception for invalid header value types
+		}
+		return isHeaderSupported;
+	}
+
+	private void send(final Message<?> requestMessage) {
+		this.amqpTemplate.convertAndSend(this.exchangeName, this.routingKey, requestMessage.getPayload(), new HeaderCopyMessagePostProcessor(requestMessage));
 	}
 
 	private Object sendAndReceive(Message<?> requestMessage) {
 		// TODO: remove cast once the interface methods are added
+		// TODO: ask spring to add convertSendAndReceive method that can take a MessagePostProcessor (in this case a HeaderCopyMessagePostProcessor)
 		return ((RabbitTemplate) this.amqpTemplate).convertSendAndReceive(this.exchangeName, this.routingKey, requestMessage.getPayload());
 	}
 
