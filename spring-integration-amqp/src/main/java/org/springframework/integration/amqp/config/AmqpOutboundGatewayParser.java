@@ -46,7 +46,13 @@ public class AmqpOutboundGatewayParser extends AbstractConsumerEndpointParser {
 			amqpTemplateRef = "amqpTemplate";
 		}
 		builder.addConstructorArgReference(amqpTemplateRef);
-		builder.addPropertyValue("expectReply", true);
+
+		// when expectReply is used, the MessagePostProcessor isn't used, so for the time being leave it as false
+		//		builder.addPropertyValue("expectReply", true);
+		
+		// TODO add XSD support for expect-reply element
+		IntegrationNamespaceUtils.setValueIfAttributeDefined(builder, element, "expect-reply");
+		
 		IntegrationNamespaceUtils.setValueIfAttributeDefined(builder, element, "exchange-name");
 		IntegrationNamespaceUtils.setValueIfAttributeDefined(builder, element, "routing-key");
 		IntegrationNamespaceUtils.setReferenceIfAttributeDefined(builder, element, "reply-channel", "outputChannel");
